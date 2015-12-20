@@ -1,0 +1,97 @@
+{
+  "name": "modelmeta",
+  "base": "PersistedModel",
+  "idInjection": false,
+  "options": {
+    "validateUpsert": true
+  },
+  "properties": {
+    "sid": {
+      "type": "string",
+      "id": true,
+      "generated": false
+    },
+    "name": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "required": true
+    },
+    "image": {
+      "type": "string"
+    },
+    "viewTrack": {
+      "type": {
+        "totalCount": "number"
+      },
+      "required": true
+    },
+    "nodes": {
+      "type": "object"
+    },
+    "viewerOptions": {
+      "type": {
+        "description": "boolean",
+        "floor": "boolean",
+        "map": "boolean",
+        "share": "boolean",
+        "presentedBy": "boolean"
+      }
+    },
+    "presentedBy": {
+      "type": "string"
+    },
+    "address": {
+      "type": "string"
+    },
+    "geolocation": {
+      "type": "geopoint"
+    },
+    "description": {
+      "type": "string"
+    },
+    "ownerId": {
+      "type": "string",
+      "required": true
+    }
+  },
+  "validations": [],
+  "relations": {
+    "nodes": {
+      "type": "hasMany",
+      "model": "nodemeta",
+      "foreignKey": "modelId"
+    },
+    "snapshots": {
+      "type": "embedsMany",
+      "model": "snapshot",
+      "property": "snapshotList",
+      "options": {
+        "validate": true,
+        "forceId": false
+      }
+    },
+    "sharedModels": {
+      "type": "hasMany",
+      "model": "modelshare",
+      "foreignKey": "modelId"
+    },
+    "files": {
+      "type": "hasMany",
+      "model": "file",
+      "foreignKey": "modelId"
+    },
+    "labels": {
+      "type": "embedsMany",
+      "model": "label",
+      "property": "labelList",
+      "options": {
+        "validate": true,
+        "forceId": false
+      }
+    }
+  },
+  "acls": [],
+  "methods": {}
+}

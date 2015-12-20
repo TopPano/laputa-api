@@ -1,0 +1,69 @@
+{
+  "name": "snapshot",
+  "plural": "snapshots",
+  "base": "PersistedModel",
+  "idInjection": false,
+  "options": {
+    "validateUpsert": true
+  },
+  "properties": {
+    "sid": {
+      "type": "string",
+      "id": true,
+      "generated": false
+    },
+    "name": {
+      "type": "string"
+    },
+    "url": {
+      "type": "string"
+    },
+    "thumbnailUrl": {
+      "type": "string"
+    },
+    "srcUrl": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": {
+        "cameraHeading": {
+          "lat": "number",
+          "lng": "number"
+        }
+      }
+    },
+    "createdBy": {
+      "type": "string"
+    },
+    "modifiedBy": {
+      "type": "string"
+    },
+    "created": {
+      "type": "date"
+    },
+    "modified": {
+      "type": "date"
+    },
+    "height": {
+      "type": "number"
+    },
+    "weight": {
+      "type": "number"
+    }
+  },
+  "validations": [],
+  "relations": {
+    "model": {
+      "type": "belongsTo",
+      "model": "modelmeta",
+      "foreignKey": "modelId"
+    },
+    "node": {
+      "type": "belongsTo",
+      "model": "nodemeta",
+      "foreignKey": "nodeId"
+    }
+  },
+  "acls": [],
+  "methods": {}
+}

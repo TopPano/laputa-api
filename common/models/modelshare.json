@@ -1,0 +1,22 @@
+{
+  "name": "modelshare",
+  "base": "PersistedModel",
+  "idInjection": true,
+  "options": {
+    "validateUpsert": true
+  },
+  "properties": {
+    "sharedUserId": {
+      "type": "string",
+      "id": 1
+    },
+    "sharedModelId": {
+      "type": "string",
+      "id": 2
+    }
+  },
+  "validations": [],
+  "relations": {},
+  "acls": [],
+  "methods": {}
+}

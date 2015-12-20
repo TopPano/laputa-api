@@ -1,0 +1,61 @@
+{
+  "name": "nodemeta",
+  "base": "PersistedModel",
+  "idInjection": false,
+  "options": {
+    "validateUpsert": true
+  },
+  "properties": {
+    "sid": {
+      "type": "string",
+      "id": true,
+      "generated": false
+    },
+    "tag": {
+      "type": "string"
+    },
+    "heading": {
+      "type": "number"
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "floor": {
+      "type": "number"
+    },
+    "thumbnailUrl": {
+      "type": "string"
+    },
+    "srcUrl": {
+      "type": "string"
+    },
+    "transitions": {
+      "type": [
+        {
+          "lat": "number",
+          "lng": "number",
+          "size": "number",
+          "nextNodeId": "string"
+        }
+      ]
+    },
+    "modelId": {
+      "type": "string",
+      "required": true
+    }
+  },
+  "validations": [],
+  "relations": {
+    "files": {
+      "type": "embedsMany",
+      "model": "files",
+      "property": "fileList",
+      "options": {
+        "validate": true,
+        "forceId": false
+      }
+    }
+  },
+  "acls": [],
+  "methods": {}
+}

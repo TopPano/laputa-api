@@ -1,0 +1,48 @@
+{
+  "name": "user",
+  "plural": "users",
+  "base": "User",
+  "idInjection": false,
+  "options": {
+    "validateUpsert": true
+  },
+  "properties": {
+    "sid": {
+      "type": "string",
+      "id": true,
+      "generated": false
+    },
+    "username": {
+      "type": "string"
+    },
+    "userPhotoUrl": {
+      "type": "string"
+    },
+    "coverPhotoUrl": {
+      "type": "string"
+    },
+    "autobiography": {
+      "type": "string"
+    }
+  },
+  "validations": [],
+  "relations": {
+    "models": {
+      "type": "hasMany",
+      "model": "modelmeta",
+      "foreignKey": "ownerId"
+    },
+    "labels": {
+      "type": "hasMany",
+      "model": "label",
+      "foreignKey": "ownerId"
+    },
+    "sharedModels": {
+      "type": "hasMany",
+      "model": "modelshare",
+      "foreignKey": "userId"
+    }
+  },
+  "acls": [],
+  "methods": {}
+}

@@ -1,0 +1,46 @@
+{
+  "name": "files",
+  "base": "PersistedModel",
+  "idInjection": false,
+  "options": {
+    "validateUpsert": true
+  },
+  "properties": {
+    "sid": {
+      "type": "string",
+      "id": true,
+      "generated": false
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "url": {
+      "type": "string",
+      "required": true
+    },
+    "modelId": {
+      "type": "string",
+      "required": true
+    },
+    "nodeId": {
+      "type": "string",
+      "required": true
+    }
+  },
+  "validations": [],
+  "relations": {
+    "node": {
+      "type": "belongsTo",
+      "model": "nodemeta",
+      "foreignKey": "nodeId"
+    },
+    "model": {
+      "type": "belongsTo",
+      "model": "nodemeta",
+      "foreignKey": "modelId"
+    }
+  },
+  "acls": [],
+  "methods": {}
+}
