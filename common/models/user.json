@@ -10,7 +10,8 @@
     "sid": {
       "type": "string",
       "id": true,
-      "generated": false
+      "generated": false,
+      "defaultFn": "uuid"
     },
     "username": {
       "type": "string"
