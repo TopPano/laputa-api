@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "main": "server/server.js",
   "scripts": {
-    "pretest": "jshint ."
+    "pretest": "jshint .",
+    "test": "mocha -C -R spec spec/ --recursive --timeout 5000"
   },
   "dependencies": {
     "bcrypt": "^0.8.5",
@@ -16,7 +17,10 @@
     "serve-favicon": "^2.0.1"
   },
   "devDependencies": {
-    "jshint": "^2.5.6"
+    "jshint": "^2.5.6",
+    "mocha": "^2.3.3",
+    "supertest": "^1.1.0",
+    "should": "^7.0.1"
   },
   "repository": {
     "type": "",
