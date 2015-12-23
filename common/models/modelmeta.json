@@ -9,14 +9,14 @@
     "sid": {
       "type": "string",
       "id": true,
-      "generated": false
+      "generated": false,
+      "defaultFn": "uuid"
     },
     "name": {
       "type": "string"
     },
     "status": {
-      "type": "string",
-      "required": true
+      "type": "string"
     },
     "image": {
       "type": "string"
@@ -24,8 +24,7 @@
     "viewTrack": {
       "type": {
         "totalCount": "number"
-      },
-      "required": true
+      }
     },
     "nodes": {
       "type": "object"
