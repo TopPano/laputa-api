@@ -4,7 +4,8 @@
   "main": "server/server.js",
   "scripts": {
     "pretest": "jshint .",
-    "test": "mocha -C -R spec spec/ --recursive --timeout 5000"
+    "test": "mocha -C -R spec spec/ --recursive --timeout 5000",
+    "local": "NODE_ENV=local node ."
   },
   "dependencies": {
     "bcrypt": "^0.8.5",

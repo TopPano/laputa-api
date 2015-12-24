@@ -24,6 +24,15 @@ boot(app, __dirname, function(err) {
   if (err) throw err;
 
   // start the server if `$ node server.js`
-  if (require.main === module)
-    app.start();
+  if (require.main === module) {
+    if (process.env.NODE_ENV === 'local') {
+      var loader = require('./testdata/dataloader');
+      loader(app, function(err) {
+        if (err) { console.log('Failed to load test data. Error: '+err); }
+        app.start();
+      });
+    } else {
+      app.start();
+    }
+  }
 });
