@@ -91,82 +91,90 @@ describe('REST API endpoint /users', function() {
   ];
 
   before(function(done) {
-    app.once('started', function() {
-      var User = app.models.user;
-      var Modelmeta = app.models.modelmeta;
-      var Label = app.models.label;
-      async.each(users, function(user, callback) {
-        User.create({
-          username: user.username,
-          email: user.email,
-          password: user.password
-        }, function(err, result) {
-          if (err) { return callback(err); }
-          user.sid = result.sid;
-          async.parallel({
-            prelogin: function(callback) {
-              if (user.prelogin === true) {
-                User.login({
-                  email: user.email,
-                  password: user.password
-                }, function(err, token) {
-                  if (err) { return callback(err); }
-                  user.accessToken = token;
-                  callback();
-                });
-              } else {
+    var User = app.models.user;
+    var Modelmeta = app.models.modelmeta;
+    var Label = app.models.label;
+    async.each(users, function(user, callback) {
+      User.create({
+        username: user.username,
+        email: user.email,
+        password: user.password
+      }, function(err, result) {
+        if (err) { return callback(err); }
+        user.sid = result.sid;
+        async.parallel({
+          prelogin: function(callback) {
+            if (user.prelogin === true) {
+              User.login({
+                email: user.email,
+                password: user.password
+              }, function(err, token) {
+                if (err) { return callback(err); }
+                user.accessToken = token;
                 callback();
-              }
-            },
-            insertModels: function(callback) {
-              if (user.hasOwnProperty('models')) {
-                async.each(user.models, function(model, cb) {
-                  model.ownerId = user.sid;
-                  Modelmeta.create(model, function(err) {
-                    if (err) { return cb(err); }
-                    cb();
-                  });
-                }, function(err) {
-                  if (err) { return callback(err); }
-                  callback();
-                });
-              } else {
-                  callback();
-              }
-            },
-            insertLabels: function(callback) {
-              if (user.hasOwnProperty('labels')) {
-                async.each(user.labels, function(label, cb) {
-                  label.ownerId = user.sid;
-                  Label.create(label, function(err) {
-                    if (err) { return cb(err); }
-                    cb();
-                  });
-                }, function(err) {
-                  if (err) { return callback(err); }
-                  callback();
-                });
-              } else {
-                  callback();
-              }
-            },
+              });
+            } else {
+              callback();
+            }
           },
-          function(err, results) {
-            if (err) { return callback(err); }
-            callback();
-          });
+          insertModels: function(callback) {
+            if (user.hasOwnProperty('models')) {
+              async.each(user.models, function(model, cb) {
+                model.ownerId = user.sid;
+                Modelmeta.create(model, function(err) {
+                  if (err) { return cb(err); }
+                  cb();
+                });
+              }, function(err) {
+                if (err) { return callback(err); }
+                callback();
+              });
+            } else {
+              callback();
+            }
+          },
+          insertLabels: function(callback) {
+            if (user.hasOwnProperty('labels')) {
+              async.each(user.labels, function(label, cb) {
+                label.ownerId = user.sid;
+                Label.create(label, function(err) {
+                  if (err) { return cb(err); }
+                  cb();
+                });
+              }, function(err) {
+                if (err) { return callback(err); }
+                callback();
+              });
+            } else {
+              callback();
+            }
+          },
+        },
+        function(err, results) {
+          if (err) { return callback(err); }
+          callback();
         });
-      }, function(err) {
-        if (err) { return done(err); }
-        done();
       });
+    }, function(err) {
+      if (err) { return done(err); }
+      done();
     });
-    app.start();
   });
 
   after(function(done) {
-    app.removeAllListeners('started');
-    done();
+    var User = app.models.user;
+    var Modelmeta = app.models.modelmeta;
+    var Label = app.models.label;
+    async.each([User, Modelmeta, Label], function(dataModel, callback) {
+      dataModel.destroyAll(function(err) {
+        if (err) { return callback(err); }
+        callback();
+      });
+    },
+    function(err) {
+      if (err) { return done(err); }
+      done();
+    });
   });
 
   it('should return a user by user id', function(done) {
