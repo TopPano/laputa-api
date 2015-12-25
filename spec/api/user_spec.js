@@ -235,7 +235,7 @@ describe('REST API endpoint /users', function() {
       });
   });
 
-  it('should be able to update user information', function(done) {
+  it('should update user information', function(done) {
     var user = users[3];
     var newUsername = 'Eric';
     var userPhotoUrl = 'http://www.foo.com/';
@@ -252,7 +252,7 @@ describe('REST API endpoint /users', function() {
       });
   });
 
-  it('should be able to delete a user', function(done) {
+  it('should delete a user', function(done) {
     var user = users[4];
     json('delete', endpoint+'/me?access_token='+user.accessToken.id)
       .expect(200, function(err, res) {
