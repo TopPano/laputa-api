@@ -9,7 +9,8 @@
     "sid": {
       "type": "string",
       "id": true,
-      "generated": false
+      "generated": false,
+      "defaultFn": "uuid"
     },
     "tag": {
       "type": "string"
@@ -19,9 +20,6 @@
     },
     "enabled": {
       "type": "boolean"
-    },
-    "floor": {
-      "type": "number"
     },
     "thumbnailUrl": {
       "type": "string"
@@ -38,22 +36,19 @@
           "nextNodeId": "string"
         }
       ]
-    },
-    "modelId": {
-      "type": "string",
-      "required": true
     }
   },
   "validations": [],
   "relations": {
+    "model": {
+      "type": "belongsTo",
+      "model": "modelmeta",
+      "foreignKey": "modelId"
+    },
     "files": {
-      "type": "embedsMany",
-      "model": "files",
-      "property": "fileList",
-      "options": {
-        "validate": true,
-        "forceId": false
-      }
+      "type": "hasMany",
+      "model": "file",
+      "foreignKey": "nodeId"
     }
   },
   "acls": [],
