@@ -58,9 +58,13 @@
   "validations": [],
   "relations": {
     "nodes": {
-      "type": "hasMany",
+      "type": "embedsMany",
       "model": "nodemeta",
-      "foreignKey": "modelId"
+      "property": "nodeList",
+      "options": {
+        "validate": true,
+        "forceId": false
+      }
     },
     "snapshots": {
       "type": "embedsMany",
