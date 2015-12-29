@@ -1,5 +1,6 @@
 {
-  "name": "files",
+  "name": "file",
+  "plural": "files",
   "base": "PersistedModel",
   "idInjection": false,
   "options": {

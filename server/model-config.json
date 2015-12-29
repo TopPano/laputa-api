@@ -57,7 +57,7 @@
     "dataSource": "db",
     "public": true
   },
-  "files": {
+  "file": {
     "dataSource": "db",
     "public": false
   }
