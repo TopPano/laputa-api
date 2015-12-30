@@ -126,7 +126,7 @@ describe('REST API endpoint /modelmeta', function() {
   before(function(done) {
     var User = app.models.user;
     var Modelmeta = app.models.modelmeta;
-    var Files = app.models.file;
+    var File = app.models.file;
 
     User.create(user, function(err, newUser) {
       if (err) { return done(err); }
@@ -197,7 +197,7 @@ describe('REST API endpoint /modelmeta', function() {
                   async.each(node.fileList, function(file, cb) {
                     file.modelId = model.sid;
                     file.nodeId = node.sid;
-                    Files.create(file, function(err, newFile) {
+                    File.create(file, function(err, newFile) {
                       if (err) { return cb(err); }
                       file.sid = newFile.sid;
                       cb();
