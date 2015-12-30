@@ -21,11 +21,6 @@
     "image": {
       "type": "string"
     },
-    "viewTrack": {
-      "type": {
-        "totalCount": "number"
-      }
-    },
     "nodes": {
       "type": "object"
     },
