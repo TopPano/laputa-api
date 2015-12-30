@@ -26,8 +26,9 @@ boot(app, __dirname, function(err) {
   // start the server if `$ node server.js`
   if (require.main === module) {
     if (process.env.NODE_ENV === 'local') {
-      var loader = require('./testdata/dataloader');
-      loader(app, function(err) {
+      var loader = require('./test/loader');
+      loader.installImageRoute(app);
+      loader.loadTestData(app, function(err) {
         if (err) { console.log('Failed to load test data. Error: '+err); }
         app.start();
       });
