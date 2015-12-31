@@ -1,7 +1,6 @@
 var async = require('async');
 
 module.exports = function(app, callback) {
-  console.log('in sample-data');
   var User = app.models.user;
   var Modelmeta = app.models.modelmeta;
   var File = app.models.file;
