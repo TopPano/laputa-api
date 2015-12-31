@@ -21,62 +21,48 @@ describe('REST API endpoint /users', function() {
 
   var users = [
     {
-      sid: null,
       username: 'Richard',
       email: 'richard@foo.com',
       password: 'richard',
       prelogin: true,
-      accessToken: null
     },
     {
-      sid: null,
       username: 'John',
       email: 'john@foo.com',
       password: 'john',
       prelogin: false,
-      accessToken: null
     },
     {
-      sid: null,
       username: 'Angely',
       email: 'angely@foo.com',
       password: 'angely',
       prelogin: true,
-      accessToken: null
     },
     {
-      sid: null,
       username: 'Alice',
       email: 'alice@foo.com',
       password: 'alice',
       prelogin: true,
-      accessToken: null
     },
     {
-      sid: null,
       username: 'Bob',
       email: 'bob@foo.com',
       password: 'bob',
       prelogin: true,
-      accessToken: null
     },
     {
-      sid: null,
       username: 'David',
       email: 'david@foo.com',
       password: 'david',
       prelogin: true,
-      accessToken: null,
       models: [
         {
           name: 'home',
           status: 'public',
-          ownerId: null
         },
         {
           name: 'office',
           status: 'public',
-          ownerId: null
         }
       ],
       labels: [
@@ -177,7 +163,7 @@ describe('REST API endpoint /users', function() {
     });
   });
 
-  it('should return a user by user id', function(done) {
+  it('should return a user if id param is a valid user and the access token is valid', function(done) {
     var user = users[0];
     json('get', endpoint+'/'+user.sid+'?access_token='+user.accessToken.id)
       .expect(200, function(err, res) {
@@ -187,7 +173,7 @@ describe('REST API endpoint /users', function() {
       });
   });
 
-  it('should return a user by user id as a literal', function(done) {
+  it('should return a user with id param as a literal if the access token is valid', function(done) {
     var user = users[0];
     json('get', endpoint+'/me?access_token='+user.accessToken.id)
       .expect(200, function(err, res) {
@@ -211,7 +197,7 @@ describe('REST API endpoint /users', function() {
       });
   });
 
-  it('should allow a registered user to login', function(done) {
+  it('should allow user to login if the credential is valid', function(done) {
     var user = users[1];
     json('post', endpoint + '/login')
       .send({
@@ -235,7 +221,7 @@ describe('REST API endpoint /users', function() {
       });
   });
 
-  it('should update user information', function(done) {
+  it('should update user information with valid user schema', function(done) {
     var user = users[3];
     var newUsername = 'Eric';
     var userPhotoUrl = 'http://www.foo.com/';
@@ -252,7 +238,7 @@ describe('REST API endpoint /users', function() {
       });
   });
 
-  it('should delete a user', function(done) {
+  it('should delete a user if the access token is valid', function(done) {
     var user = users[4];
     json('delete', endpoint+'/me?access_token='+user.accessToken.id)
       .expect(200, function(err, res) {
@@ -266,6 +252,7 @@ describe('REST API endpoint /users', function() {
     json('get', endpoint+'/me/models?access_token='+user.accessToken.id)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
+        console.log('res: '+JSON.stringify(res.body));
         res.body.should.be.instanceof(Array);
         res.body.should.containDeep([{ownerId: user.sid}]);
         done();
