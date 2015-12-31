@@ -113,7 +113,7 @@ module.exports = function(app, callback) {
       async.each(nodes, function(node, callback) {
         newModel.nodes.create(node, function(err, newNode) {
           if (err) { return callback(err); }
-          console.log('Node created: '+newNode.tag);
+          console.log('Node created: %s for Model "%s"', newNode.tag, newModel.name);
           async.each(node.files, function(file, callback) {
             var name = file.split(';')[0];
             var url = file.split(';')[1];
