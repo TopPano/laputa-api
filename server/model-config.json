@@ -43,7 +43,7 @@
   },
   "nodemeta": {
     "dataSource": "db",
-    "public": true
+    "public": false
   },
   "modelshare": {
     "dataSource": "db",
@@ -51,11 +51,11 @@
   },
   "label": {
     "dataSource": "db",
-    "public": true
+    "public": false
   },
   "snapshot": {
     "dataSource": "db",
-    "public": true
+    "public": false
   },
   "file": {
     "dataSource": "db",
