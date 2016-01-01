@@ -177,7 +177,11 @@ describe('REST API endpoint /modelmeta', function() {
             insertNodes: function(callback) {
               if (model.hasOwnProperty('nodeList')) {
                 async.each(model.nodeList, function(node, cb) {
-                  newModel.nodes.create(node, function(err, newNode) {
+                  newModel.nodes.create({
+                    tag: node.tag,
+                    heading: node.heading,
+                    enabled: node.enabled
+                  }, function(err, newNode) {
                     if (err) { return cb(err); }
                     node.sid = newNode.sid;
                     cb();
@@ -246,6 +250,7 @@ describe('REST API endpoint /modelmeta', function() {
     json('get', endpoint+'/'+model.sid)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
+        console.log('res: '+JSON.stringify(res.body));
         res.body.should.have.property('ownerId', user.sid);
 
         res.body.should.have.property('nodes');
