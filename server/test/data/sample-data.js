@@ -111,7 +111,13 @@ module.exports = function(app, callback) {
       if (err) { return callback(err); }
       console.log('Model created: (%s) %s ', newModel.sid, newModel.name);
       async.each(nodes, function(node, callback) {
-        newModel.nodes.create(node, function(err, newNode) {
+        newModel.nodes.create({
+          tag: node.tag,
+          heading: node.heading,
+          enabled: node.enabled,
+          thumbnailUrl: node.thumbnailUrl,
+          srcUrl: node.srcUrl
+        }, function(err, newNode) {
           if (err) { return callback(err); }
           console.log('Node created: %s for Model "%s"', newNode.tag, newModel.name);
           async.each(node.files, function(file, callback) {
