@@ -158,7 +158,8 @@ module.exports = function(app, callback) {
             // replace the fake node id before we actually create the
             // model instance
             var fakeId = null, re = null;
-            if (name.indexOf('high') !== -1) {
+            if (name.indexOf('high') !== -1 ||
+                name.indexOf('low') !== -1) {
               fakeId = name.split('/')[name.split('/').length - 1].split('_')[0];
               re = new RegExp(fakeId+'_');
               name = name.replace(re, newNode.sid+'_');
