@@ -252,7 +252,6 @@ describe('REST API endpoint /users', function() {
     json('get', endpoint+'/me/models?access_token='+user.accessToken.id)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
-        console.log('res: '+JSON.stringify(res.body));
         res.body.should.be.instanceof(Array);
         res.body.should.containDeep([{ownerId: user.sid}]);
         done();

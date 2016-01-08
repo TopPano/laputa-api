@@ -9,9 +9,9 @@ var apiVersion = require('../../package.json').version.split('.').shift();
 var endpointRoot = '/api' + (apiVersion > 0 ? '/v' + apiVersion :  '');
 var endpoint = endpointRoot + '/modelmeta';
 
-function json(verb, url) {
+function json(verb, url, contentType) {
   return request(app)[verb](url)
-    .set('Content-Type', 'application/json')
+    .set('Content-Type', contentType ? contentType : 'application/json')
     .set('Accept', 'application/json')
     .expect('Content-Type', /json/);
 }
@@ -250,7 +250,6 @@ describe('REST API endpoint /modelmeta', function() {
     json('get', endpoint+'/'+model.sid)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
-        console.log('res: '+JSON.stringify(res.body));
         res.body.should.have.property('ownerId', user.sid);
 
         res.body.should.have.property('nodes');
@@ -314,16 +313,24 @@ describe('REST API endpoint /modelmeta', function() {
 
   it('should create a new node for a model', function(done) {
     var model = models[1];
-    var newNode = {
-      heading: 30,
-      enabled: true,
-      tag: 'room1'
-    };
-    json('post', endpoint+'/'+model.sid+'/nodes')
-      .send(newNode)
+    json('post', endpoint+'/'+model.sid+'/nodes', 'multipart/form-data')
+      .field('tag', 'room1')
+      .field('heading', '30')
+      .field('enabled', 'true')
+      .field('width', '8192')
+      .field('height', '4096')
+      .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
+      .attach('image', __dirname+'/fixtures/1.jpg')
       .expect(200, function(err, res) {
         if (err) { return done(err); }
-        res.body.should.have.properties(newNode);
+        res.body.should.have.properties({
+          tag: 'room1',
+          heading: 30,
+          enabled: true
+        });
+        res.body.should.have.property('thumbnailUrl');
+        res.body.should.have.property('srcUrl');
+        res.body.should.have.property('srcDownloadUrl');
         done();
       });
   });
