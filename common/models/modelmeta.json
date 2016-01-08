@@ -44,10 +44,6 @@
     },
     "description": {
       "type": "string"
-    },
-    "ownerId": {
-      "type": "string",
-      "required": true
     }
   },
   "validations": [],

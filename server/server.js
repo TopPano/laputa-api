@@ -1,5 +1,6 @@
 var loopback = require('loopback');
 var boot = require('loopback-boot');
+var multer = require('multer');
 
 var app = module.exports = loopback();
 
@@ -17,6 +18,10 @@ app.start = function() {
 };
 
 app.use(loopback.token({currentUserLiteral: 'me'}));
+app.use(multer({storage: multer.memoryStorage()}).fields([
+  { name: 'thumbnail', maxCount: 1 },
+  { name: 'image', maxCount: 1 }
+])); // for parsing multipart/form-data
 
 // Bootstrap the application, configure models, datasources and middleware.
 // Sub-apps like REST API are mounted via boot scripts.

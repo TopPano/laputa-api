@@ -21,6 +21,12 @@
     "enabled": {
       "type": "boolean"
     },
+    "width": {
+      "type": "number"
+    },
+    "height": {
+      "type": "number"
+    },
     "thumbnailUrl": {
       "type": "string"
     },

@@ -4,7 +4,7 @@
   "main": "server/server.js",
   "scripts": {
     "pretest": "jshint .",
-    "test": "mocha -C -R spec spec/ --recursive --timeout 5000",
+    "test": "mocha -C -R spec spec/ --recursive --timeout 10000",
     "local": "NODE_ENV=local node ."
   },
   "dependencies": {
@@ -17,7 +17,9 @@
     "loopback-datasource-juggler": "^2.39.0",
     "serve-favicon": "^2.0.1",
     "async": "^1.5.0",
-    "gm": "^1.21.1"
+    "gm": "^1.21.1",
+    "multer": "^1.1.0",
+    "moment": "^2.11.0"
   },
   "devDependencies": {
     "jshint": "^2.5.6",
