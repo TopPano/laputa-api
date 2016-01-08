@@ -4,6 +4,7 @@ var async = require('async');
 function installImageRoute(server) {
   var router = server.loopback.Router();
   console.log('installing route: /images');
+
   router.get('/images/models/:modelId/:shardingKey/:type/:quality/:timestamp/:filename', function(req, res) {
     var modelId = req.params.modelId;
     var shardingKey = req.params.shardingKey;
@@ -22,6 +23,7 @@ function installImageRoute(server) {
       res.send(data);
     });
   });
+
   server.use(router);
 }
 

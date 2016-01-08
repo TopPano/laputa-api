@@ -157,7 +157,7 @@ if (quality === 'high') {
     if (err) { console.log(err); }
   });
 } else if (quality === 'low') {
-  var tmpFile = './resized.jpg'
+  var tmpFile = './resized.jpg';
   gm(srcFile)
   .resize(4096, 2048)
   .write(tmpFile, function(err) {
