@@ -1,3 +1,4 @@
+'use strict';
 var assert = require('assert');
 var moment = require('moment');
 var gm = require('gm');
@@ -225,21 +226,15 @@ module.exports = function(Modelmeta) {
   });
 
   Modelmeta.afterRemote('findById', function(ctx, model, next) {
-    if (ctx.result) {
-      if (typeof ctx.result === 'object') {
-        if (ctx.result['__data'].hasOwnProperty('nodeList')) {
-          var result = ctx.result;
-          var nodes = {};
-          result.nodeList.forEach(function(node) {
-            var nodeId = node.sid;
-            delete node['__data'].sid;
-            nodes[nodeId] = node;
-          });
-          result.nodes = nodes;
-          ctx.result = result;
-          delete ctx.result['__data'].nodeList;
-        }
-      }
+    if (model && model.nodeList) {
+      var nodes = {};
+      model.nodeList.forEach(function(node) {
+        var nodeId = node.sid;
+        delete node['__data'].sid;
+        nodes[nodeId] = node;
+      });
+      model.nodes = nodes;
+      delete model['__data'].nodeList;
     }
     next();
   });
