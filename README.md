@@ -6,6 +6,15 @@ Install dependent npm modules.
 $ npm install
 ```
 
+Install dependent libraries:
+
+1. [GraphicsMagick](http://www.graphicsmagick.org/) or [ImageMagick](http://www.imagemagick.org/)
+  * In Mac OS X, you can simply use [Homebrew](http://mxcl.github.io/homebrew/) and do:
+```
+$ brew install imagemagick
+$ brew install graphicsmagick
+```
+
 Start the server.
 ```
 $ node .
@@ -15,6 +24,10 @@ Or, start the server with pre-loaded test data.
 ```
 $ npm run-script local
 ```
+
+Then you can access the server api via:
+
+  http://localhost:3000/api
 
 # Testing
 ```
