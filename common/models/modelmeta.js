@@ -225,17 +225,44 @@ module.exports = function(Modelmeta) {
     next();
   });
 
-  Modelmeta.afterRemote('findById', function(ctx, model, next) {
-    if (model && model.nodeList) {
+  function getNodeList(modelId, callback) {
+    var Nodemeta = Modelmeta.app.models.nodemeta;
+    Nodemeta.find({
+      modelId: modelId
+    }, function(err, nodeList) {
+      if (err) { return callback(err); }
       var nodes = {};
-      model.nodeList.forEach(function(node) {
-        var nodeId = node.sid;
-        delete node['__data'].sid;
-        nodes[nodeId] = node;
+      nodeList.forEach(function(node) {
+        nodes[node.sid] = node;
       });
-      model.nodes = nodes;
-      delete model['__data'].nodeList;
-    }
-    next();
+      callback(null, nodes);
+    });
+  }
+
+  Modelmeta.afterRemote('findById', function(ctx, model, next) {
+    getNodeList(model.sid, function(err, nodeList) {
+      if (err) {
+        console.error(err);
+        return next(new Error('Internal error'));
+      }
+      model.nodes = nodeList;
+      next();
+    });
+  });
+
+  Modelmeta.afterRemote('find', function(ctx, models, next) {
+    async.map(models, function(model, callback) {
+      getNodeList(model.sid, function(err, nodeList) {
+        if (err) { return callback(err); }
+        model.nodes = nodeList;
+        callback();
+      });
+    }, function(err) {
+      if (err) {
+        console.error(err);
+        return next(new Error('Internal error'));
+      }
+      next();
+    });
   });
 };
