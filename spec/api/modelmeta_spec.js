@@ -369,22 +369,20 @@ describe('REST API endpoint /modelmeta', function() {
 
   it('should create a new snapshot for a model', function(done) {
     var model = models[1];
-    var newSnapshot = {
-      name: 'snapshot1',
-      metadata: {
-        cameraHeading: {
-          lat: 50,
-          lng: 100
-        }
-      },
-      height: 300,
-      weight: 300
-    };
-    json('post', endpoint+'/'+model.sid+'/snapshots')
-      .send(newSnapshot)
+    // XXX: Supertest can support sending fields only with string. So currently we won't
+    //      test with sending property "metadta: { ... }"
+    json('post', endpoint+'/'+model.sid+'/snapshots', 'multipart/form-data')
+      .field('name', 'snapshot1')
+      .field('width', '400')
+      .field('height', '200')
+      .attach('image', __dirname+'/fixtures/1_thumb.jpg')
       .expect(200, function(err, res) {
         if (err) { return done(err); }
-        res.body.should.have.properties(newSnapshot);
+        res.body.should.have.properties({
+          name: 'snapshot1',
+          width: 400,
+          height: 200
+        });
         done();
       });
   });
