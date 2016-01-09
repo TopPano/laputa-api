@@ -295,20 +295,4 @@ module.exports = function(Modelmeta) {
       next();
     });
   });
-
-  Modelmeta.afterRemote('find', function(ctx, models, next) {
-    async.map(models, function(model, callback) {
-      getNodeList(model.sid, function(err, nodeList) {
-        if (err) { return callback(err); }
-        model.nodes = nodeList;
-        callback();
-      });
-    }, function(err) {
-      if (err) {
-        console.error(err);
-        return next(new Error('Internal error'));
-      }
-      next();
-    });
-  });
 };
