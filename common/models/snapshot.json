@@ -19,10 +19,7 @@
     "url": {
       "type": "string"
     },
-    "thumbnailUrl": {
-      "type": "string"
-    },
-    "srcUrl": {
+    "downloadUrl": {
       "type": "string"
     },
     "metadata": {
@@ -45,10 +42,10 @@
     "modified": {
       "type": "date"
     },
-    "height": {
+    "width": {
       "type": "number"
     },
-    "weight": {
+    "height": {
       "type": "number"
     }
   },

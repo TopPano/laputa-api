@@ -7,6 +7,40 @@ var fs = require('fs');
 
 module.exports = function(Modelmeta) {
 
+  function getTimeNow() {
+    return moment(new Date()).format('YYYY-MM-DD');
+  }
+
+  function createDir(path, callback) {
+    fs.access(path, fs.F_OK, function(err) {
+      if (err) {
+        require('child_process').exec('mkdir -p '+path, function(err) {
+          if (err) { return callback(err); }
+          callback();
+        });
+      } else {
+        callback();
+      }
+    });
+  }
+
+  function upload(params, callback) {
+    var shardingKey = 'beef';
+    var path = './server/test/data/images/models/'+params.modelId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp;
+    createDir(path, function(err) {
+      if (err) { return callback(err); }
+      fs.writeFile(path+'/'+params.imageFilename, params.image, function(err) {
+        if (err) { return callback(err); }
+        var cdnFilename = '/'+params.type+'/'+params.quality+'/'+params.imageFilename;
+        var cdnUrl = 'http://localhost:3000/images/models/'+params.modelId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp+'/'+params.imageFilename;
+        // TODO: use real S3 download url
+        var s3Filename = cdnFilename;
+        var s3Url = cdnUrl;
+        callback(null, cdnFilename, cdnUrl, s3Filename, s3Url);
+      });
+    });
+  }
+
   Modelmeta.beforeRemote('*.__create__nodes', function(ctx, instance, next) {
     // Property checking
     try {
@@ -33,36 +67,6 @@ module.exports = function(Modelmeta) {
 
   Modelmeta.afterRemote('*.__create__nodes', function(ctx, instance, next) {
 
-    function createDir(path, callback) {
-      fs.access(path, fs.F_OK, function(err) {
-        if (err) {
-          require('child_process').exec('mkdir -p '+path, function(err) {
-            if (err) { return callback(err); }
-            callback();
-          });
-        } else {
-          callback();
-        }
-      });
-    }
-
-    function upload(params, callback) {
-      var shardingKey = 'beef';
-      var path = './server/test/data/images/models/'+params.modelId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp;
-      createDir(path, function(err) {
-        if (err) { return callback(err); }
-        fs.writeFile(path+'/'+params.imageFilename, params.image, function(err) {
-          if (err) { return callback(err); }
-          var cdnFilename = '/'+params.type+'/'+params.quality+'/'+params.imageFilename;
-          var cdnUrl = 'http://localhost:3000/images/models/'+params.modelId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp+'/'+params.imageFilename;
-          // TODO: use real S3 download url
-          var s3Filename = cdnFilename;
-          var s3Url = cdnUrl;
-          callback(null, cdnFilename, cdnUrl, s3Filename, s3Url);
-        });
-      });
-    }
-
     function calTileGeometries(imgWidth, imgHeight) {
       var tileWidth = imgWidth / 4;
       var tileHeight = imgHeight / 2;
@@ -87,12 +91,11 @@ module.exports = function(Modelmeta) {
       var modelId = ctx.req.params.id;
       var nodeId = ctx.result.sid;
       var imgBuf = ctx.req.files.image[0].buffer;
-      var imgType = ctx.req.files.image[0].mimetype;
       var imgWidth = ctx.req.body.width;
       var imgHeight = ctx.req.body.height;
       var thumbBuf = ctx.req.files.thumbnail[0].buffer;
       var thumbType = ctx.req.files.thumbnail[0].mimetype;
-      var now = moment(new Date()).format('YYYY-MM-DD');
+      var now = getTimeNow();
 
       async.parallel({
         uploadThumb: function(callback) {
@@ -203,6 +206,49 @@ module.exports = function(Modelmeta) {
           console.error(err);
           return next(new Error('Internal error'));
         }
+        next();
+      });
+    } catch (err) {
+      console.error(err);
+      next(new Error('Invalid request'));
+    }
+  });
+
+  Modelmeta.beforeRemote('*.__create__snapshots', function(ctx, instance, next) {
+    try {
+      var image = ctx.req.files.image[0].buffer;
+      var type = ctx.req.files.image[0].mimetype;
+
+      if (!image || (image.length === 0) || !type) {
+        return next(new Error('Missing properties'));
+      }
+      if (type !== 'image/jpeg' && type !== 'image/jpg') {
+        return next(new Error('Invalid image type'));
+      }
+      next();
+    } catch (err) {
+      console.error(err);
+      next(new Error('Invalid request'));
+    }
+  });
+
+  Modelmeta.afterRemote('*.__create__snapshots', function(ctx, instance, next) {
+    try {
+      var modelId = ctx.req.params.id;
+      var snapshotId = ctx.result.sid;
+      var image = ctx.req.files.image[0].buffer;
+
+      upload({
+        type: 'pic',
+        quality: 'src',
+        modelId: modelId,
+        timestamp: getTimeNow(),
+        imageFilename: snapshotId+'.jpg',
+        image: image
+      }, function(err, cdnFilename, cdnUrl, s3Filename, s3Url) {
+        if (err) { return next(new Error('Invalid image type')); }
+        instance.url = s3Url;
+        instance.downloadUrl = cdnUrl;
         next();
       });
     } catch (err) {
