@@ -311,7 +311,7 @@ describe('REST API endpoint /modelmeta', function() {
       });
   });
 
-  it('should create a new node for a model', function(done) {
+  it('should create a new node for the model', function(done) {
     var model = models[1];
     json('post', endpoint+'/'+model.sid+'/nodes', 'multipart/form-data')
       .field('tag', 'room1')
@@ -332,6 +332,23 @@ describe('REST API endpoint /modelmeta', function() {
         res.body.should.have.property('srcUrl');
         res.body.should.have.property('srcDownloadUrl');
         done();
+      });
+  });
+
+  it('should update node metadata of a model', function(done) {
+    var model = models[0];
+    json('get', endpoint+'/'+model.sid+'/nodes')
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        var node = res.body[0];
+        node.tag = 'office';
+        json('put', endpoint+'/'+model.sid+'/nodes/'+node.sid)
+          .send(node)
+          .expect(200, function(err, res) {
+            if (err) { return done(err); }
+            res.body.should.have.properties({ tag: 'office' });
+            done();
+          });
       });
   });
 
