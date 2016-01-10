@@ -273,15 +273,29 @@ module.exports = function(Modelmeta) {
 
   function getNodeList(modelId, callback) {
     var Nodemeta = Modelmeta.app.models.nodemeta;
+    var Files = Modelmeta.app.models.file;
     Nodemeta.find({
       modelId: modelId
     }, function(err, nodeList) {
       if (err) { return callback(err); }
       var nodes = {};
-      nodeList.forEach(function(node) {
-        nodes[node.sid] = node;
+      async.map(nodeList, function(node, callback) {
+        Files.find({where: {nodeId: node.sid}}, function(err, fileList) {
+          if (err) { return callback(err); }
+          var files = {};
+          fileList.forEach(function(file) {
+            files[file.name] = file.url;
+          });
+          node.files = files;
+          callback(null, node);
+        });
+      }, function(err, results) {
+        if (err) { return callback(err); }
+        results.forEach(function(item) {
+          nodes[item.sid] = item;
+        });
+        callback(null, nodes);
       });
-      callback(null, nodes);
     });
   }
 

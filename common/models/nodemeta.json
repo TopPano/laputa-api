@@ -36,6 +36,9 @@
     "srcDownloadUrl": {
       "type": "string"
     },
+    "files": {
+      "type": "object"
+    },
     "transitions": {
       "type": [
         {
