@@ -131,101 +131,109 @@ describe('REST API endpoint /modelmeta', function() {
     User.create(user, function(err, newUser) {
       if (err) { return done(err); }
       user.sid = newUser.sid;
-      // Create models
-      async.each(models, function(model, callback) {
-        Modelmeta.create({
-          name: model.name,
-          status: model.status,
-          description: model.description,
-          viewerOptions: model.viewerOptions,
-          ownerId: user.sid
-        }, function(err, newModel) {
-          if (err) { return callback(err); }
-          model.sid = newModel.sid;
-          async.series({
-            insertLabels: function(callback) {
-              if (model.hasOwnProperty('labelList')) {
-                async.each(model.labelList, function(label, cb) {
-                  label.ownerId = newUser.sid;
-                  newModel.labels.create(label, function(err) {
-                    if (err) { return cb(err); }
-                    cb();
-                  });
-                }, function(err) {
-                  if (err) { return callback(err); }
-                  callback();
-                });
-              } else {
-                callback();
-              }
-            },
-            insertSnapshots: function(callback) {
-              if (model.hasOwnProperty('snapshotList')) {
-                async.each(model.snapshotList, function(snapshot, cb) {
-                  newModel.snapshots.create(snapshot, function(err) {
-                    if (err) { return cb(err); }
-                    cb();
-                  });
-                }, function(err) {
-                  if (err) { return callback(err); }
-                  callback();
-                });
-              } else {
-                callback();
-              }
-            },
-            insertNodes: function(callback) {
-              if (model.hasOwnProperty('nodeList')) {
-                async.each(model.nodeList, function(node, cb) {
-                  newModel.nodes.create({
-                    tag: node.tag,
-                    heading: node.heading,
-                    enabled: node.enabled
-                  }, function(err, newNode) {
-                    if (err) { return cb(err); }
-                    node.sid = newNode.sid;
-                    cb();
-                  });
-                }, function(err) {
-                  if (err) { return callback(err); }
-                  callback();
-                });
-              } else {
-                callback();
-              }
-            },
-            insertFiles: function(callback) {
-              // only insert files for those models which have nodes
-              if (model.hasOwnProperty('nodeList')) {
-                async.each(model.nodeList, function(node, cb) {
-                  async.each(node.fileList, function(file, cb) {
-                    file.modelId = model.sid;
-                    file.nodeId = node.sid;
-                    File.create(file, function(err, newFile) {
+      User.login({
+        email: user.email,
+        password: user.password
+      }, function(err, token) {
+        if (err) { return done(err); }
+        user.accessToken = token;
+
+        // Create models
+        async.each(models, function(model, callback) {
+          Modelmeta.create({
+            name: model.name,
+            status: model.status,
+            description: model.description,
+            viewerOptions: model.viewerOptions,
+            ownerId: user.sid
+          }, function(err, newModel) {
+            if (err) { return callback(err); }
+            model.sid = newModel.sid;
+            async.series({
+              insertLabels: function(callback) {
+                if (model.hasOwnProperty('labelList')) {
+                  async.each(model.labelList, function(label, cb) {
+                    label.ownerId = newUser.sid;
+                    newModel.labels.create(label, function(err) {
                       if (err) { return cb(err); }
-                      file.sid = newFile.sid;
                       cb();
                     });
                   }, function(err) {
-                    if (err) { return cb(err); }
-                    cb();
+                    if (err) { return callback(err); }
+                    callback();
                   });
-                }, function(err) {
-                  if (err) { return callback(err); }
+                } else {
                   callback();
-                });
-              } else {
-                callback();
+                }
+              },
+              insertSnapshots: function(callback) {
+                if (model.hasOwnProperty('snapshotList')) {
+                  async.each(model.snapshotList, function(snapshot, cb) {
+                    newModel.snapshots.create(snapshot, function(err) {
+                      if (err) { return cb(err); }
+                      cb();
+                    });
+                  }, function(err) {
+                    if (err) { return callback(err); }
+                    callback();
+                  });
+                } else {
+                  callback();
+                }
+              },
+              insertNodes: function(callback) {
+                if (model.hasOwnProperty('nodeList')) {
+                  async.each(model.nodeList, function(node, cb) {
+                    newModel.nodes.create({
+                      tag: node.tag,
+                      heading: node.heading,
+                      enabled: node.enabled
+                    }, function(err, newNode) {
+                      if (err) { return cb(err); }
+                      node.sid = newNode.sid;
+                      cb();
+                    });
+                  }, function(err) {
+                    if (err) { return callback(err); }
+                    callback();
+                  });
+                } else {
+                  callback();
+                }
+              },
+              insertFiles: function(callback) {
+                // only insert files for those models which have nodes
+                if (model.hasOwnProperty('nodeList')) {
+                  async.each(model.nodeList, function(node, cb) {
+                    async.each(node.fileList, function(file, cb) {
+                      file.modelId = model.sid;
+                      file.nodeId = node.sid;
+                      File.create(file, function(err, newFile) {
+                        if (err) { return cb(err); }
+                        file.sid = newFile.sid;
+                        cb();
+                      });
+                    }, function(err) {
+                      if (err) { return cb(err); }
+                      cb();
+                    });
+                  }, function(err) {
+                    if (err) { return callback(err); }
+                    callback();
+                  });
+                } else {
+                  callback();
+                }
               }
-            }
-          }, function(err) {
-            if (err) { return callback(err); }
-            callback();
+            }, function(err) {
+              if (err) { return callback(err); }
+              callback();
+            });
           });
+        }, function(err) {
+          if (err) { return done(err); }
+          done();
         });
-      }, function(err) {
-        if (err) { return done(err); }
-        done();
       });
     });
   });
@@ -269,7 +277,7 @@ describe('REST API endpoint /modelmeta', function() {
   });
 
   it('should create a new model', function(done) {
-    json('post', endpoint)
+    json('post', endpoint+'?access_token='+user.accessToken.id)
       .send({
         name: 'TopPano Office',
         description: 'It just an office.',
@@ -286,7 +294,7 @@ describe('REST API endpoint /modelmeta', function() {
     var model = models[0];
     var modelName = 'Louvre Museum';
     var modelDescription = 'It just a museum.';
-    json('put', endpoint+'/'+model.sid)
+    json('put', endpoint+'/'+model.sid+'?access_token='+user.accessToken.id)
       .send({
         name: modelName,
         description: modelDescription,
@@ -304,7 +312,7 @@ describe('REST API endpoint /modelmeta', function() {
 
   it('should delete a model', function(done) {
     var model = models[2];
-    json('delete', endpoint+'/'+model.sid)
+    json('delete', endpoint+'/'+model.sid+'?access_token='+user.accessToken.id)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         done();
@@ -313,7 +321,7 @@ describe('REST API endpoint /modelmeta', function() {
 
   it('should create a new node for the model', function(done) {
     var model = models[1];
-    json('post', endpoint+'/'+model.sid+'/nodes', 'multipart/form-data')
+    json('post', endpoint+'/'+model.sid+'/nodes?access_token='+user.accessToken.id, 'multipart/form-data')
       .field('tag', 'room1')
       .field('heading', '30')
       .field('enabled', 'true')
@@ -342,7 +350,7 @@ describe('REST API endpoint /modelmeta', function() {
         if (err) { return done(err); }
         var node = res.body[0];
         node.tag = 'office';
-        json('put', endpoint+'/'+model.sid+'/nodes/'+node.sid)
+        json('put', endpoint+'/'+model.sid+'/nodes/'+node.sid+'?access_token='+user.accessToken.id)
           .send(node)
           .expect(200, function(err, res) {
             if (err) { return done(err); }
@@ -358,7 +366,7 @@ describe('REST API endpoint /modelmeta', function() {
       name: 'label1',
       ownerId: user.sid
     };
-    json('post', endpoint+'/'+model.sid+'/labels')
+    json('post', endpoint+'/'+model.sid+'/labels?access_token='+user.accessToken.id)
       .send(newLabel)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
@@ -371,7 +379,7 @@ describe('REST API endpoint /modelmeta', function() {
     var model = models[1];
     // XXX: Supertest can support sending fields only with string. So currently we won't
     //      test with sending property "metadta: { ... }"
-    json('post', endpoint+'/'+model.sid+'/snapshots', 'multipart/form-data')
+    json('post', endpoint+'/'+model.sid+'/snapshots?access_token='+user.accessToken.id, 'multipart/form-data')
       .field('name', 'snapshot1')
       .field('width', '400')
       .field('height', '200')

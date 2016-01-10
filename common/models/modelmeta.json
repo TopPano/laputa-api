@@ -82,6 +82,19 @@
       }
     }
   },
-  "acls": [],
+  "acls": [
+    {
+      "principalType": "ROLE",
+      "principalId": "$everyone",
+      "accessType": "WRITE",
+      "permission": "DENY"
+    },
+    {
+      "principalType": "ROLE",
+      "principalId": "$authenticated",
+      "accessType": "WRITE",
+      "permission": "ALLOW"
+    }
+  ],
   "methods": {}
 }
