@@ -339,7 +339,14 @@ describe('REST API endpoint /modelmeta', function() {
         res.body.should.have.property('thumbnailUrl');
         res.body.should.have.property('srcUrl');
         res.body.should.have.property('srcDownloadUrl');
-        done();
+        json('get', endpoint+'/'+model.sid+'/nodes/'+res.body.sid)
+          .expect(200, function(err, res) {
+            if (err) { return done(err); }
+            res.body.should.have.property('thumbnailUrl');
+            res.body.should.have.property('srcUrl');
+            res.body.should.have.property('srcDownloadUrl');
+            done();
+          });
       });
   });
 
@@ -393,7 +400,12 @@ describe('REST API endpoint /modelmeta', function() {
         });
         res.body.should.have.property('url');
         res.body.should.have.property('downloadUrl');
-        done();
+        json('get', endpoint+'/'+model.sid+'/snapshots/'+res.body.sid)
+        .expect(200, function(err, res) {
+          res.body.should.have.property('url');
+          res.body.should.have.property('downloadUrl');
+          done();
+        });
       });
   });
 

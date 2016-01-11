@@ -42,30 +42,6 @@ module.exports = function(Modelmeta) {
   }
 
   Modelmeta.beforeRemote('*.__create__nodes', function(ctx, instance, next) {
-    // Property checking
-    try {
-      var imgBuf = ctx.req.files.image[0].buffer;
-      var imgType = ctx.req.files.image[0].mimetype;
-      var imgWidth = ctx.req.body.width;
-      var imgHeight = ctx.req.body.height;
-      var thumbBuf = ctx.req.files.thumbnail[0].buffer;
-      var thumbType = ctx.req.files.thumbnail[0].mimetype;
-
-      if (!imgBuf || !imgType || !imgWidth || !imgHeight ||
-          !thumbBuf || !thumbType) {
-        return next(new Error('Missing properties'));
-      }
-      if (imgType !== 'image/jpeg' || thumbType !== 'image/jpeg') {
-        return next(new Error('Invalid image type'));
-      }
-      next();
-    } catch (err) {
-      console.error(err);
-      next(new Error('Invalid request'));
-    }
-  });
-
-  Modelmeta.afterRemote('*.__create__nodes', function(ctx, instance, next) {
 
     function calTileGeometries(imgWidth, imgHeight) {
       var tileWidth = imgWidth / 4;
@@ -87,15 +63,27 @@ module.exports = function(Modelmeta) {
       return tileGeometries;
     }
 
+    // Property checking
     try {
       var modelId = ctx.req.params.id;
-      var nodeId = ctx.result.sid;
+      var nodeId = ctx.args.data.sid;
       var imgBuf = ctx.req.files.image[0].buffer;
+      var imgType = ctx.req.files.image[0].mimetype;
       var imgWidth = ctx.req.body.width;
       var imgHeight = ctx.req.body.height;
       var thumbBuf = ctx.req.files.thumbnail[0].buffer;
       var thumbType = ctx.req.files.thumbnail[0].mimetype;
       var now = getTimeNow();
+
+      if (!imgBuf || !imgType || !imgWidth || !imgHeight ||
+          !thumbBuf || !thumbType) {
+        return next(new Error('Missing properties'));
+      }
+      if (imgType !== 'image/jpeg' || thumbType !== 'image/jpeg') {
+        return next(new Error('Invalid image type'));
+      }
+
+      ctx.nodeFiles = [];
 
       async.parallel({
         uploadThumb: function(callback) {
@@ -108,7 +96,7 @@ module.exports = function(Modelmeta) {
             image: thumbBuf
           }, function(err, cdnFilename, cdnUrl, s3Filename, s3Url) {
             if (err) { return callback(err); }
-            instance.thumbnailUrl = s3Url;
+            ctx.args.data.thumbnailUrl = s3Url;
             callback();
           });
         },
@@ -122,16 +110,14 @@ module.exports = function(Modelmeta) {
             image: thumbBuf
           }, function(err, cdnFilename, cdnUrl, s3Filename, s3Url) {
             if (err) { return callback(err); }
-            instance.srcUrl = s3Url;
-            instance.srcDownloadUrl = cdnUrl;
-            instance.files.create({
+            ctx.args.data.srcUrl = s3Url;
+            ctx.args.data.srcDownloadUrl = cdnUrl;
+            ctx.nodeFiles.push({
               name: cdnFilename,
               url: cdnUrl,
               modelId: modelId
-            }, function(err) {
-              if (err) { return callback(err); }
-              callback();
             });
+            callback();
           });
         },
         tileImgHigh: function(callback) {
@@ -150,14 +136,12 @@ module.exports = function(Modelmeta) {
                 image: buffer
               }, function(err, cdnFilename, cdnUrl) {
                 if (err) { return callback(err); }
-                instance.files.create({
+                ctx.nodeFiles.push({
                   name: cdnFilename,
                   url: cdnUrl,
                   modelId: modelId
-                }, function(err) {
-                  if (err) { return callback(err); }
-                  callback();
                 });
+                callback();
               });
             });
           }, function(err) {
@@ -185,14 +169,12 @@ module.exports = function(Modelmeta) {
                     image: buffer
                   }, function(err, cdnFilename, cdnUrl) {
                     if (err) { return callback(err); }
-                    instance.files.create({
+                    ctx.nodeFiles.push({
                       name: cdnFilename,
                       url: cdnUrl,
                       modelId: modelId
-                    }, function(err) {
-                      if (err) { return callback(err); }
-                      callback();
                     });
+                    callback();
                   });
                 });
               }, function(err) {
@@ -214,8 +196,29 @@ module.exports = function(Modelmeta) {
     }
   });
 
+  Modelmeta.afterRemote('*.__create__nodes', function(ctx, instance, next) {
+
+    if (ctx.hasOwnProperty('nodeFiles')) {
+      async.each(ctx.nodeFiles, function(file, callback) {
+        instance.files.create(file, function(err) {
+          if (err) { return callback(err); }
+          callback();
+        });
+      }, function(err) {
+        if (err) {
+          // TODO: rollback the created node instance
+          return next(new Error('Internal error'));
+        }
+        next();
+      });
+    } else {
+      next();
+    }
+  });
+
   Modelmeta.beforeRemote('*.__create__snapshots', function(ctx, instance, next) {
     try {
+      var modelId = ctx.req.params.id;
       var image = ctx.req.files.image[0].buffer;
       var type = ctx.req.files.image[0].mimetype;
 
@@ -225,30 +228,18 @@ module.exports = function(Modelmeta) {
       if (type !== 'image/jpeg' && type !== 'image/jpg') {
         return next(new Error('Invalid image type'));
       }
-      next();
-    } catch (err) {
-      console.error(err);
-      next(new Error('Invalid request'));
-    }
-  });
-
-  Modelmeta.afterRemote('*.__create__snapshots', function(ctx, instance, next) {
-    try {
-      var modelId = ctx.req.params.id;
-      var snapshotId = ctx.result.sid;
-      var image = ctx.req.files.image[0].buffer;
 
       upload({
         type: 'pic',
         quality: 'src',
         modelId: modelId,
         timestamp: getTimeNow(),
-        imageFilename: snapshotId+'.jpg',
+        imageFilename: ctx.args.data.sid+'.jpg',
         image: image
       }, function(err, cdnFilename, cdnUrl, s3Filename, s3Url) {
         if (err) { return next(new Error('Invalid image type')); }
-        instance.url = s3Url;
-        instance.downloadUrl = cdnUrl;
+        ctx.args.data.url = s3Url;
+        ctx.args.data.downloadUrl = cdnUrl;
         next();
       });
     } catch (err) {
