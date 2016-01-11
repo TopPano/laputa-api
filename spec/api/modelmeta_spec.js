@@ -391,6 +391,8 @@ describe('REST API endpoint /modelmeta', function() {
           width: 400,
           height: 200
         });
+        res.body.should.have.property('url');
+        res.body.should.have.property('downloadUrl');
         done();
       });
   });
