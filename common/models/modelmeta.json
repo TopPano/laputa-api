@@ -27,7 +27,6 @@
     "viewerOptions": {
       "type": {
         "description": "boolean",
-        "floor": "boolean",
         "map": "boolean",
         "share": "boolean",
         "presentedBy": "boolean"
