@@ -27,8 +27,16 @@
         "cameraHeading": {
           "lat": "number",
           "lng": "number"
-        }
+        },
+        "fov": "number",
+        "nodeId": "string"
       }
+    },
+    "width": {
+      "type": "number"
+    },
+    "height": {
+      "type": "number"
     },
     "createdBy": {
       "type": "string"
@@ -41,12 +49,6 @@
     },
     "modified": {
       "type": "date"
-    },
-    "width": {
-      "type": "number"
-    },
-    "height": {
-      "type": "number"
     }
   },
   "validations": [],
