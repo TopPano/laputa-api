@@ -152,7 +152,8 @@ module.exports = function(app, callback) {
           heading: node.heading,
           enabled: node.enabled,
           thumbnailUrl: node.thumbnailUrl,
-          srcUrl: node.srcUrl
+          srcUrl: node.srcUrl,
+          srcDownloadUrl: node.srcDownloadUrl
         }, function(err, newNode) {
           if (err) { return callback(err); }
           console.log('Node created: %s for Model "%s"', newNode.tag, newModel.name);
