@@ -161,7 +161,9 @@ module.exports = function(app, callback) {
           enabled: node.enabled,
           thumbnailUrl: node.thumbnailUrl,
           srcUrl: node.srcUrl,
-          srcDownloadUrl: node.srcDownloadUrl
+          srcDownloadUrl: node.srcDownloadUrl,
+          srcMobileUrl: node.srcMobileUrl,
+          srcMobileDownloadUrl: node.srcMobileDownloadUrl
         }, function(err, newNode) {
           if (err) { return callback(err); }
           console.log('Node created: %s for Model "%s"', newNode.tag, newModel.name);
