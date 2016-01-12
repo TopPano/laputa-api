@@ -154,29 +154,51 @@ module.exports = function(Modelmeta) {
             .resize(4096, 2048)
             .toBuffer('JPG', function(err, buffer) {
               if (err) { return callback(err); }
-              var tileGeometries = calTileGeometries(4096, 2048);
-              async.each(tileGeometries, function(tile, callback) {
-                gm(buffer)
-                .crop(tile.width, tile.height, tile.x, tile.y)
-                .toBuffer('JPG', function(err, buffer) {
-                  if (err) { return callback(err); }
+              async.parallel({
+                uploadResizedImg: function(callback) {
                   upload({
                     type: 'pan',
-                    quality: 'low',
+                    quality: 'src',
                     modelId: modelId,
                     timestamp: now,
-                    imageFilename: nodeId+'_equirectangular_'+tile.idx+'.jpg',
+                    imageFilename: nodeId+'_low.jpg',
                     image: buffer
-                  }, function(err, cdnFilename, cdnUrl) {
+                  }, function(err, cdnFilename, cdnUrl, s3Filename, s3Url) {
                     if (err) { return callback(err); }
-                    ctx.nodeFiles.push({
-                      name: cdnFilename,
-                      url: cdnUrl,
-                      modelId: modelId
-                    });
+                    ctx.args.data.srcMobileUrl = s3Url;
+                    ctx.args.data.srcMobileDownloadUrl = cdnUrl;
                     callback();
                   });
-                });
+                },
+                tileResizedImg: function(callback) {
+                  var tileGeometries = calTileGeometries(4096, 2048);
+                  async.each(tileGeometries, function(tile, callback) {
+                    gm(buffer)
+                    .crop(tile.width, tile.height, tile.x, tile.y)
+                    .toBuffer('JPG', function(err, buffer) {
+                      if (err) { return callback(err); }
+                      upload({
+                        type: 'pan',
+                        quality: 'low',
+                        modelId: modelId,
+                        timestamp: now,
+                        imageFilename: nodeId+'_equirectangular_'+tile.idx+'.jpg',
+                        image: buffer
+                      }, function(err, cdnFilename, cdnUrl) {
+                        if (err) { return callback(err); }
+                        ctx.nodeFiles.push({
+                          name: cdnFilename,
+                          url: cdnUrl,
+                          modelId: modelId
+                        });
+                        callback();
+                      });
+                    });
+                  }, function(err) {
+                    if (err) { return callback(err); }
+                    callback();
+                  });
+                }
               }, function(err) {
                 if (err) { return callback(err); }
                 callback();

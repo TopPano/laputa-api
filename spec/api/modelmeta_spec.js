@@ -331,20 +331,20 @@ describe('REST API endpoint /modelmeta', function() {
       .attach('image', __dirname+'/fixtures/1.jpg')
       .expect(200, function(err, res) {
         if (err) { return done(err); }
-        res.body.should.have.properties({
-          tag: 'room1',
-          heading: 30,
-          enabled: true
-        });
-        res.body.should.have.property('thumbnailUrl');
-        res.body.should.have.property('srcUrl');
-        res.body.should.have.property('srcDownloadUrl');
         json('get', endpoint+'/'+model.sid+'/nodes/'+res.body.sid)
           .expect(200, function(err, res) {
             if (err) { return done(err); }
+            console.log(JSON.stringify(res.body));
+            res.body.should.have.properties({
+              tag: 'room1',
+              heading: 30,
+              enabled: true
+            });
             res.body.should.have.property('thumbnailUrl');
             res.body.should.have.property('srcUrl');
             res.body.should.have.property('srcDownloadUrl');
+            res.body.should.have.property('srcMobileUrl');
+            res.body.should.have.property('srcMobileDownloadUrl');
             done();
           });
       });

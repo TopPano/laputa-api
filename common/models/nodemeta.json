@@ -36,6 +36,12 @@
     "srcDownloadUrl": {
       "type": "string"
     },
+    "srcMobileUrl": {
+      "type": "string"
+    },
+    "srcMobileDownloadUrl": {
+      "type": "string"
+    },
     "files": {
       "type": "object"
     },
