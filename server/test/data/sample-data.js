@@ -37,6 +37,8 @@ module.exports = function(app, callback) {
       thumbnailUrl: 'http://localhost:3000/images/models/0/beef/pan/thumb/2015-12-30/1.jpg',
       srcUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/1.jpg',
       srcDownloadUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/1.jpg',
+      srcMobileUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/1_low.jpg',
+      srcMobileDownloadUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/1_low.jpg',
       files: [
         '/pan/thumb/1.jpg;http://localhost:3000/images/models/0/beef/pan/thumb/2015-12-30/1.jpg',
         '/pan/high/1_equirectangular_0.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/1_equirectangular_0.jpg',
@@ -64,6 +66,8 @@ module.exports = function(app, callback) {
       thumbnailUrl: 'http://localhost:3000/images/models/0/beef/pan/thumb/2015-12-30/2.jpg',
       srcUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/2.jpg',
       srcDownloadUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/2.jpg',
+      srcMobileUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/2_low.jpg',
+      srcMobileDownloadUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/2_low.jpg',
       files: [
         '/pan/thumb/2.jpg;http://localhost:3000/images/models/0/beef/pan/thumb/2015-12-30/2.jpg',
         '/pan/high/2_equirectangular_0.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/2_equirectangular_0.jpg',
@@ -91,6 +95,8 @@ module.exports = function(app, callback) {
       thumbnailUrl: 'http://localhost:3000/images/models/0/beef/pan/thumb/2015-12-30/3.jpg',
       srcUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/3.jpg',
       srcDownloadUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/3.jpg',
+      srcMobileUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/3_low.jpg',
+      srcMobileDownloadUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/3_low.jpg',
       files: [
         '/pan/thumb/3.jpg;http://localhost:3000/images/models/0/beef/pan/thumb/2015-12-30/3.jpg',
         '/pan/high/3_equirectangular_0.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/3_equirectangular_0.jpg',
@@ -118,6 +124,8 @@ module.exports = function(app, callback) {
       thumbnailUrl: 'http://localhost:3000/images/models/0/beef/pan/thumb/2015-12-30/4.jpg',
       srcUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/4.jpg',
       srcDownloadUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/4.jpg',
+      srcMobileUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/4_low.jpg',
+      srcMobileDownloadUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/4_low.jpg',
       files: [
         '/pan/thumb/4.jpg;http://localhost:3000/images/models/0/beef/pan/thumb/2015-12-30/4.jpg',
         '/pan/high/4_equirectangular_0.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/4_equirectangular_0.jpg',
