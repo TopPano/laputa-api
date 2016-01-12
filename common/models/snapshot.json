@@ -22,15 +22,14 @@
     "downloadUrl": {
       "type": "string"
     },
-    "metadata": {
-      "type": {
-        "cameraHeading": {
-          "lat": "number",
-          "lng": "number"
-        },
-        "fov": "number",
-        "nodeId": "string"
-      }
+    "lat": {
+      "type": "number"
+    },
+    "lng": {
+      "type": "number"
+    },
+    "fov": {
+      "type": "number"
     },
     "width": {
       "type": "number"

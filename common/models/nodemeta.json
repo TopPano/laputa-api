@@ -63,6 +63,11 @@
       "model": "modelmeta",
       "foreignKey": "modelId"
     },
+    "snapshots": {
+      "type": "hasMany",
+      "model": "snapshot",
+      "foreignKey": "nodeId"
+    },
     "files": {
       "type": "hasMany",
       "model": "file",

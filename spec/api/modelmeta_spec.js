@@ -42,35 +42,21 @@ describe('REST API endpoint /modelmeta', function() {
           name: 'france'
         }
       ],
-      snapshotList: [
-        {
-          name: 'Mona Lisa',
-          metadata: {
-            cameraHeading: {
-              lat: 50,
-              lng: 100
-            }
-          },
-          height: 300,
-          weight: 300
-        },
-        {
-          name: 'The Winged Victory of Samothrace',
-          metadata: {
-            cameraHeading: {
-              lat: -10,
-              lng: 90
-            }
-          },
-          height: 300,
-          weight: 300
-        }
-      ],
       nodeList: [
         {
           heading: 30,
           enabled: true,
           tag: 'room1',
+          snapshotList: [
+            {
+              name: 'Mona Lisa',
+              lat: 50,
+              lng: 100,
+              fov: 70,
+              height: 300,
+              weight: 300
+            }
+          ],
           fileList: [
             {
               name: 'filename11',
@@ -86,6 +72,16 @@ describe('REST API endpoint /modelmeta', function() {
           heading: 30,
           enabled: true,
           tag: 'room2',
+          snapshotList: [
+            {
+              name: 'The Winged Victory of Samothrace',
+              lat: -10,
+              lng: 90,
+              fov: 70,
+              height: 300,
+              weight: 300
+            }
+          ],
           fileList: [
             {
               name: 'filename21',
@@ -166,21 +162,6 @@ describe('REST API endpoint /modelmeta', function() {
                   callback();
                 }
               },
-              insertSnapshots: function(callback) {
-                if (model.hasOwnProperty('snapshotList')) {
-                  async.each(model.snapshotList, function(snapshot, cb) {
-                    newModel.snapshots.create(snapshot, function(err) {
-                      if (err) { return cb(err); }
-                      cb();
-                    });
-                  }, function(err) {
-                    if (err) { return callback(err); }
-                    callback();
-                  });
-                } else {
-                  callback();
-                }
-              },
               insertNodes: function(callback) {
                 if (model.hasOwnProperty('nodeList')) {
                   async.each(model.nodeList, function(node, cb) {
@@ -191,7 +172,16 @@ describe('REST API endpoint /modelmeta', function() {
                     }, function(err, newNode) {
                       if (err) { return cb(err); }
                       node.sid = newNode.sid;
-                      cb();
+                      async.each(node.snapshotList, function(snapshot, cb) {
+                        snapshot.nodeId = newNode.sid;
+                        newModel.snapshots.create(snapshot, function(err) {
+                          if (err) { return cb(err); }
+                          cb();
+                        });
+                      }, function(err) {
+                        if (err) { return cb(err); }
+                        cb();
+                      });
                     });
                   }, function(err) {
                     if (err) { return callback(err); }
@@ -271,7 +261,11 @@ describe('REST API endpoint /modelmeta', function() {
         res.body.labelList.should.be.instanceof(Array).and.have.length(model.labelList.length);
 
         res.body.should.have.property('snapshotList');
-        res.body.snapshotList.should.be.instanceof(Array).and.have.length(model.snapshotList.length);
+        res.body.snapshotList.should.be.instanceof(Array);
+        res.body.snapshotList.should.containDeep([
+          model.nodeList[0].snapshotList[0],
+          model.nodeList[1].snapshotList[0]
+        ]);
         done();
       });
   });
@@ -334,7 +328,6 @@ describe('REST API endpoint /modelmeta', function() {
         json('get', endpoint+'/'+model.sid+'/nodes/'+res.body.sid)
           .expect(200, function(err, res) {
             if (err) { return done(err); }
-            console.log(JSON.stringify(res.body));
             res.body.should.have.properties({
               tag: 'room1',
               heading: 30,
@@ -383,29 +376,35 @@ describe('REST API endpoint /modelmeta', function() {
   });
 
   it('should create a new snapshot for a model', function(done) {
-    var model = models[1];
+    var model = models[0];
     // XXX: Supertest can support sending fields only with string. So currently we won't
     //      test with sending property "metadta: { ... }"
     json('post', endpoint+'/'+model.sid+'/snapshots?access_token='+user.accessToken.id, 'multipart/form-data')
       .field('name', 'snapshot1')
+      .field('lat', '90')
+      .field('lng', '90')
+      .field('fov', '90')
       .field('width', '400')
       .field('height', '200')
+      .field('nodeId', model.nodeList[0].sid)
       .attach('image', __dirname+'/fixtures/1_thumb.jpg')
       .expect(200, function(err, res) {
         if (err) { return done(err); }
-        res.body.should.have.properties({
-          name: 'snapshot1',
-          width: 400,
-          height: 200
-        });
-        res.body.should.have.property('url');
-        res.body.should.have.property('downloadUrl');
         json('get', endpoint+'/'+model.sid+'/snapshots/'+res.body.sid)
-        .expect(200, function(err, res) {
-          res.body.should.have.property('url');
-          res.body.should.have.property('downloadUrl');
-          done();
-        });
+          .expect(200, function(err, res) {
+            res.body.should.have.properties({
+              name: 'snapshot1',
+              lat: 90,
+              lng: 90,
+              fov: 90,
+              width: 400,
+              height: 200,
+              nodeId: model.nodeList[0].sid
+            });
+            res.body.should.have.property('url');
+            res.body.should.have.property('downloadUrl');
+            done();
+          });
       });
   });
 
@@ -434,7 +433,11 @@ describe('REST API endpoint /modelmeta', function() {
     json('get', endpoint+'/'+model.sid+'/snapshots')
       .expect(200, function(err, res) {
         if (err) { return done(err); }
-        res.body.should.be.instanceof(Array).and.have.length(model.snapshotList.length);
+        res.body.should.be.instanceof(Array);
+        res.body.should.containDeep([
+          model.nodeList[0].snapshotList[0],
+          model.nodeList[1].snapshotList[0]
+        ]);
         done();
       });
   });
