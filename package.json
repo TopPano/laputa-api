@@ -4,12 +4,13 @@
   "main": "server/server.js",
   "scripts": {
     "pretest": "jshint .",
-    "test": "mocha -C -R spec spec/ --recursive --timeout 10000",
-    "dev": "NODE_ENV=dev DB_HOST=52.88.40.76 DB_USER=verpix-api DB_PASSWORD=1234 node .",
+    "test": "S3_BKT=verpix-img-dev mocha -C -R spec spec/ --recursive --timeout 15000",
+    "dev": "NODE_ENV=dev DB_HOST=52.88.40.76 DB_USER=verpix-api DB_PASSWORD=1234 S3_BKT=verpix-img-dev node .",
     "local": "NODE_ENV=local node ."
   },
   "dependencies": {
     "async": "^1.5.0",
+    "aws-sdk": "^2.2.30",
     "bcrypt": "^0.8.5",
     "compression": "^1.0.3",
     "cors": "^2.5.2",

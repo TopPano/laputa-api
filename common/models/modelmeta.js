@@ -4,6 +4,8 @@ var moment = require('moment');
 var gm = require('gm');
 var async = require('async');
 var fs = require('fs');
+var crypto = require('crypto');
+var S3Uploader = require('../utils/S3Uploader');
 
 module.exports = function(Modelmeta) {
 
@@ -24,21 +26,51 @@ module.exports = function(Modelmeta) {
     });
   }
 
+  function genShardingKey() {
+    var keylen = 4;
+    return crypto.randomBytes(Math.ceil(keylen/2)).toString('hex');
+  }
+
   function upload(params, callback) {
-    var shardingKey = 'beef';
-    var path = './server/test/data/images/models/'+params.modelId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp;
-    createDir(path, function(err) {
-      if (err) { return callback(err); }
-      fs.writeFile(path+'/'+params.imageFilename, params.image, function(err) {
+    var uploader = new S3Uploader();
+    var shardingKey = genShardingKey();
+    if (process.env.NODE_ENV === 'local') {
+      var path = './server/test/data/images/models/'+params.modelId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp;
+      createDir(path, function(err) {
         if (err) { return callback(err); }
-        var cdnFilename = '/'+params.type+'/'+params.quality+'/'+params.imageFilename;
-        var cdnUrl = 'http://localhost:3000/images/models/'+params.modelId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp+'/'+params.imageFilename;
-        // TODO: use real S3 download url
-        var s3Filename = cdnFilename;
-        var s3Url = cdnUrl;
+        fs.writeFile(path+'/'+params.imageFilename, params.image, function(err) {
+          if (err) { return callback(err); }
+          var cdnFilename = '/'+params.type+'/'+params.quality+'/'+params.imageFilename;
+          var cdnUrl = 'http://localhost:3000/images/models/'+params.modelId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp+'/'+params.imageFilename;
+          var s3Filename = cdnFilename;
+          var s3Url = cdnUrl;
+          callback(null, cdnFilename, cdnUrl, s3Filename, s3Url);
+        });
+      });
+    } else {
+      var fileKey = '/posts/'+params.modelId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp+'/'+'/'+params.imageFilename;
+      uploader.on('success', function(data) {
+        if (!data.Location || !data.key) {
+          return callback(new Error('Unable to get S3 location/key'));
+        }
+        var s3Filename = data.key;
+        var s3Url = data.Location;
+        // TODO: use real CDN download url
+        var cdnFilename = data.key;
+        var cdnUrl = data.Location;
         callback(null, cdnFilename, cdnUrl, s3Filename, s3Url);
       });
-    });
+      uploader.on('error', function(err) {
+        callback(err);
+      });
+      uploader.send({
+        File: params.image,
+        Key: fileKey,
+        options: {
+          ACL: 'public-read'
+        }
+      });
+    }
   }
 
   Modelmeta.beforeRemote('*.__create__nodes', function(ctx, instance, next) {
