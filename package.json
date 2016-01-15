@@ -5,21 +5,23 @@
   "scripts": {
     "pretest": "jshint .",
     "test": "mocha -C -R spec spec/ --recursive --timeout 10000",
+    "dev": "NODE_ENV=dev DB_HOST=52.88.40.76 DB_USER=verpix-api DB_PASSWORD=1234 node .",
     "local": "NODE_ENV=local node ."
   },
   "dependencies": {
+    "async": "^1.5.0",
     "bcrypt": "^0.8.5",
     "compression": "^1.0.3",
     "cors": "^2.5.2",
+    "gm": "^1.21.1",
     "loopback": "^2.26.1",
     "loopback-boot": "^2.12.1",
     "loopback-component-explorer": "^2.1.0",
+    "loopback-connector-mongodb": "^1.13.3",
     "loopback-datasource-juggler": "^2.39.0",
-    "serve-favicon": "^2.0.1",
-    "async": "^1.5.0",
-    "gm": "^1.21.1",
+    "moment": "^2.11.0",
     "multer": "^1.1.0",
-    "moment": "^2.11.0"
+    "serve-favicon": "^2.0.1"
   },
   "devDependencies": {
     "jshint": "^2.5.6",
