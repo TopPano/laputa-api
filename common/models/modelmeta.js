@@ -48,7 +48,7 @@ module.exports = function(Modelmeta) {
         });
       });
     } else {
-      var fileKey = '/posts/'+params.modelId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp+'/'+'/'+params.imageFilename;
+      var fileKey = 'posts/'+params.modelId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp+'/'+params.imageFilename;
       uploader.on('success', function(data) {
         if (!data.Location || !data.key) {
           return callback(new Error('Unable to get S3 location/key'));
