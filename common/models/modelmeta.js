@@ -34,42 +34,46 @@ module.exports = function(Modelmeta) {
   function upload(params, callback) {
     var uploader = new S3Uploader();
     var shardingKey = genShardingKey();
-    if (process.env.NODE_ENV === 'local') {
-      var path = './server/test/data/images/models/'+params.modelId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp;
-      createDir(path, function(err) {
-        if (err) { return callback(err); }
-        fs.writeFile(path+'/'+params.imageFilename, params.image, function(err) {
+
+    try {
+      if (process.env.NODE_ENV === 'local') {
+        var path = './server/test/data/images/models/'+params.modelId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp;
+        createDir(path, function(err) {
           if (err) { return callback(err); }
-          var cdnFilename = '/'+params.type+'/'+params.quality+'/'+params.imageFilename;
-          var cdnUrl = 'http://localhost:3000/images/models/'+params.modelId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp+'/'+params.imageFilename;
-          var s3Filename = cdnFilename;
-          var s3Url = cdnUrl;
+          fs.writeFile(path+'/'+params.imageFilename, params.image, function(err) {
+            if (err) { return callback(err); }
+            var cdnFilename = '/'+params.type+'/'+params.quality+'/'+params.imageFilename;
+            var cdnUrl = 'http://localhost:3000/images/models/'+params.modelId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp+'/'+params.imageFilename;
+            var s3Filename = cdnFilename;
+            var s3Url = cdnUrl;
+            callback(null, cdnFilename, cdnUrl, s3Filename, s3Url);
+          });
+        });
+      } else {
+        var fileKey = 'posts/'+params.modelId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp+'/'+params.imageFilename;
+        uploader.on('success', function(data) {
+          assert(data.hasOwnProperty('Location'), 'Unable to get location proerty from S3 response object');
+          assert((data.hasOwnProperty('key') || data.hasOwnProperty('Key')), 'Unable to get key property from S3 response object');
+          var s3Filename = data.key;
+          var s3Url = data.Location;
+          // TODO: use real CDN download url
+          var cdnFilename = data.key;
+          var cdnUrl = data.Location;
           callback(null, cdnFilename, cdnUrl, s3Filename, s3Url);
         });
-      });
-    } else {
-      var fileKey = 'posts/'+params.modelId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp+'/'+params.imageFilename;
-      uploader.on('success', function(data) {
-        if (!data.Location || !data.key) {
-          return callback(new Error('Unable to get S3 location/key'));
-        }
-        var s3Filename = data.key;
-        var s3Url = data.Location;
-        // TODO: use real CDN download url
-        var cdnFilename = data.key;
-        var cdnUrl = data.Location;
-        callback(null, cdnFilename, cdnUrl, s3Filename, s3Url);
-      });
-      uploader.on('error', function(err) {
-        callback(err);
-      });
-      uploader.send({
-        File: params.image,
-        Key: fileKey,
-        options: {
-          ACL: 'public-read'
-        }
-      });
+        uploader.on('error', function(err) {
+          callback(err);
+        });
+        uploader.send({
+          File: params.image,
+          Key: fileKey,
+          options: {
+            ACL: 'public-read'
+          }
+        });
+      }
+    } catch (err) {
+      callback(err);
     }
   }
 
