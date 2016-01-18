@@ -319,9 +319,7 @@ module.exports = function(Modelmeta) {
   function getNodeList(modelId, callback) {
     var Nodemeta = Modelmeta.app.models.nodemeta;
     var Files = Modelmeta.app.models.file;
-    Nodemeta.find({
-      modelId: modelId
-    }, function(err, nodeList) {
+    Nodemeta.find({where: {modelId: modelId}}, function(err, nodeList) {
       if (err) { return callback(err); }
       var nodes = {};
       async.map(nodeList, function(node, callback) {
