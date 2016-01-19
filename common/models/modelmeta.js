@@ -54,10 +54,10 @@ module.exports = function(Modelmeta) {
         uploader.on('success', function(data) {
           assert(data.hasOwnProperty('Location'), 'Unable to get location proerty from S3 response object');
           assert((data.hasOwnProperty('key') || data.hasOwnProperty('Key')), 'Unable to get key property from S3 response object');
-          var s3Filename = data.key;
+          var s3Filename = data.key || data.Key;
           var s3Url = data.Location;
           // TODO: use real CDN download url
-          var cdnFilename = data.key;
+          var cdnFilename = data.key || data.Key;
           var cdnUrl = data.Location;
           callback(null, cdnFilename, cdnUrl, s3Filename, s3Url);
         });
