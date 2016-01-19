@@ -1,5 +1,6 @@
 'use strict';
 var assert = require('assert');
+var zlib = require('zlib');
 var moment = require('moment');
 var gm = require('gm');
 var async = require('async');
@@ -112,88 +113,93 @@ module.exports = function(Modelmeta) {
       if (!imgBuf || !imgType || !imgWidth || !imgHeight) {
         return next(new Error('Missing properties'));
       }
-      if (imgType !== 'image/jpeg') {
+      if (imgType !== 'application/zip') {
         return next(new Error('Invalid image type'));
       }
 
       ctx.nodeFiles = [];
 
-      async.parallel({
-        uploadImage: function(callback) {
-          upload({
-            type: 'pan',
-            quality: 'src',
-            modelId: modelId,
-            timestamp: now,
-            imageFilename: nodeId+'.jpg',
-            image: imgBuf
-          }, function(err, cdnFilename, cdnUrl, s3Filename, s3Url) {
-            if (err) { return callback(err); }
-            ctx.args.data.srcUrl = s3Url;
-            ctx.args.data.srcDownloadUrl = cdnUrl;
-            ctx.nodeFiles.push({
-              name: cdnFilename,
-              url: cdnUrl,
-              modelId: modelId
-            });
-            callback();
-          });
-        },
-        uploadThumb: function(callback) {
-          var croppedWidth = imgWidth / 2;
-          var croppedHeight = imgHeight / 2;
-          var croppedPositionX = imgWidth / 4;
-          var croppedPositionY = imgHeight / 4;
-          gm(imgBuf)
-          .crop(croppedWidth, croppedHeight, croppedPositionX, croppedPositionY)
-          .resize(300, 150)
-          .toBuffer('JPG', function(err, buffer) {
-            if (err) { return callback(err); }
+      zlib.inflate(imgBuf, function(err, uzImgBuf) {
+        if (err) {
+          console.error(err);
+          return next(new Error('Internal error'));
+        }
+        async.parallel({
+          uploadImage: function(callback) {
             upload({
               type: 'pan',
-              quality: 'thumb',
+              quality: 'src',
               modelId: modelId,
               timestamp: now,
               imageFilename: nodeId+'.jpg',
-              image: buffer
+              image: uzImgBuf
             }, function(err, cdnFilename, cdnUrl, s3Filename, s3Url) {
               if (err) { return callback(err); }
-              ctx.args.data.thumbnailUrl = s3Url;
+              ctx.args.data.srcUrl = s3Url;
+              ctx.args.data.srcDownloadUrl = cdnUrl;
+              ctx.nodeFiles.push({
+                name: cdnFilename,
+                url: cdnUrl,
+                modelId: modelId
+              });
               callback();
             });
-          });
-        },
-        tileImgHigh: function(callback) {
-          var tileGeometries = calTileGeometries(imgWidth, imgHeight);
-          async.each(tileGeometries, function(tile, callback) {
-            gm(imgBuf)
-            .crop(tile.width, tile.height, tile.x, tile.y)
+          },
+          uploadThumb: function(callback) {
+            var croppedWidth = imgWidth / 2;
+            var croppedHeight = imgHeight / 2;
+            var croppedPositionX = imgWidth / 4;
+            var croppedPositionY = imgHeight / 4;
+            gm(uzImgBuf)
+            .crop(croppedWidth, croppedHeight, croppedPositionX, croppedPositionY)
+            .resize(300, 150)
             .toBuffer('JPG', function(err, buffer) {
               if (err) { return callback(err); }
               upload({
                 type: 'pan',
-                quality: 'high',
+                quality: 'thumb',
                 modelId: modelId,
                 timestamp: now,
-                imageFilename: nodeId+'_equirectangular_'+tile.idx+'.jpg',
+                imageFilename: nodeId+'.jpg',
                 image: buffer
-              }, function(err, cdnFilename, cdnUrl) {
+              }, function(err, cdnFilename, cdnUrl, s3Filename, s3Url) {
                 if (err) { return callback(err); }
-                ctx.nodeFiles.push({
-                  name: cdnFilename,
-                  url: cdnUrl,
-                  modelId: modelId
-                });
+                ctx.args.data.thumbnailUrl = s3Url;
                 callback();
               });
             });
-          }, function(err) {
-            if (err) { return callback(err); }
-            callback();
-          });
-        },
-        tileImgLow: function(callback) {
-          gm(imgBuf)
+          },
+          tileImgHigh: function(callback) {
+            var tileGeometries = calTileGeometries(imgWidth, imgHeight);
+            async.each(tileGeometries, function(tile, callback) {
+              gm(uzImgBuf)
+              .crop(tile.width, tile.height, tile.x, tile.y)
+              .toBuffer('JPG', function(err, buffer) {
+                if (err) { return callback(err); }
+                upload({
+                  type: 'pan',
+                  quality: 'high',
+                  modelId: modelId,
+                  timestamp: now,
+                  imageFilename: nodeId+'_equirectangular_'+tile.idx+'.jpg',
+                  image: buffer
+                }, function(err, cdnFilename, cdnUrl) {
+                  if (err) { return callback(err); }
+                  ctx.nodeFiles.push({
+                    name: cdnFilename,
+                    url: cdnUrl,
+                    modelId: modelId
+                  });
+                  callback();
+                });
+              });
+            }, function(err) {
+              if (err) { return callback(err); }
+              callback();
+            });
+          },
+          tileImgLow: function(callback) {
+            gm(uzImgBuf)
             .resize(4096, 2048)
             .toBuffer('JPG', function(err, buffer) {
               if (err) { return callback(err); }
@@ -247,14 +253,17 @@ module.exports = function(Modelmeta) {
                 callback();
               });
             });
-        }
-      }, function(err, results) {
-        if (err) {
-          console.error(err);
-          return next(new Error('Internal error'));
-        }
-        next();
+          }
+        }, function(err, results) {
+          if (err) {
+            console.error(err);
+            return next(new Error('Internal error'));
+          }
+          next();
+        });
       });
+
+
     } catch (err) {
       console.error(err);
       next(new Error('Invalid request'));
