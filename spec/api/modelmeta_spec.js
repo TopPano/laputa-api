@@ -321,7 +321,6 @@ describe('REST API endpoint /modelmeta', function() {
       .field('enabled', 'true')
       .field('width', '8192')
       .field('height', '4096')
-      .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
       .attach('image', __dirname+'/fixtures/1.jpg')
       .expect(200, function(err, res) {
         if (err) { return done(err); }
