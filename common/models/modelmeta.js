@@ -107,35 +107,18 @@ module.exports = function(Modelmeta) {
       var imgType = ctx.req.files.image[0].mimetype;
       var imgWidth = ctx.req.body.width;
       var imgHeight = ctx.req.body.height;
-      var thumbBuf = ctx.req.files.thumbnail[0].buffer;
-      var thumbType = ctx.req.files.thumbnail[0].mimetype;
       var now = getTimeNow();
 
-      if (!imgBuf || !imgType || !imgWidth || !imgHeight ||
-          !thumbBuf || !thumbType) {
+      if (!imgBuf || !imgType || !imgWidth || !imgHeight) {
         return next(new Error('Missing properties'));
       }
-      if (imgType !== 'image/jpeg' || thumbType !== 'image/jpeg') {
+      if (imgType !== 'image/jpeg') {
         return next(new Error('Invalid image type'));
       }
 
       ctx.nodeFiles = [];
 
       async.parallel({
-        uploadThumb: function(callback) {
-          upload({
-            type: 'pan',
-            quality: 'thumb',
-            modelId: modelId,
-            timestamp: now,
-            imageFilename: nodeId+'.jpg',
-            image: thumbBuf
-          }, function(err, cdnFilename, cdnUrl, s3Filename, s3Url) {
-            if (err) { return callback(err); }
-            ctx.args.data.thumbnailUrl = s3Url;
-            callback();
-          });
-        },
         uploadImage: function(callback) {
           upload({
             type: 'pan',
@@ -143,7 +126,7 @@ module.exports = function(Modelmeta) {
             modelId: modelId,
             timestamp: now,
             imageFilename: nodeId+'.jpg',
-            image: thumbBuf
+            image: imgBuf
           }, function(err, cdnFilename, cdnUrl, s3Filename, s3Url) {
             if (err) { return callback(err); }
             ctx.args.data.srcUrl = s3Url;
@@ -154,6 +137,30 @@ module.exports = function(Modelmeta) {
               modelId: modelId
             });
             callback();
+          });
+        },
+        uploadThumb: function(callback) {
+          var croppedWidth = imgWidth / 2;
+          var croppedHeight = imgHeight / 2;
+          var croppedPositionX = imgWidth / 4;
+          var croppedPositionY = imgHeight / 4;
+          gm(imgBuf)
+          .crop(croppedWidth, croppedHeight, croppedPositionX, croppedPositionY)
+          .resize(300, 150)
+          .toBuffer('JPG', function(err, buffer) {
+            if (err) { return callback(err); }
+            upload({
+              type: 'pan',
+              quality: 'thumb',
+              modelId: modelId,
+              timestamp: now,
+              imageFilename: nodeId+'.jpg',
+              image: buffer
+            }, function(err, cdnFilename, cdnUrl, s3Filename, s3Url) {
+              if (err) { return callback(err); }
+              ctx.args.data.thumbnailUrl = s3Url;
+              callback();
+            });
           });
         },
         tileImgHigh: function(callback) {
