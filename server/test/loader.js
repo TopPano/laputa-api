@@ -5,15 +5,15 @@ function installImageRoute(server) {
   var router = server.loopback.Router();
   console.log('installing route: /images');
 
-  router.get('/images/models/:modelId/:shardingKey/:type/:quality/:timestamp/:filename', function(req, res) {
-    var modelId = req.params.modelId;
+  router.get('/posts/:postId/:shardingKey/:type/:quality/:timestamp/:filename', function(req, res) {
+    var postId = req.params.postId;
     var shardingKey = req.params.shardingKey;
     var type = req.params.type;
     var quality = req.params.quality;
     var timestamp = req.params.timestamp;
     var filename = req.params.filename;
 
-    var filepath = __dirname+'/data/images/models/'+modelId+'/'+shardingKey+'/'+type+'/'+quality+'/'+timestamp+'/'+filename;
+    var filepath = __dirname+'/data/posts/'+postId+'/'+shardingKey+'/'+type+'/'+quality+'/'+timestamp+'/'+filename;
     fs.readFile(filepath, function(err, data) {
       if (err) {
         console.log(err);

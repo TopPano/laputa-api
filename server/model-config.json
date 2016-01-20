@@ -37,19 +37,11 @@
     "dataSource": "db",
     "public": true
   },
-  "modelmeta": {
+  "post": {
     "dataSource": "db",
     "public": true
   },
   "nodemeta": {
-    "dataSource": "db",
-    "public": false
-  },
-  "modelshare": {
-    "dataSource": "db",
-    "public": false
-  },
-  "label": {
     "dataSource": "db",
     "public": false
   },

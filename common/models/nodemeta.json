@@ -12,14 +12,8 @@
       "generated": false,
       "defaultFn": "uuid"
     },
-    "tag": {
-      "type": "string"
-    },
     "heading": {
       "type": "number"
-    },
-    "enabled": {
-      "type": "boolean"
     },
     "width": {
       "type": "number"
@@ -58,10 +52,10 @@
   },
   "validations": [],
   "relations": {
-    "model": {
+    "post": {
       "type": "belongsTo",
-      "model": "modelmeta",
-      "foreignKey": "modelId"
+      "model": "post",
+      "foreignKey": "postId"
     },
     "snapshots": {
       "type": "hasMany",

@@ -1,5 +1,6 @@
 {
-  "name": "modelmeta",
+  "name": "post",
+  "plural": "posts",
   "base": "PersistedModel",
   "idInjection": false,
   "options": {
@@ -12,37 +13,20 @@
       "generated": false,
       "defaultFn": "uuid"
     },
-    "name": {
-      "type": "string"
-    },
-    "status": {
-      "type": "string"
-    },
     "image": {
+      "type": "string"
+    },
+    "message": {
       "type": "string"
     },
     "nodes": {
       "type": "object"
-    },
-    "viewerOptions": {
-      "type": {
-        "description": "boolean",
-        "map": "boolean",
-        "share": "boolean",
-        "presentedBy": "boolean"
-      }
-    },
-    "presentedBy": {
-      "type": "string"
     },
     "address": {
       "type": "string"
     },
     "geolocation": {
       "type": "geopoint"
-    },
-    "description": {
-      "type": "string"
     }
   },
   "validations": [],
@@ -50,7 +34,7 @@
     "nodes": {
       "type": "hasMany",
       "model": "nodemeta",
-      "foreignKey": "modelId"
+      "foreignKey": "postId"
     },
     "snapshots": {
       "type": "embedsMany",
@@ -61,24 +45,10 @@
         "forceId": false
       }
     },
-    "sharedModels": {
-      "type": "hasMany",
-      "model": "modelshare",
-      "foreignKey": "modelId"
-    },
     "files": {
       "type": "hasMany",
       "model": "file",
-      "foreignKey": "modelId"
-    },
-    "labels": {
-      "type": "embedsMany",
-      "model": "label",
-      "property": "labelList",
-      "options": {
-        "validate": true,
-        "forceId": false
-      }
+      "foreignKey": "postId"
     }
   },
   "acls": [

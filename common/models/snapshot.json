@@ -52,10 +52,10 @@
   },
   "validations": [],
   "relations": {
-    "model": {
+    "post": {
       "type": "belongsTo",
-      "model": "modelmeta",
-      "foreignKey": "modelId"
+      "model": "post",
+      "foreignKey": "postId"
     },
     "node": {
       "type": "belongsTo",

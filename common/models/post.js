@@ -8,7 +8,7 @@ var fs = require('fs');
 var crypto = require('crypto');
 var S3Uploader = require('../utils/S3Uploader');
 
-module.exports = function(Modelmeta) {
+module.exports = function(Post) {
 
   function getTimeNow() {
     return moment(new Date()).format('YYYY-MM-DD');
@@ -38,20 +38,20 @@ module.exports = function(Modelmeta) {
 
     try {
       if (process.env.NODE_ENV === 'local') {
-        var path = './server/test/data/images/models/'+params.modelId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp;
+        var path = './server/test/data/images/posts/'+params.postId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp;
         createDir(path, function(err) {
           if (err) { return callback(err); }
           fs.writeFile(path+'/'+params.imageFilename, params.image, function(err) {
             if (err) { return callback(err); }
             var cdnFilename = '/'+params.type+'/'+params.quality+'/'+params.imageFilename;
-            var cdnUrl = 'http://localhost:3000/images/models/'+params.modelId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp+'/'+params.imageFilename;
+            var cdnUrl = 'http://localhost:3000/images/posts/'+params.postId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp+'/'+params.imageFilename;
             var s3Filename = cdnFilename;
             var s3Url = cdnUrl;
             callback(null, cdnFilename, cdnUrl, s3Filename, s3Url);
           });
         });
       } else {
-        var fileKey = 'posts/'+params.modelId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp+'/'+params.imageFilename;
+        var fileKey = 'posts/'+params.postId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp+'/'+params.imageFilename;
         uploader.on('success', function(data) {
           assert(data.hasOwnProperty('Location'), 'Unable to get location proerty from S3 response object');
           assert((data.hasOwnProperty('key') || data.hasOwnProperty('Key')), 'Unable to get key property from S3 response object');
@@ -78,7 +78,7 @@ module.exports = function(Modelmeta) {
     }
   }
 
-  Modelmeta.beforeRemote('*.__create__nodes', function(ctx, instance, next) {
+  Post.beforeRemote('*.__create__nodes', function(ctx, instance, next) {
 
     function calTileGeometries(imgWidth, imgHeight) {
       var tileWidth = imgWidth / 4;
@@ -102,7 +102,7 @@ module.exports = function(Modelmeta) {
 
     // Property checking
     try {
-      var modelId = ctx.req.params.id;
+      var postId = ctx.req.params.id;
       var nodeId = ctx.args.data.sid;
       var imgBuf = ctx.req.files.image[0].buffer;
       var imgType = ctx.req.files.image[0].mimetype;
@@ -129,7 +129,7 @@ module.exports = function(Modelmeta) {
             upload({
               type: 'pan',
               quality: 'src',
-              modelId: modelId,
+              postId: postId,
               timestamp: now,
               imageFilename: nodeId+'.jpg',
               image: uzImgBuf
@@ -140,7 +140,7 @@ module.exports = function(Modelmeta) {
               ctx.nodeFiles.push({
                 name: cdnFilename,
                 url: cdnUrl,
-                modelId: modelId
+                postId: postId
               });
               callback();
             });
@@ -158,7 +158,7 @@ module.exports = function(Modelmeta) {
               upload({
                 type: 'pan',
                 quality: 'thumb',
-                modelId: modelId,
+                postId: postId,
                 timestamp: now,
                 imageFilename: nodeId+'.jpg',
                 image: buffer
@@ -179,7 +179,7 @@ module.exports = function(Modelmeta) {
                 upload({
                   type: 'pan',
                   quality: 'high',
-                  modelId: modelId,
+                  postId: postId,
                   timestamp: now,
                   imageFilename: nodeId+'_equirectangular_'+tile.idx+'.jpg',
                   image: buffer
@@ -188,7 +188,7 @@ module.exports = function(Modelmeta) {
                   ctx.nodeFiles.push({
                     name: cdnFilename,
                     url: cdnUrl,
-                    modelId: modelId
+                    postId: postId
                   });
                   callback();
                 });
@@ -208,7 +208,7 @@ module.exports = function(Modelmeta) {
                   upload({
                     type: 'pan',
                     quality: 'src',
-                    modelId: modelId,
+                    postId: postId,
                     timestamp: now,
                     imageFilename: nodeId+'_low.jpg',
                     image: buffer
@@ -229,7 +229,7 @@ module.exports = function(Modelmeta) {
                       upload({
                         type: 'pan',
                         quality: 'low',
-                        modelId: modelId,
+                        postId: postId,
                         timestamp: now,
                         imageFilename: nodeId+'_equirectangular_'+tile.idx+'.jpg',
                         image: buffer
@@ -238,7 +238,7 @@ module.exports = function(Modelmeta) {
                         ctx.nodeFiles.push({
                           name: cdnFilename,
                           url: cdnUrl,
-                          modelId: modelId
+                          postId: postId
                         });
                         callback();
                       });
@@ -270,7 +270,7 @@ module.exports = function(Modelmeta) {
     }
   });
 
-  Modelmeta.afterRemote('*.__create__nodes', function(ctx, instance, next) {
+  Post.afterRemote('*.__create__nodes', function(ctx, instance, next) {
 
     if (ctx.hasOwnProperty('nodeFiles')) {
       async.each(ctx.nodeFiles, function(file, callback) {
@@ -290,9 +290,9 @@ module.exports = function(Modelmeta) {
     }
   });
 
-  Modelmeta.beforeRemote('*.__create__snapshots', function(ctx, instance, next) {
+  Post.beforeRemote('*.__create__snapshots', function(ctx, instance, next) {
     try {
-      var modelId = ctx.req.params.id;
+      var postId = ctx.req.params.id;
       var image = ctx.req.files.image[0].buffer;
       var type = ctx.req.files.image[0].mimetype;
 
@@ -306,7 +306,7 @@ module.exports = function(Modelmeta) {
       upload({
         type: 'pic',
         quality: 'src',
-        modelId: modelId,
+        postId: postId,
         timestamp: getTimeNow(),
         imageFilename: ctx.args.data.sid+'.jpg',
         image: image
@@ -322,7 +322,7 @@ module.exports = function(Modelmeta) {
     }
   });
 
-  Modelmeta.afterRemote('*.__get__files', function(ctx, instance, next) {
+  Post.afterRemote('*.__get__files', function(ctx, instance, next) {
     if (ctx.result) {
       var result = ctx.result;
       assert(Array.isArray(result));
@@ -336,10 +336,10 @@ module.exports = function(Modelmeta) {
     next();
   });
 
-  function getNodeList(modelId, callback) {
-    var Nodemeta = Modelmeta.app.models.nodemeta;
-    var Files = Modelmeta.app.models.file;
-    Nodemeta.find({where: {modelId: modelId}}, function(err, nodeList) {
+  function getNodeList(postId, callback) {
+    var Nodemeta = Post.app.models.nodemeta;
+    var Files = Post.app.models.file;
+    Nodemeta.find({where: {postId: postId}}, function(err, nodeList) {
       if (err) { return callback(err); }
       var nodes = {};
       async.map(nodeList, function(node, callback) {
@@ -362,13 +362,13 @@ module.exports = function(Modelmeta) {
     });
   }
 
-  Modelmeta.afterRemote('findById', function(ctx, model, next) {
-    getNodeList(model.sid, function(err, nodeList) {
+  Post.afterRemote('findById', function(ctx, post, next) {
+    getNodeList(post.sid, function(err, nodeList) {
       if (err) {
         console.error(err);
         return next(new Error('Internal error'));
       }
-      model.nodes = nodeList;
+      post.nodes = nodeList;
       next();
     });
   });

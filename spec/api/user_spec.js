@@ -55,22 +55,12 @@ describe('REST API endpoint /users', function() {
       email: 'david@foo.com',
       password: 'david',
       prelogin: true,
-      models: [
+      posts: [
         {
-          name: 'home',
-          status: 'public',
+          message: 'I came, I saw, I conquered.'
         },
         {
-          name: 'office',
-          status: 'public',
-        }
-      ],
-      labels: [
-        {
-          name: 'taipei'
-        },
-        {
-          name: 'taichung'
+          message: 'Nice!'
         }
       ]
     }
@@ -78,8 +68,7 @@ describe('REST API endpoint /users', function() {
 
   before(function(done) {
     var User = app.models.user;
-    var Modelmeta = app.models.modelmeta;
-    var Label = app.models.label;
+    var Post = app.models.post;
     async.each(users, function(user, callback) {
       User.create({
         username: user.username,
@@ -103,11 +92,11 @@ describe('REST API endpoint /users', function() {
               callback();
             }
           },
-          insertModels: function(callback) {
-            if (user.hasOwnProperty('models')) {
-              async.each(user.models, function(model, cb) {
-                model.ownerId = user.sid;
-                Modelmeta.create(model, function(err) {
+          insertPosts: function(callback) {
+            if (user.hasOwnProperty('posts')) {
+              async.each(user.posts, function(post, cb) {
+                post.ownerId = user.sid;
+                Post.create(post, function(err) {
                   if (err) { return cb(err); }
                   cb();
                 });
@@ -118,23 +107,7 @@ describe('REST API endpoint /users', function() {
             } else {
               callback();
             }
-          },
-          insertLabels: function(callback) {
-            if (user.hasOwnProperty('labels')) {
-              async.each(user.labels, function(label, cb) {
-                label.ownerId = user.sid;
-                Label.create(label, function(err) {
-                  if (err) { return cb(err); }
-                  cb();
-                });
-              }, function(err) {
-                if (err) { return callback(err); }
-                callback();
-              });
-            } else {
-              callback();
-            }
-          },
+          }
         },
         function(err, results) {
           if (err) { return callback(err); }
@@ -149,9 +122,8 @@ describe('REST API endpoint /users', function() {
 
   after(function(done) {
     var User = app.models.user;
-    var Modelmeta = app.models.modelmeta;
-    var Label = app.models.label;
-    async.each([User, Modelmeta, Label], function(dataModel, callback) {
+    var Post = app.models.post;
+    async.each([User, Post], function(dataModel, callback) {
       dataModel.destroyAll(function(err) {
         if (err) { return callback(err); }
         callback();
@@ -221,7 +193,7 @@ describe('REST API endpoint /users', function() {
       });
   });
 
-  it('should update user information with valid user schema', function(done) {
+  it('should update user', function(done) {
     var user = users[3];
     var newUsername = 'Eric';
     var userPhotoUrl = 'http://www.foo.com/';
@@ -238,7 +210,7 @@ describe('REST API endpoint /users', function() {
       });
   });
 
-  it('should delete a user if the access token is valid', function(done) {
+  it('should delete a user', function(done) {
     var user = users[4];
     json('delete', endpoint+'/me?access_token='+user.accessToken.id)
       .expect(200, function(err, res) {
@@ -247,34 +219,13 @@ describe('REST API endpoint /users', function() {
       });
   });
 
-  it('should return a list of models', function(done) {
+  it('should return a list of posts', function(done) {
     var user = users[5];
-    json('get', endpoint+'/me/models?access_token='+user.accessToken.id)
+    json('get', endpoint+'/me/posts?access_token='+user.accessToken.id)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         res.body.should.be.instanceof(Array);
         res.body.should.containDeep([{ownerId: user.sid}]);
-        done();
-      });
-  });
-
-  it('should return a list of labels', function(done) {
-    var user = users[5];
-    json('get', endpoint+'/me/labels?access_token='+user.accessToken.id)
-      .expect(200, function(err, res) {
-        if (err) { return done(err); }
-        res.body.should.be.instanceof(Array);
-        res.body.should.containDeep([{ownerId: user.sid}]);
-        done();
-      });
-  });
-
-  it('should return a list of shared models', function(done) {
-    var user = users[5];
-    json('get', endpoint+'/me/sharedModels?access_token='+user.accessToken.id)
-      .expect(200, function(err, res) {
-        if (err) { return done(err); }
-        res.body.should.be.instanceof(Array);
         done();
       });
   });

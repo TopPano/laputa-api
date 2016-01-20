@@ -2,7 +2,7 @@ var gm = require('gm');
 var fs = require('fs');
 var async = require('async');
 var filename = process.argv[2] || undefined;
-var modelId = process.argv[3] || undefined;
+var postId = process.argv[3] || undefined;
 var quality = process.argv[4] || undefined;
 var shardingKey = 'beef';
 var timestamp = '2015-12-30';
@@ -10,8 +10,8 @@ var timestamp = '2015-12-30';
 if (!filename) {
   return console.log('missing input filename');
 }
-if (!modelId) {
-  return console.log('missing model id');
+if (!postId) {
+  return console.log('missing post id');
 }
 if (quality !== 'high' &&
     quality !== 'low' &&
@@ -19,7 +19,7 @@ if (quality !== 'high' &&
   return console.log('invalid quality string: '+quality);
 }
 
-var srcFile = __dirname+'/data/images/models/'+modelId+'/'+shardingKey+'/pan/src/'+timestamp+'/'+filename;
+var srcFile = __dirname+'/data/posts/'+postId+'/'+shardingKey+'/pan/src/'+timestamp+'/'+filename;
 var layoutHigh = [
     {
       id: 0,
@@ -151,7 +151,7 @@ function cropImage(inputPath, outputPath, layout, callback) {
   });
 }
 
-var outputPath = __dirname+'/data/images/models/'+modelId+'/'+shardingKey+'/pan/'+quality+'/'+timestamp+'/';
+var outputPath = __dirname+'/data/posts/'+postId+'/'+shardingKey+'/pan/'+quality+'/'+timestamp+'/';
 if (quality === 'high') {
   cropImage(srcFile, outputPath, layoutHigh, function(err) {
     if (err) { console.log(err); }

@@ -28,20 +28,10 @@
   },
   "validations": [],
   "relations": {
-    "models": {
+    "posts": {
       "type": "hasMany",
-      "model": "modelmeta",
+      "model": "post",
       "foreignKey": "ownerId"
-    },
-    "labels": {
-      "type": "hasMany",
-      "model": "label",
-      "foreignKey": "ownerId"
-    },
-    "sharedModels": {
-      "type": "hasMany",
-      "model": "modelshare",
-      "foreignKey": "userId"
     }
   },
   "acls": [
@@ -49,19 +39,7 @@
       "principalType": "ROLE",
       "principalId": "$authenticated",
       "permission": "ALLOW",
-      "property": "__get__models"
-    },
-    {
-      "principalType": "ROLE",
-      "principalId": "$authenticated",
-      "permission": "ALLOW",
-      "property": "__get__labels"
-    },
-    {
-      "principalType": "ROLE",
-      "principalId": "$authenticated",
-      "permission": "ALLOW",
-      "property": "__get__sharedModels"
+      "property": "__get__posts"
     }
   ],
   "methods": {}

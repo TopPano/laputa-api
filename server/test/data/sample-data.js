@@ -2,7 +2,7 @@ var async = require('async');
 
 module.exports = function(app, callback) {
   var User = app.models.user;
-  var Modelmeta = app.models.modelmeta;
+  var Post = app.models.post;
   var File = app.models.file;
 
   var users = [
@@ -12,151 +12,133 @@ module.exports = function(app, callback) {
       password: 'password'
     }
   ];
-  var models = [
+  var posts = [
     {
-      name: 'NKO Office',
-      status: 'public',
       image: '',
-      viewerOptions: {
-        description: true,
-        map: false,
-        share: true,
-        presentedBy: true
-      },
-      presentedBy: 'Paco',
+      message: 'It is just an office',
       address: '10F., No.3-2-H, Park St., Nangang Dist., Taipei City 115, Taiwan (R.O.C.)',
-      geolocation: '25.0835017,121.5903754',
-      description: 'It is just an office'
+      geolocation: '25.0835017,121.5903754'
     }
   ];
   var nodes = [
     {
-      tag: 'image1',
       heading: 90,
-      enabled: true,
-      thumbnailUrl: 'http://localhost:3000/images/models/0/beef/pan/thumb/2015-12-30/1.jpg',
-      srcUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/1.jpg',
-      srcDownloadUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/1.jpg',
-      srcMobileUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/1_low.jpg',
-      srcMobileDownloadUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/1_low.jpg',
+      thumbnailUrl: 'http://localhost:3000/posts/0/beef/pan/thumb/2015-12-30/1.jpg',
+      srcUrl: 'http://localhost:3000/posts/0/beef/pan/src/2015-12-30/1.jpg',
+      srcDownloadUrl: 'http://localhost:3000/posts/0/beef/pan/src/2015-12-30/1.jpg',
+      srcMobileUrl: 'http://localhost:3000/posts/0/beef/pan/src/2015-12-30/1_low.jpg',
+      srcMobileDownloadUrl: 'http://localhost:3000/posts/0/beef/pan/src/2015-12-30/1_low.jpg',
       files: [
-        '/pan/thumb/1.jpg;http://localhost:3000/images/models/0/beef/pan/thumb/2015-12-30/1.jpg',
-        '/pan/high/1_equirectangular_0.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/1_equirectangular_0.jpg',
-        '/pan/high/1_equirectangular_1.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/1_equirectangular_1.jpg',
-        '/pan/high/1_equirectangular_2.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/1_equirectangular_2.jpg',
-        '/pan/high/1_equirectangular_3.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/1_equirectangular_3.jpg',
-        '/pan/high/1_equirectangular_4.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/1_equirectangular_4.jpg',
-        '/pan/high/1_equirectangular_5.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/1_equirectangular_5.jpg',
-        '/pan/high/1_equirectangular_6.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/1_equirectangular_6.jpg',
-        '/pan/high/1_equirectangular_7.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/1_equirectangular_7.jpg',
-        '/pan/low/1_equirectangular_0.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/1_equirectangular_0.jpg',
-        '/pan/low/1_equirectangular_1.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/1_equirectangular_1.jpg',
-        '/pan/low/1_equirectangular_2.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/1_equirectangular_2.jpg',
-        '/pan/low/1_equirectangular_3.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/1_equirectangular_3.jpg',
-        '/pan/low/1_equirectangular_4.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/1_equirectangular_4.jpg',
-        '/pan/low/1_equirectangular_5.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/1_equirectangular_5.jpg',
-        '/pan/low/1_equirectangular_6.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/1_equirectangular_6.jpg',
-        '/pan/low/1_equirectangular_7.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/1_equirectangular_7.jpg'
+        '/pan/thumb/1.jpg;http://localhost:3000/posts/0/beef/pan/thumb/2015-12-30/1.jpg',
+        '/pan/high/1_equirectangular_0.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/1_equirectangular_0.jpg',
+        '/pan/high/1_equirectangular_1.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/1_equirectangular_1.jpg',
+        '/pan/high/1_equirectangular_2.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/1_equirectangular_2.jpg',
+        '/pan/high/1_equirectangular_3.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/1_equirectangular_3.jpg',
+        '/pan/high/1_equirectangular_4.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/1_equirectangular_4.jpg',
+        '/pan/high/1_equirectangular_5.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/1_equirectangular_5.jpg',
+        '/pan/high/1_equirectangular_6.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/1_equirectangular_6.jpg',
+        '/pan/high/1_equirectangular_7.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/1_equirectangular_7.jpg',
+        '/pan/low/1_equirectangular_0.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/1_equirectangular_0.jpg',
+        '/pan/low/1_equirectangular_1.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/1_equirectangular_1.jpg',
+        '/pan/low/1_equirectangular_2.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/1_equirectangular_2.jpg',
+        '/pan/low/1_equirectangular_3.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/1_equirectangular_3.jpg',
+        '/pan/low/1_equirectangular_4.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/1_equirectangular_4.jpg',
+        '/pan/low/1_equirectangular_5.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/1_equirectangular_5.jpg',
+        '/pan/low/1_equirectangular_6.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/1_equirectangular_6.jpg',
+        '/pan/low/1_equirectangular_7.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/1_equirectangular_7.jpg'
       ]
     },
     {
-      tag: 'image2',
       heading: 90,
-      enabled: true,
-      thumbnailUrl: 'http://localhost:3000/images/models/0/beef/pan/thumb/2015-12-30/2.jpg',
-      srcUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/2.jpg',
-      srcDownloadUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/2.jpg',
-      srcMobileUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/2_low.jpg',
-      srcMobileDownloadUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/2_low.jpg',
+      thumbnailUrl: 'http://localhost:3000/posts/0/beef/pan/thumb/2015-12-30/2.jpg',
+      srcUrl: 'http://localhost:3000/posts/0/beef/pan/src/2015-12-30/2.jpg',
+      srcDownloadUrl: 'http://localhost:3000/posts/0/beef/pan/src/2015-12-30/2.jpg',
+      srcMobileUrl: 'http://localhost:3000/posts/0/beef/pan/src/2015-12-30/2_low.jpg',
+      srcMobileDownloadUrl: 'http://localhost:3000/posts/0/beef/pan/src/2015-12-30/2_low.jpg',
       files: [
-        '/pan/thumb/2.jpg;http://localhost:3000/images/models/0/beef/pan/thumb/2015-12-30/2.jpg',
-        '/pan/high/2_equirectangular_0.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/2_equirectangular_0.jpg',
-        '/pan/high/2_equirectangular_1.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/2_equirectangular_1.jpg',
-        '/pan/high/2_equirectangular_2.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/2_equirectangular_2.jpg',
-        '/pan/high/2_equirectangular_3.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/2_equirectangular_3.jpg',
-        '/pan/high/2_equirectangular_4.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/2_equirectangular_4.jpg',
-        '/pan/high/2_equirectangular_5.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/2_equirectangular_5.jpg',
-        '/pan/high/2_equirectangular_6.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/2_equirectangular_6.jpg',
-        '/pan/high/2_equirectangular_7.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/2_equirectangular_7.jpg',
-        '/pan/low/2_equirectangular_0.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/2_equirectangular_0.jpg',
-        '/pan/low/2_equirectangular_1.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/2_equirectangular_1.jpg',
-        '/pan/low/2_equirectangular_2.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/2_equirectangular_2.jpg',
-        '/pan/low/2_equirectangular_3.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/2_equirectangular_3.jpg',
-        '/pan/low/2_equirectangular_4.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/2_equirectangular_4.jpg',
-        '/pan/low/2_equirectangular_5.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/2_equirectangular_5.jpg',
-        '/pan/low/2_equirectangular_6.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/2_equirectangular_6.jpg',
-        '/pan/low/2_equirectangular_7.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/2_equirectangular_7.jpg'
+        '/pan/thumb/2.jpg;http://localhost:3000/posts/0/beef/pan/thumb/2015-12-30/2.jpg',
+        '/pan/high/2_equirectangular_0.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/2_equirectangular_0.jpg',
+        '/pan/high/2_equirectangular_1.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/2_equirectangular_1.jpg',
+        '/pan/high/2_equirectangular_2.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/2_equirectangular_2.jpg',
+        '/pan/high/2_equirectangular_3.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/2_equirectangular_3.jpg',
+        '/pan/high/2_equirectangular_4.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/2_equirectangular_4.jpg',
+        '/pan/high/2_equirectangular_5.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/2_equirectangular_5.jpg',
+        '/pan/high/2_equirectangular_6.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/2_equirectangular_6.jpg',
+        '/pan/high/2_equirectangular_7.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/2_equirectangular_7.jpg',
+        '/pan/low/2_equirectangular_0.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/2_equirectangular_0.jpg',
+        '/pan/low/2_equirectangular_1.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/2_equirectangular_1.jpg',
+        '/pan/low/2_equirectangular_2.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/2_equirectangular_2.jpg',
+        '/pan/low/2_equirectangular_3.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/2_equirectangular_3.jpg',
+        '/pan/low/2_equirectangular_4.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/2_equirectangular_4.jpg',
+        '/pan/low/2_equirectangular_5.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/2_equirectangular_5.jpg',
+        '/pan/low/2_equirectangular_6.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/2_equirectangular_6.jpg',
+        '/pan/low/2_equirectangular_7.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/2_equirectangular_7.jpg'
       ]
     },
     {
-      tag: 'image3',
       heading: 90,
-      enabled: true,
-      thumbnailUrl: 'http://localhost:3000/images/models/0/beef/pan/thumb/2015-12-30/3.jpg',
-      srcUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/3.jpg',
-      srcDownloadUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/3.jpg',
-      srcMobileUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/3_low.jpg',
-      srcMobileDownloadUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/3_low.jpg',
+      thumbnailUrl: 'http://localhost:3000/posts/0/beef/pan/thumb/2015-12-30/3.jpg',
+      srcUrl: 'http://localhost:3000/posts/0/beef/pan/src/2015-12-30/3.jpg',
+      srcDownloadUrl: 'http://localhost:3000/posts/0/beef/pan/src/2015-12-30/3.jpg',
+      srcMobileUrl: 'http://localhost:3000/posts/0/beef/pan/src/2015-12-30/3_low.jpg',
+      srcMobileDownloadUrl: 'http://localhost:3000/posts/0/beef/pan/src/2015-12-30/3_low.jpg',
       files: [
-        '/pan/thumb/3.jpg;http://localhost:3000/images/models/0/beef/pan/thumb/2015-12-30/3.jpg',
-        '/pan/high/3_equirectangular_0.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/3_equirectangular_0.jpg',
-        '/pan/high/3_equirectangular_1.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/3_equirectangular_1.jpg',
-        '/pan/high/3_equirectangular_2.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/3_equirectangular_2.jpg',
-        '/pan/high/3_equirectangular_3.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/3_equirectangular_3.jpg',
-        '/pan/high/3_equirectangular_4.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/3_equirectangular_4.jpg',
-        '/pan/high/3_equirectangular_5.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/3_equirectangular_5.jpg',
-        '/pan/high/3_equirectangular_6.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/3_equirectangular_6.jpg',
-        '/pan/high/3_equirectangular_7.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/3_equirectangular_7.jpg',
-        '/pan/low/3_equirectangular_0.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/3_equirectangular_0.jpg',
-        '/pan/low/3_equirectangular_1.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/3_equirectangular_1.jpg',
-        '/pan/low/3_equirectangular_2.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/3_equirectangular_2.jpg',
-        '/pan/low/3_equirectangular_3.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/3_equirectangular_3.jpg',
-        '/pan/low/3_equirectangular_4.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/3_equirectangular_4.jpg',
-        '/pan/low/3_equirectangular_5.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/3_equirectangular_5.jpg',
-        '/pan/low/3_equirectangular_6.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/3_equirectangular_6.jpg',
-        '/pan/low/3_equirectangular_7.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/3_equirectangular_7.jpg',
+        '/pan/thumb/3.jpg;http://localhost:3000/posts/0/beef/pan/thumb/2015-12-30/3.jpg',
+        '/pan/high/3_equirectangular_0.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/3_equirectangular_0.jpg',
+        '/pan/high/3_equirectangular_1.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/3_equirectangular_1.jpg',
+        '/pan/high/3_equirectangular_2.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/3_equirectangular_2.jpg',
+        '/pan/high/3_equirectangular_3.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/3_equirectangular_3.jpg',
+        '/pan/high/3_equirectangular_4.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/3_equirectangular_4.jpg',
+        '/pan/high/3_equirectangular_5.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/3_equirectangular_5.jpg',
+        '/pan/high/3_equirectangular_6.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/3_equirectangular_6.jpg',
+        '/pan/high/3_equirectangular_7.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/3_equirectangular_7.jpg',
+        '/pan/low/3_equirectangular_0.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/3_equirectangular_0.jpg',
+        '/pan/low/3_equirectangular_1.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/3_equirectangular_1.jpg',
+        '/pan/low/3_equirectangular_2.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/3_equirectangular_2.jpg',
+        '/pan/low/3_equirectangular_3.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/3_equirectangular_3.jpg',
+        '/pan/low/3_equirectangular_4.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/3_equirectangular_4.jpg',
+        '/pan/low/3_equirectangular_5.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/3_equirectangular_5.jpg',
+        '/pan/low/3_equirectangular_6.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/3_equirectangular_6.jpg',
+        '/pan/low/3_equirectangular_7.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/3_equirectangular_7.jpg',
       ]
     },
     {
-      tag: 'image4',
       heading: 90,
-      enabled: true,
-      thumbnailUrl: 'http://localhost:3000/images/models/0/beef/pan/thumb/2015-12-30/4.jpg',
-      srcUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/4.jpg',
-      srcDownloadUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/4.jpg',
-      srcMobileUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/4_low.jpg',
-      srcMobileDownloadUrl: 'http://localhost:3000/images/models/0/beef/pan/src/2015-12-30/4_low.jpg',
+      thumbnailUrl: 'http://localhost:3000/posts/0/beef/pan/thumb/2015-12-30/4.jpg',
+      srcUrl: 'http://localhost:3000/posts/0/beef/pan/src/2015-12-30/4.jpg',
+      srcDownloadUrl: 'http://localhost:3000/posts/0/beef/pan/src/2015-12-30/4.jpg',
+      srcMobileUrl: 'http://localhost:3000/posts/0/beef/pan/src/2015-12-30/4_low.jpg',
+      srcMobileDownloadUrl: 'http://localhost:3000/posts/0/beef/pan/src/2015-12-30/4_low.jpg',
       files: [
-        '/pan/thumb/4.jpg;http://localhost:3000/images/models/0/beef/pan/thumb/2015-12-30/4.jpg',
-        '/pan/high/4_equirectangular_0.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/4_equirectangular_0.jpg',
-        '/pan/high/4_equirectangular_1.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/4_equirectangular_1.jpg',
-        '/pan/high/4_equirectangular_2.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/4_equirectangular_2.jpg',
-        '/pan/high/4_equirectangular_3.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/4_equirectangular_3.jpg',
-        '/pan/high/4_equirectangular_4.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/4_equirectangular_4.jpg',
-        '/pan/high/4_equirectangular_5.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/4_equirectangular_5.jpg',
-        '/pan/high/4_equirectangular_6.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/4_equirectangular_6.jpg',
-        '/pan/high/4_equirectangular_7.jpg;http://localhost:3000/images/models/0/beef/pan/high/2015-12-30/4_equirectangular_7.jpg',
-        '/pan/low/4_equirectangular_0.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/4_equirectangular_0.jpg',
-        '/pan/low/4_equirectangular_1.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/4_equirectangular_1.jpg',
-        '/pan/low/4_equirectangular_2.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/4_equirectangular_2.jpg',
-        '/pan/low/4_equirectangular_3.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/4_equirectangular_3.jpg',
-        '/pan/low/4_equirectangular_4.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/4_equirectangular_4.jpg',
-        '/pan/low/4_equirectangular_5.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/4_equirectangular_5.jpg',
-        '/pan/low/4_equirectangular_6.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/4_equirectangular_6.jpg',
-        '/pan/low/4_equirectangular_7.jpg;http://localhost:3000/images/models/0/beef/pan/low/2015-12-30/4_equirectangular_7.jpg',
+        '/pan/thumb/4.jpg;http://localhost:3000/posts/0/beef/pan/thumb/2015-12-30/4.jpg',
+        '/pan/high/4_equirectangular_0.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/4_equirectangular_0.jpg',
+        '/pan/high/4_equirectangular_1.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/4_equirectangular_1.jpg',
+        '/pan/high/4_equirectangular_2.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/4_equirectangular_2.jpg',
+        '/pan/high/4_equirectangular_3.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/4_equirectangular_3.jpg',
+        '/pan/high/4_equirectangular_4.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/4_equirectangular_4.jpg',
+        '/pan/high/4_equirectangular_5.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/4_equirectangular_5.jpg',
+        '/pan/high/4_equirectangular_6.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/4_equirectangular_6.jpg',
+        '/pan/high/4_equirectangular_7.jpg;http://localhost:3000/posts/0/beef/pan/high/2015-12-30/4_equirectangular_7.jpg',
+        '/pan/low/4_equirectangular_0.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/4_equirectangular_0.jpg',
+        '/pan/low/4_equirectangular_1.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/4_equirectangular_1.jpg',
+        '/pan/low/4_equirectangular_2.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/4_equirectangular_2.jpg',
+        '/pan/low/4_equirectangular_3.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/4_equirectangular_3.jpg',
+        '/pan/low/4_equirectangular_4.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/4_equirectangular_4.jpg',
+        '/pan/low/4_equirectangular_5.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/4_equirectangular_5.jpg',
+        '/pan/low/4_equirectangular_6.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/4_equirectangular_6.jpg',
+        '/pan/low/4_equirectangular_7.jpg;http://localhost:3000/posts/0/beef/pan/low/2015-12-30/4_equirectangular_7.jpg',
       ]
     }
   ];
   User.create(users[0], function(err, newUser) {
     if (err) { return callback(err); }
     console.log('User created: '+newUser.username);
-    models[0].ownerId = newUser.sid;
-    Modelmeta.create(models[0], function(err, newModel) {
+    posts[0].ownerId = newUser.sid;
+    Post.create(posts[0], function(err, newPost) {
       if (err) { return callback(err); }
-      console.log('Model created: (%s) %s ', newModel.sid, newModel.name);
+      console.log('post created: %s ', newPost.sid);
       async.each(nodes, function(node, callback) {
-        newModel.nodes.create({
-          tag: node.tag,
+        newPost.nodes.create({
           heading: node.heading,
           enabled: node.enabled,
           thumbnailUrl: node.thumbnailUrl,
@@ -166,12 +148,12 @@ module.exports = function(app, callback) {
           srcMobileDownloadUrl: node.srcMobileDownloadUrl
         }, function(err, newNode) {
           if (err) { return callback(err); }
-          console.log('Node created: %s for Model "%s"', newNode.tag, newModel.name);
+          console.log('Node (%s) created for post "%s"', node.sid, newPost.sid);
           async.each(node.files, function(file, callback) {
             var name = file.split(';')[0];
             var url = file.split(';')[1];
             // replace the fake node id before we actually create the
-            // model instance
+            // Post instance
             var fakeId = null, re = null;
             if (name.indexOf('high') !== -1 ||
                 name.indexOf('low') !== -1) {
@@ -186,7 +168,7 @@ module.exports = function(app, callback) {
             File.create({
               name: name,
               url: url,
-              modelId: newModel.sid,
+              postId: newPost.sid,
               nodeId: newNode.sid
             }, function(err) {
               if (err) { return callback(err); }
