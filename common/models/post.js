@@ -230,6 +230,7 @@ module.exports = function(Post) {
       var imgType = ctx.req.files.image[0].mimetype;
       var imgWidth = ctx.req.body.width;
       var imgHeight = ctx.req.body.height;
+      var imgIndex = ctx.req.body.index;
       var now = getTimeNow();
 
       if (!imgBuf || !imgType || !imgWidth || !imgHeight) {
@@ -265,6 +266,7 @@ module.exports = function(Post) {
             url: cdnUrl,
             postId: postId
           });
+          // TODO: separate image processing from api to another process or service
           processImage({
             width: imgWidth,
             height: imgHeight,
@@ -280,7 +282,23 @@ module.exports = function(Post) {
             ctx.args.data.srcMobileUrl = results.tileImgLow.resizedImg.srcMobileUrl;
             ctx.args.data.srcMobileDownloadUrl = results.tileImgLow.resizedImg.srcMobileDownloadUrl;
             ctx.nodeFiles = nodeFiles.concat(results.tileImgHigh, results.tileImgLow.tiledResizedImg);
-            next();
+            if (imgIndex === '1') {
+              Post.findById(postId, function(err, post) {
+                if (err) {
+                  console.error(err);
+                  return next(new Error('Internal error'));
+                }
+                post.updateAttributes({imageUrl: results.uploadThumb}, function(err) {
+                  if (err) {
+                    console.error(err);
+                    return next(new Error('Internal error'));
+                  }
+                  next();
+                });
+              });
+            } else {
+              next();
+            }
           });
         });
       });

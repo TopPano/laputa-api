@@ -219,6 +219,7 @@ describe('REST API endpoint /post', function() {
     json('post', endpoint+'?access_token='+user.accessToken.id)
       .send({
         message: message,
+        numOfImages: 1,
         ownerId: user.sid
       })
       .expect(200, function(err, res) {
@@ -261,6 +262,7 @@ describe('REST API endpoint /post', function() {
       .field('heading', '30')
       .field('width', '8192')
       .field('height', '4096')
+      .field('index', '1')
       .attach('image', __dirname+'/fixtures/1.jpg.zip')
       .expect(200, function(err, res) {
         if (err) { return done(err); }

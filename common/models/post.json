@@ -13,11 +13,14 @@
       "generated": false,
       "defaultFn": "uuid"
     },
-    "image": {
+    "imageUrl": {
       "type": "string"
     },
     "message": {
       "type": "string"
+    },
+    "numOfImages": {
+      "type": "number"
     },
     "nodes": {
       "type": "object"

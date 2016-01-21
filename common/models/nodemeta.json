@@ -12,6 +12,9 @@
       "generated": false,
       "defaultFn": "uuid"
     },
+    "index": {
+      "type": "number"
+    },
     "heading": {
       "type": "number"
     },
