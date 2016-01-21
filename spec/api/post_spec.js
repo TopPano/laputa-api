@@ -4,6 +4,7 @@ var app = require('../../server/server');
 var request = require('supertest');
 var should = require('should');
 var async = require('async');
+var zlib = require('zlib');
 
 var apiVersion = require('../../package.json').version.split('.').shift();
 var endpointRoot = '/api' + (apiVersion > 0 ? '/v' + apiVersion :  '');
@@ -214,14 +215,16 @@ describe('REST API endpoint /post', function() {
   });
 
   it('should create a new post', function(done) {
+    var message = 'It just an office.';
     json('post', endpoint+'?access_token='+user.accessToken.id)
       .send({
-        message: 'It just an office.',
+        message: message,
         ownerId: user.sid
       })
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         res.body.should.have.property('ownerId', user.sid);
+        res.body.should.have.property('message', message);
         done();
       });
   });

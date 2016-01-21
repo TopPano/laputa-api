@@ -78,7 +78,127 @@ module.exports = function(Post) {
     }
   }
 
-  Post.beforeRemote('*.__create__nodes', function(ctx, instance, next) {
+  function processImage(params, callback) {
+    var now = getTimeNow();
+
+    async.parallel({
+      uploadThumb: function(callback) {
+        var croppedWidth = params.width / 2;
+        var croppedHeight = params.height / 2;
+        var croppedPositionX = params.width / 4;
+        var croppedPositionY = params.height / 4;
+        gm(params.image)
+        .crop(croppedWidth, croppedHeight, croppedPositionX, croppedPositionY)
+        .resize(300, 150)
+        .toBuffer('JPG', function(err, buffer) {
+          if (err) { return callback(err); }
+          upload({
+            type: 'pan',
+            quality: 'thumb',
+            postId: params.postId,
+            timestamp: now,
+            imageFilename: params.nodeId+'.jpg',
+            image: buffer
+          }, function(err, cdnFilename, cdnUrl, s3Filename, s3Url) {
+            if (err) { return callback(err); }
+            //ctx.args.data.thumbnailUrl = s3Url;
+            callback(null, s3Url);
+          });
+        });
+      },
+      tileImgHigh: function(callback) {
+        var tileGeometries = calTileGeometries(params.width, params.height);
+        var files = [];
+        async.each(tileGeometries, function(tile, callback) {
+          gm(params.image)
+          .crop(tile.width, tile.height, tile.x, tile.y)
+          .toBuffer('JPG', function(err, buffer) {
+            if (err) { return callback(err); }
+            upload({
+              type: 'pan',
+              quality: 'high',
+              postId: params.postId,
+              timestamp: now,
+              imageFilename: params.nodeId+'_equirectangular_'+tile.idx+'.jpg',
+              image: buffer
+            }, function(err, cdnFilename, cdnUrl) {
+              if (err) { return callback(err); }
+              //ctx.nodeFiles.push({
+              files.push({
+                name: cdnFilename,
+                url: cdnUrl,
+                postId: params.postId
+              });
+              callback();
+            });
+          });
+        }, function(err) {
+          if (err) { return callback(err); }
+          callback(null, files);
+        });
+      },
+      tileImgLow: function(callback) {
+        gm(params.image)
+        .resize(4096, 2048)
+        .toBuffer('JPG', function(err, buffer) {
+          if (err) { return callback(err); }
+          async.parallel({
+            resizedImg: function(callback) {
+              upload({
+                type: 'pan',
+                quality: 'src',
+                postId: params.postId,
+                timestamp: now,
+                imageFilename: params.nodeId+'_low.jpg',
+                image: buffer
+              }, function(err, cdnFilename, cdnUrl, s3Filename, s3Url) {
+                if (err) { return callback(err); }
+                //ctx.args.data.srcMobileUrl = s3Url;
+                //ctx.args.data.srcMobileDownloadUrl = cdnUrl;
+                callback(null, { srcMobileUrl: s3Url, srcMobileDownloadUrl: cdnUrl });
+              });
+            },
+            tiledResizedImg: function(callback) {
+              var tileGeometries = calTileGeometries(4096, 2048);
+              var files = [];
+              async.each(tileGeometries, function(tile, callback) {
+                gm(buffer)
+                .crop(tile.width, tile.height, tile.x, tile.y)
+                .toBuffer('JPG', function(err, buffer) {
+                  if (err) { return callback(err); }
+                  upload({
+                    type: 'pan',
+                    quality: 'low',
+                    postId: params.postId,
+                    timestamp: now,
+                    imageFilename: params.nodeId+'_equirectangular_'+tile.idx+'.jpg',
+                    image: buffer
+                  }, function(err, cdnFilename, cdnUrl) {
+                    if (err) { return callback(err); }
+                    //ctx.nodeFiles.push({
+                    files.push({
+                      name: cdnFilename,
+                      url: cdnUrl,
+                      postId: params.postId
+                    });
+                    callback();
+                  });
+                });
+              }, function(err) {
+                if (err) { return callback(err); }
+                callback(null, files);
+              });
+            }
+          }, function(err, results) {
+            if (err) { return callback(err); }
+            callback(null, results);
+          });
+        });
+      }
+    }, function(err, results) {
+      if (err) { return callback(err); }
+      callback(null, results);
+    });
 
     function calTileGeometries(imgWidth, imgHeight) {
       var tileWidth = imgWidth / 4;
@@ -99,8 +219,10 @@ module.exports = function(Post) {
       });
       return tileGeometries;
     }
+  }
 
-    // Property checking
+  Post.beforeRemote('*.__create__nodes', function(ctx, instance, next) {
+
     try {
       var postId = ctx.req.params.id;
       var nodeId = ctx.args.data.sid;
@@ -117,153 +239,51 @@ module.exports = function(Post) {
         return next(new Error('Invalid image type'));
       }
 
-      ctx.nodeFiles = [];
+      var nodeFiles = [];
 
       zlib.inflate(imgBuf, function(err, uzImgBuf) {
         if (err) {
           console.error(err);
           return next(new Error('Internal error'));
         }
-        async.parallel({
-          uploadImage: function(callback) {
-            upload({
-              type: 'pan',
-              quality: 'src',
-              postId: postId,
-              timestamp: now,
-              imageFilename: nodeId+'.jpg',
-              image: uzImgBuf
-            }, function(err, cdnFilename, cdnUrl, s3Filename, s3Url) {
-              if (err) { return callback(err); }
-              ctx.args.data.srcUrl = s3Url;
-              ctx.args.data.srcDownloadUrl = cdnUrl;
-              ctx.nodeFiles.push({
-                name: cdnFilename,
-                url: cdnUrl,
-                postId: postId
-              });
-              callback();
-            });
-          },
-          uploadThumb: function(callback) {
-            var croppedWidth = imgWidth / 2;
-            var croppedHeight = imgHeight / 2;
-            var croppedPositionX = imgWidth / 4;
-            var croppedPositionY = imgHeight / 4;
-            gm(uzImgBuf)
-            .crop(croppedWidth, croppedHeight, croppedPositionX, croppedPositionY)
-            .resize(300, 150)
-            .toBuffer('JPG', function(err, buffer) {
-              if (err) { return callback(err); }
-              upload({
-                type: 'pan',
-                quality: 'thumb',
-                postId: postId,
-                timestamp: now,
-                imageFilename: nodeId+'.jpg',
-                image: buffer
-              }, function(err, cdnFilename, cdnUrl, s3Filename, s3Url) {
-                if (err) { return callback(err); }
-                ctx.args.data.thumbnailUrl = s3Url;
-                callback();
-              });
-            });
-          },
-          tileImgHigh: function(callback) {
-            var tileGeometries = calTileGeometries(imgWidth, imgHeight);
-            async.each(tileGeometries, function(tile, callback) {
-              gm(uzImgBuf)
-              .crop(tile.width, tile.height, tile.x, tile.y)
-              .toBuffer('JPG', function(err, buffer) {
-                if (err) { return callback(err); }
-                upload({
-                  type: 'pan',
-                  quality: 'high',
-                  postId: postId,
-                  timestamp: now,
-                  imageFilename: nodeId+'_equirectangular_'+tile.idx+'.jpg',
-                  image: buffer
-                }, function(err, cdnFilename, cdnUrl) {
-                  if (err) { return callback(err); }
-                  ctx.nodeFiles.push({
-                    name: cdnFilename,
-                    url: cdnUrl,
-                    postId: postId
-                  });
-                  callback();
-                });
-              });
-            }, function(err) {
-              if (err) { return callback(err); }
-              callback();
-            });
-          },
-          tileImgLow: function(callback) {
-            gm(uzImgBuf)
-            .resize(4096, 2048)
-            .toBuffer('JPG', function(err, buffer) {
-              if (err) { return callback(err); }
-              async.parallel({
-                uploadResizedImg: function(callback) {
-                  upload({
-                    type: 'pan',
-                    quality: 'src',
-                    postId: postId,
-                    timestamp: now,
-                    imageFilename: nodeId+'_low.jpg',
-                    image: buffer
-                  }, function(err, cdnFilename, cdnUrl, s3Filename, s3Url) {
-                    if (err) { return callback(err); }
-                    ctx.args.data.srcMobileUrl = s3Url;
-                    ctx.args.data.srcMobileDownloadUrl = cdnUrl;
-                    callback();
-                  });
-                },
-                tileResizedImg: function(callback) {
-                  var tileGeometries = calTileGeometries(4096, 2048);
-                  async.each(tileGeometries, function(tile, callback) {
-                    gm(buffer)
-                    .crop(tile.width, tile.height, tile.x, tile.y)
-                    .toBuffer('JPG', function(err, buffer) {
-                      if (err) { return callback(err); }
-                      upload({
-                        type: 'pan',
-                        quality: 'low',
-                        postId: postId,
-                        timestamp: now,
-                        imageFilename: nodeId+'_equirectangular_'+tile.idx+'.jpg',
-                        image: buffer
-                      }, function(err, cdnFilename, cdnUrl) {
-                        if (err) { return callback(err); }
-                        ctx.nodeFiles.push({
-                          name: cdnFilename,
-                          url: cdnUrl,
-                          postId: postId
-                        });
-                        callback();
-                      });
-                    });
-                  }, function(err) {
-                    if (err) { return callback(err); }
-                    callback();
-                  });
-                }
-              }, function(err) {
-                if (err) { return callback(err); }
-                callback();
-              });
-            });
-          }
-        }, function(err, results) {
+        upload({
+          type: 'pan',
+          quality: 'src',
+          postId: postId,
+          timestamp: now,
+          imageFilename: nodeId+'.jpg',
+          image: uzImgBuf
+        }, function(err, cdnFilename, cdnUrl, s3Filename, s3Url) {
           if (err) {
             console.error(err);
             return next(new Error('Internal error'));
           }
-          next();
+          ctx.args.data.srcUrl = s3Url;
+          ctx.args.data.srcDownloadUrl = cdnUrl;
+          nodeFiles.push({
+            name: cdnFilename,
+            url: cdnUrl,
+            postId: postId
+          });
+          processImage({
+            width: imgWidth,
+            height: imgHeight,
+            image: uzImgBuf,
+            postId: postId,
+            nodeId: nodeId
+          }, function(err, results) {
+            if (err) {
+              console.error(err);
+              return next(new Error('Internal error'));
+            }
+            ctx.args.data.thumbnailUrl = results.uploadThumb;
+            ctx.args.data.srcMobileUrl = results.tileImgLow.resizedImg.srcMobileUrl;
+            ctx.args.data.srcMobileDownloadUrl = results.tileImgLow.resizedImg.srcMobileDownloadUrl;
+            ctx.nodeFiles = nodeFiles.concat(results.tileImgHigh, results.tileImgLow.tiledResizedImg);
+            next();
+          });
         });
       });
-
-
     } catch (err) {
       console.error(err);
       next(new Error('Invalid request'));
