@@ -22,6 +22,10 @@
     "numOfImages": {
       "type": "number"
     },
+    "likes": {
+      "type": "number",
+      "default": 0
+    },
     "nodes": {
       "type": "object"
     },

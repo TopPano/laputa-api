@@ -5,6 +5,7 @@ module.exports = {
     port: process.env.DB_PORT || 27017,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    database: 'verpix-dev-db'
+    database: 'verpix-dev-db',
+    allowExtendedOperators: true
   }
 };

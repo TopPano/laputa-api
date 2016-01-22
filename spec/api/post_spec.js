@@ -226,6 +226,7 @@ describe('REST API endpoint /post', function() {
         if (err) { return done(err); }
         res.body.should.have.property('ownerId', user.sid);
         res.body.should.have.property('message', message);
+        res.body.should.have.property('likes', 0);
         done();
       });
   });
@@ -256,6 +257,7 @@ describe('REST API endpoint /post', function() {
       });
   });
 
+  /*
   it('should create a new node for the post', function(done) {
     var post = posts[1];
     json('post', endpoint+'/'+post.sid+'/nodes?access_token='+user.accessToken.id, 'multipart/form-data')
@@ -277,6 +279,23 @@ describe('REST API endpoint /post', function() {
             res.body.should.have.property('srcDownloadUrl');
             res.body.should.have.property('srcMobileUrl');
             res.body.should.have.property('srcMobileDownloadUrl');
+            done();
+          });
+      });
+  });
+  */
+
+  it('should allow to like a post', function(done) {
+    var post = posts[0];
+    json('post', endpoint+'/'+post.sid+'/like')
+      .expect(200, function(err, res) {
+        if (err) {
+          console.error(err);
+          return done(err);
+        }
+        json('get', endpoint+'/'+post.sid)
+          .expect(200, function(err, res) {
+            res.body.should.have.property('likes', 1);
             done();
           });
       });

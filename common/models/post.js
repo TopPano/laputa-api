@@ -410,4 +410,33 @@ module.exports = function(Post) {
       next();
     });
   });
+
+  Post.like = function(postId, res, callback) {
+    Post.findById(postId, function(err, post) {
+      if (err) {
+        console.error(err);
+        return callback(err);
+      }
+      if (!post) {
+        res.status(404);
+        return callback('Post Not Found');
+      }
+      post.updateAttributes({$inc: { likes: 1 }}, function(err) {
+        if (err) {
+          console.error(err);
+          return callback(err);
+        }
+        callback(null, 'success');
+      });
+    });
+  };
+  Post.remoteMethod('like', {
+    accepts: [
+      { arg: 'id', type: 'string', require: true },
+      { arg: 'res', type: 'object', 'http': {source: 'res'} }
+    ],
+    returns: [ { arg: 'status', type: 'string' } ],
+    http: { path: '/:id/like', verb: 'post' }
+  });
+
 };
