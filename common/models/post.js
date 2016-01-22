@@ -38,13 +38,13 @@ module.exports = function(Post) {
 
     try {
       if (process.env.NODE_ENV === 'local') {
-        var path = './server/test/data/images/posts/'+params.postId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp;
+        var path = './server/test/data/posts/'+params.postId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp;
         createDir(path, function(err) {
           if (err) { return callback(err); }
           fs.writeFile(path+'/'+params.imageFilename, params.image, function(err) {
             if (err) { return callback(err); }
             var cdnFilename = '/'+params.type+'/'+params.quality+'/'+params.imageFilename;
-            var cdnUrl = 'http://localhost:3000/images/posts/'+params.postId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp+'/'+params.imageFilename;
+            var cdnUrl = 'http://localhost:3000/posts/'+params.postId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp+'/'+params.imageFilename;
             var s3Filename = cdnFilename;
             var s3Url = cdnUrl;
             callback(null, cdnFilename, cdnUrl, s3Filename, s3Url);

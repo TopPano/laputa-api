@@ -3,7 +3,7 @@ var async = require('async');
 
 function installImageRoute(server) {
   var router = server.loopback.Router();
-  console.log('installing route: /images');
+  console.log('installing route: /posts');
 
   router.get('/posts/:postId/:shardingKey/:type/:quality/:timestamp/:filename', function(req, res) {
     var postId = req.params.postId;
