@@ -168,8 +168,7 @@ describe('REST API endpoint /post', function() {
             });
           });
         }, function(err) {
-          if (err) { return done(err); }
-          done();
+          done(err);
         });
       });
     });
@@ -185,8 +184,7 @@ describe('REST API endpoint /post', function() {
       });
     },
     function(err) {
-      if (err) { return done(err); }
-      done();
+      done(err);
     });
   });
 
@@ -252,8 +250,7 @@ describe('REST API endpoint /post', function() {
     var post = posts[2];
     json('delete', endpoint+'/'+post.sid+'?access_token='+user.accessToken.id)
       .expect(200, function(err, res) {
-        if (err) { return done(err); }
-        done();
+        done(err);
       });
   });
 
@@ -287,15 +284,20 @@ describe('REST API endpoint /post', function() {
     var post = posts[0];
     json('post', endpoint+'/'+post.sid+'/like')
       .expect(200, function(err, res) {
-        if (err) {
-          console.error(err);
-          return done(err);
-        }
+        if (err) { return done(err); }
         json('get', endpoint+'/'+post.sid)
           .expect(200, function(err, res) {
+            if (err) { return done(err); }
             res.body.should.have.property('likes', 1);
             done();
           });
+      });
+  });
+
+  it('should return 404 if the post to be liked does not exist', function(done) {
+    json('post', endpoint+'/123/like')
+      .expect(404, function(err, res) {
+        done(err);
       });
   });
 
