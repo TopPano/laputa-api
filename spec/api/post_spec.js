@@ -257,7 +257,6 @@ describe('REST API endpoint /post', function() {
       });
   });
 
-  /*
   it('should create a new node for the post', function(done) {
     var post = posts[1];
     json('post', endpoint+'/'+post.sid+'/nodes?access_token='+user.accessToken.id, 'multipart/form-data')
@@ -283,7 +282,6 @@ describe('REST API endpoint /post', function() {
           });
       });
   });
-  */
 
   it('should allow to like a post', function(done) {
     var post = posts[0];
