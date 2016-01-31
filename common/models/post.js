@@ -386,17 +386,34 @@ module.exports = function(Post) {
   }
 
   Post.afterRemote('findById', function(ctx, post, next) {
-    getNodeList(post.sid, function(err, nodeList) {
+    async.parallel({
+      getNodes: function(callback) {
+        getNodeList(post.sid, function(err, nodeList) {
+          if (err) { return callback(err); }
+          callback(null, nodeList);
+        });
+      },
+      getLikes: function(callback) {
+        var Like = Post.app.models.like;
+        Like.find({where: {postId: post.sid}}, function(err, likeList) {
+          if (err) { return callback(err); }
+
+          callback(null, likeList.length);
+        });
+      }
+    }, function(err, results) {
       if (err) {
         console.error(err);
         return next(new Error('Internal error'));
       }
-      post.nodes = nodeList;
+      post.nodes = results.getNodes;
+      post.likes = results.getLikes;
       next();
     });
   });
 
-  Post.like = function(postId, res, callback) {
+  Post.like = function(postId, req, res, callback) {
+
     Post.findById(postId, function(err, post) {
       if (err) {
         console.error(err);
@@ -406,8 +423,17 @@ module.exports = function(Post) {
         res.status(404);
         return callback('Post Not Found');
       }
-      post.updateAttributes({$inc: { likes: 1 }}, function(err) {
-        if (err) {
+      if (!req.body.hasOwnProperty('userId')) {
+        var error = new Error('Missing property: userId');
+        error.status = 400;
+        return callback(error);
+      }
+      var userId = req.body.userId;
+      var Like = Post.app.models.like;
+
+      Like.create({postId: postId, userId: userId}, function(err) {
+        // Ignore duplicate like
+        if (err && err.message.indexOf('Duplicate') === -1) {
           console.error(err);
           return callback(err);
         }
@@ -418,10 +444,45 @@ module.exports = function(Post) {
   Post.remoteMethod('like', {
     accepts: [
       { arg: 'id', type: 'string', require: true },
+      { arg: 'req', type: 'object', 'http': {source: 'req'} },
       { arg: 'res', type: 'object', 'http': {source: 'res'} }
     ],
     returns: [ { arg: 'status', type: 'string' } ],
     http: { path: '/:id/like', verb: 'post' }
+  });
+
+  Post.unlike = function(postId, req, res, callback) {
+
+    Post.findById(postId, function(err, post) {
+      if (err) {
+        console.error(err);
+        return callback(err);
+      }
+      if (!post) {
+        res.status(404);
+        return callback('Post Not Found');
+      }
+      if (!req.body.hasOwnProperty('userId')) {
+        var error = new Error('Missing property: userId');
+        error.status = 400;
+        return callback(error);
+      }
+      var userId = req.body.userId;
+      var Like = Post.app.models.like;
+      Like.destroyAll({postId: postId, userId: userId}, function(err) {
+        if (err) { return callback(err); }
+        callback(null, 'success');
+      });
+    });
+  };
+  Post.remoteMethod('unlike', {
+    accepts: [
+      { arg: 'id', type: 'string', require: true },
+      { arg: 'req', type: 'object', 'http': {source: 'req'} },
+      { arg: 'res', type: 'object', 'http': {source: 'res'} }
+    ],
+    returns: [ { arg: 'status', type: 'string' } ],
+    http: { path: '/:id/unlike', verb: 'post' }
   });
 
 };

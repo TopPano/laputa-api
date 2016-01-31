@@ -280,9 +280,10 @@ describe('REST API endpoint /post', function() {
       });
   });
 
-  it('should allow to like a post', function(done) {
+  it('should like a post', function(done) {
     var post = posts[0];
-    json('post', endpoint+'/'+post.sid+'/like')
+    json('post', endpoint+'/'+post.sid+'/like?access_token='+user.accessToken.id)
+      .send({userId: user.sid})
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         json('get', endpoint+'/'+post.sid)
@@ -294,9 +295,79 @@ describe('REST API endpoint /post', function() {
       });
   });
 
+  it('should unlike a post', function(done) {
+    var post = posts[0];
+    json('post', endpoint+'/'+post.sid+'/like?access_token='+user.accessToken.id)
+      .send({userId: user.sid})
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        json('post', endpoint+'/'+post.sid+'/unlike?access_token='+user.accessToken.id)
+          .send({userId: user.sid})
+          .expect(200, function(err, res) {
+            if (err) { return done(err); }
+            json('get', endpoint+'/'+post.sid)
+              .expect(200, function(err, res) {
+                if (err) { return done(err); }
+                res.body.should.have.property('likes', 0);
+                done();
+              });
+          });
+      });
+  });
+
+  it('should ignore duplicated likes', function(done) {
+    var post = posts[0];
+    json('post', endpoint+'/'+post.sid+'/like?access_token='+user.accessToken.id)
+      .send({userId: user.sid})
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        json('post', endpoint+'/'+post.sid+'/like?access_token='+user.accessToken.id)
+          .send({userId: user.sid})
+          .expect(200, function(err, res) {
+            if (err) { return done(err); }
+            json('get', endpoint+'/'+post.sid)
+              .expect(200, function(err, res) {
+                if (err) { return done(err); }
+                res.body.should.have.property('likes', 1);
+                done();
+              });
+          });
+      });
+  });
+
+  it('should ignore double unlike', function(done) {
+    var post = posts[0];
+    json('post', endpoint+'/'+post.sid+'/unlike?access_token='+user.accessToken.id)
+      .send({userId: user.sid})
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        json('post', endpoint+'/'+post.sid+'/unlike?access_token='+user.accessToken.id)
+          .send({userId: user.sid})
+          .expect(200, function(err, res) {
+            if (err) { return done(err); }
+            json('get', endpoint+'/'+post.sid)
+              .expect(200, function(err, res) {
+                if (err) { return done(err); }
+                res.body.should.have.property('likes', 0);
+                done();
+              });
+          });
+      });
+  });
+
   it('should return 404 if the post to be liked does not exist', function(done) {
     json('post', endpoint+'/123/like')
+      .send({userId: user.sid})
       .expect(404, function(err, res) {
+        done(err);
+      });
+  });
+
+  it('should return 400 if request body does not contain userId', function(done) {
+    var post = posts[1];
+    json('post', endpoint+'/'+post.sid+'/like?access_token='+user.accessToken.id)
+      .expect(400, function(err, res) {
+        res.body.error.should.have.property('message', 'Missing property: userId');
         done(err);
       });
   });

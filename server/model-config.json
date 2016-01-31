@@ -45,6 +45,10 @@
     "dataSource": "db",
     "public": false
   },
+  "like": {
+    "dataSource": "db",
+    "public": false
+  },
   "snapshot": {
     "dataSource": "db",
     "public": false
