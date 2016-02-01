@@ -40,6 +40,18 @@
       "principalId": "$authenticated",
       "permission": "ALLOW",
       "property": "__get__posts"
+    },
+    {
+      "principalType": "ROLE",
+      "principalId": "$authenticated",
+      "permission": "ALLOW",
+      "property": "follow"
+    },
+    {
+      "principalType": "ROLE",
+      "principalId": "$authenticated",
+      "permission": "ALLOW",
+      "property": "unfollow"
     }
   ],
   "methods": {}

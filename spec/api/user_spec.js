@@ -135,6 +135,64 @@ describe('REST API endpoint /users', function() {
     });
   });
 
+  it('should follow a user', function(done) {
+    var follower = users[0];
+    var followee = users[1];
+    json('post', endpoint+'/'+follower.sid+'/follow/'+followee.sid+'?access_token='+follower.accessToken.id)
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        done();
+      });
+  });
+
+  it('should ignore duplicated following', function(done) {
+    var follower = users[0];
+    var followee = users[1];
+    json('post', endpoint+'/'+follower.sid+'/follow/'+followee.sid+'?access_token='+follower.accessToken.id)
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        json('post', endpoint+'/'+follower.sid+'/follow/'+followee.sid+'?access_token='+follower.accessToken.id)
+          .expect(200, function(err, res) {
+            if (err) { return done(err); }
+            done();
+          });
+      });
+  });
+
+  it('should unfollow a user', function(done) {
+    var follower = users[0];
+    var followee = users[1];
+    json('post', endpoint+'/'+follower.sid+'/unfollow/'+followee.sid+'?access_token='+follower.accessToken.id)
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        done();
+      });
+  });
+
+  it('should ignore double unfollowing', function(done) {
+    var follower = users[0];
+    var followee = users[1];
+    json('post', endpoint+'/'+follower.sid+'/unfollow/'+followee.sid+'?access_token='+follower.accessToken.id)
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        json('post', endpoint+'/'+follower.sid+'/unfollow/'+followee.sid+'?access_token='+follower.accessToken.id)
+          .expect(200, function(err, res) {
+            if (err) { return done(err); }
+            done();
+          });
+      });
+  });
+
+  it('should return 404 if the followee does not exist', function(done) {
+    var follower = users[0];
+    var followee = users[1];
+    json('post', endpoint+'/'+follower.sid+'/follow/123?access_token='+follower.accessToken.id)
+      .expect(404, function(err, res) {
+        if (err) { return done(err); }
+        done();
+      });
+  });
+
   it('should return a user if id param is a valid user and the access token is valid', function(done) {
     var user = users[0];
     json('get', endpoint+'/'+user.sid+'?access_token='+user.accessToken.id)
