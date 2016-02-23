@@ -4,7 +4,7 @@
   "main": "server/server.js",
   "scripts": {
     "pretest": "jshint .",
-    "test": "NODE_ENV=local DB_HOST=localhost S3_BKT=verpix-img-dev mocha -C -R spec spec/ --recursive --timeout 30000",
+    "test": "NODE_ENV=local S3_BKT=verpix-img-dev mocha -C -R spec spec/ --recursive --timeout 30000",
     "dev": "NODE_ENV=dev DB_HOST=localhost DB_USER=verpix-api DB_PASSWORD=1234 S3_BKT=verpix-img-dev node .",
     "local": "NODE_ENV=local node ."
   },

@@ -52,6 +52,12 @@
       "principalId": "$authenticated",
       "permission": "ALLOW",
       "property": "unfollow"
+    },
+    {
+      "principalType": "ROLE",
+      "principalId": "$authenticated",
+      "permission": "ALLOW",
+      "property": "query"
     }
   ],
   "methods": {}

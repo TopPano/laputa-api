@@ -10,8 +10,7 @@
     "sid": {
       "type": "string",
       "id": true,
-      "generated": false,
-      "defaultFn": "uuid"
+      "generated": false
     },
     "imageUrl": {
       "type": "string"
@@ -34,6 +33,12 @@
     },
     "geolocation": {
       "type": "geopoint"
+    },
+    "created": {
+      "type": "date"
+    },
+    "modified": {
+      "type": "date"
     }
   },
   "validations": [],

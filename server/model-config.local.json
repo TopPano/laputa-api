@@ -1,0 +1,64 @@
+{
+  "_meta": {
+    "sources": [
+      "loopback/common/models",
+      "loopback/server/models",
+      "../common/models",
+      "./models"
+    ],
+    "mixins": [
+      "loopback/common/mixins",
+      "loopback/server/mixins",
+      "../common/mixins",
+      "./mixins"
+    ]
+  },
+  "User": {
+    "dataSource": "memoryDB",
+    "public": false
+  },
+  "AccessToken": {
+    "dataSource": "memoryDB",
+    "public": false
+  },
+  "ACL": {
+    "dataSource": "memoryDB",
+    "public": false
+  },
+  "RoleMapping": {
+    "dataSource": "memoryDB",
+    "public": false
+  },
+  "Role": {
+    "dataSource": "memoryDB",
+    "public": false
+  },
+  "user": {
+    "dataSource": "memoryDB",
+    "public": true
+  },
+  "post": {
+    "dataSource": "memoryDB",
+    "public": true
+  },
+  "nodemeta": {
+    "dataSource": "memoryDB",
+    "public": false
+  },
+  "like": {
+    "dataSource": "memoryDB",
+    "public": false
+  },
+  "follow": {
+    "dataSource": "memoryDB",
+    "public": false
+  },
+  "snapshot": {
+    "dataSource": "memoryDB",
+    "public": false
+  },
+  "file": {
+    "dataSource": "memoryDB",
+    "public": false
+  }
+}

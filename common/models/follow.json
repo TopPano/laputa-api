@@ -2,13 +2,14 @@
   "name": "follow",
   "plural": "follows",
   "base": "PersistedModel",
-  "idInjection": false,
+  "idInjection": true,
   "options": {
     "validateUpsert": true
   },
   "properties": {
-    "followerId": { "type": "string", "generated": false, "id": 1 },
-    "followeeId": { "type": "string", "generated": false, "id": 2 }
+    "followerId": { "type": "string", "require": true },
+    "followeeId": { "type": "string", "require": true },
+    "followAt": { "type": "date" }
   },
   "validations": [],
   "relations": {},

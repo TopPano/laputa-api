@@ -7,6 +7,8 @@ var async = require('async');
 var fs = require('fs');
 var crypto = require('crypto');
 var S3Uploader = require('../utils/S3Uploader');
+var VerpixId = require('../utils/verpix-id-gen');
+var idGen = new VerpixId();
 
 module.exports = function(Post) {
 
@@ -359,6 +361,23 @@ module.exports = function(Post) {
     next();
   });
 
+  Post.observe('before save', function(ctx, next) {
+    if (ctx.instance && ctx.isNewInstance) {
+      // on create
+      idGen.next(function(err, id) {
+        if (err) { return next(err); }
+        ctx.instance.sid = id.id;
+        ctx.instance.created = id.timestamp;
+        ctx.instance.modified = id.timestamp;
+        next();
+      });
+    } else {
+      // on update
+      ctx.data.modified = new Date();
+      next();
+    }
+  });
+
   function getNodeList(postId, callback) {
     var Nodemeta = Post.app.models.nodemeta;
     var Files = Post.app.models.file;
@@ -397,7 +416,6 @@ module.exports = function(Post) {
         var Like = Post.app.models.like;
         Like.find({where: {postId: post.sid}}, function(err, likeList) {
           if (err) { return callback(err); }
-
           callback(null, likeList.length);
         });
       }
