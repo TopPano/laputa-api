@@ -10,7 +10,7 @@ var zlib = require('zlib');
 var apiVersion = require('../../package.json').version.split('.').shift();
 var endpointRoot = '/api' + (apiVersion > 0 ? '/v' + apiVersion :  '');
 var endpoint = endpointRoot + '/posts';
-var User, Post, File, Snapshot;
+var User, Post, File;
 
 function json(verb, url, contentType) {
   return request(app)[verb](url)
@@ -31,7 +31,6 @@ describe('REST API endpoint /post', function() {
     User = app.models.user;
     Post = app.models.post;
     File = app.models.file;
-    Snapshot = app.models.snapshot;
 
     User.create(user, function(err, newUser) {
       if (err) { return done(err); }
@@ -132,12 +131,7 @@ describe('REST API endpoint /post', function() {
       .send({userId: user.sid})
       .expect(200, function(err, res) {
         if (err) { return done(err); }
-        json('get', endpoint+'/'+post.sid)
-        .expect(200, function(err, res) {
-          if (err) { return done(err); }
-          res.body.should.have.property('likes', 1);
-          done();
-        });
+        done();
       });
     });
 
@@ -149,65 +143,33 @@ describe('REST API endpoint /post', function() {
       });
     });
 
+    it('return 404 when like a post that does not exist', function(done) {
+      json('post', endpoint+'/123/like')
+      .send({userId: user.sid})
+      .expect(404, function(err, res) {
+        done(err);
+      });
+    });
+
     it('unlike a post', function(done) {
-      json('post', endpoint+'/'+post.sid+'/like?access_token='+user.accessToken.id)
-      .send({userId: user.sid})
-      .expect(200, function(err, res) {
-        if (err) { return done(err); }
-        json('post', endpoint+'/'+post.sid+'/unlike?access_token='+user.accessToken.id)
-        .send({userId: user.sid})
-        .expect(200, function(err, res) {
-          if (err) { return done(err); }
-          json('get', endpoint+'/'+post.sid)
-          .expect(200, function(err, res) {
-            if (err) { return done(err); }
-            res.body.should.have.property('likes', 0);
-            done();
-          });
-        });
-      });
-    });
-
-    it('ignore duplicated likes', function(done) {
-      json('post', endpoint+'/'+post.sid+'/like?access_token='+user.accessToken.id)
-      .send({userId: user.sid})
-      .expect(200, function(err, res) {
-        if (err) { return done(err); }
-        json('post', endpoint+'/'+post.sid+'/like?access_token='+user.accessToken.id)
-        .send({userId: user.sid})
-        .expect(200, function(err, res) {
-          if (err) { return done(err); }
-          json('get', endpoint+'/'+post.sid)
-          .expect(200, function(err, res) {
-            if (err) { return done(err); }
-            res.body.should.have.property('likes', 1);
-            done();
-          });
-        });
-      });
-    });
-
-    it('ignore double unlike', function(done) {
       json('post', endpoint+'/'+post.sid+'/unlike?access_token='+user.accessToken.id)
       .send({userId: user.sid})
       .expect(200, function(err, res) {
         if (err) { return done(err); }
-        json('post', endpoint+'/'+post.sid+'/unlike?access_token='+user.accessToken.id)
-        .send({userId: user.sid})
-        .expect(200, function(err, res) {
-          if (err) { return done(err); }
-          json('get', endpoint+'/'+post.sid)
-          .expect(200, function(err, res) {
-            if (err) { return done(err); }
-            res.body.should.have.property('likes', 0);
-            done();
-          });
-        });
+        done();
       });
     });
 
-    it('return 404 when like a post that does not exist', function(done) {
-      json('post', endpoint+'/123/like')
+    it('return 400 if request body does not contain userId when unlike a post', function(done) {
+      json('post', endpoint+'/'+post.sid+'/unlike?access_token='+user.accessToken.id)
+      .expect(400, function(err, res) {
+        res.body.error.should.have.property('message', 'Missing property: userId');
+        done(err);
+      });
+    });
+
+    it('return 404 when unlike a post that does not exist', function(done) {
+      json('post', endpoint+'/123/unlike')
       .send({userId: user.sid})
       .expect(404, function(err, res) {
         done(err);

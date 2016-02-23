@@ -7,8 +7,9 @@
     "validateUpsert": true
   },
   "properties": {
-    "postId": { "type": "string", "generated": false, "id": 1 },
-    "userId": { "type": "string", "generated": false, "id": 2 }
+    "postId": { "type": "string", "require": true },
+    "userId": { "type": "string", "require": true },
+    "likeAt": { "type": "date" }
   },
   "validations": [],
   "relations": {},

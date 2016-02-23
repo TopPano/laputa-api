@@ -431,7 +431,6 @@ module.exports = function(Post) {
   });
 
   Post.like = function(postId, req, res, callback) {
-
     Post.findById(postId, function(err, post) {
       if (err) {
         console.error(err);
@@ -448,14 +447,26 @@ module.exports = function(Post) {
       }
       var userId = req.body.userId;
       var Like = Post.app.models.like;
-
-      Like.create({postId: postId, userId: userId}, function(err) {
-        // Ignore duplicate like
-        if (err && err.message.indexOf('Duplicate') === -1) {
-          console.error(err);
-          return callback(err);
+      // Check if it is a duplicate like
+      // FIXME: We should use composite id here instead of checking for duplicate entry
+      //        by ourselves, however, loopback's datasource juggler has an issue for
+      //        using composite id, so this is a temporary workaround until the issue
+      //        is resovled.
+      //
+      //        Tracking issues:
+      //          https://github.com/strongloop/loopback-datasource-juggler/issues/121
+      //          https://github.com/strongloop/loopback-datasource-juggler/issues/478
+      Like.find({where: {postId: postId, userId: userId}}, function(err, result) {
+        if (err) { return callback(err); }
+        if (result.length === 0) {
+          Like.create({postId: postId, userId: userId}, function(err) {
+            if (err) { return callback(err); }
+            callback(null, 'success');
+          });
+        } else {
+          // Ignre duplicate like
+          callback(null, 'success');
         }
-        callback(null, 'success');
       });
     });
   };
