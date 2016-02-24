@@ -5,6 +5,7 @@ var request = require('supertest');
 var should = require('should');
 var assert = require('assert');
 var async = require('async');
+var fs = require('fs');
 
 var apiVersion = require('../../package.json').version.split('.').shift();
 var endpointRoot = '/api' + (apiVersion > 0 ? '/v' + apiVersion :  '');
@@ -185,12 +186,25 @@ describe('REST API endpoint /users', function() {
       });
     });
 
-    it('should return a list of posts', function(done) {
+    it('return a list of posts', function(done) {
       json('get', endpoint+'/me/posts?access_token='+user.accessToken.id)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         res.body.should.be.instanceof(Array).with.lengthOf(posts.length);
         res.body.should.containDeep([{ownerId: user.sid}]);
+        done();
+      });
+    });
+
+    it('upload user profile photo', function(done) {
+      var image = fs.readFileSync(__dirname+'/fixtures/user_profile_photo.jpeg').toString('base64');
+      json('post', endpoint+'/'+user.sid+'/photo?access_token='+user.accessToken.id)
+      .send({
+        image: image
+      })
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        res.body.should.have.property('status', 'success');
         done();
       });
     });
@@ -271,7 +285,6 @@ describe('REST API endpoint /users', function() {
   });
 
   describe('User editing', function() {
-
     var user = {
       username: 'xxx',
       email: 'xxx@foo.com',
@@ -285,18 +298,19 @@ describe('REST API endpoint /users', function() {
         done();
       });
     });
+
     it('update a user', function(done) {
       var newUsername = 'Eric';
-      var userPhotoUrl = 'http://www.foo.com/';
+      var profilePhotoUrl = 'http://www.foo.com/';
       json('put', endpoint+'/me?access_token='+user.accessToken.id)
       .send({
         username: newUsername,
-        userPhotoUrl: userPhotoUrl
+        profilePhotoUrl: profilePhotoUrl
       })
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         res.body.should.have.property('username', newUsername);
-        res.body.should.have.property('userPhotoUrl', userPhotoUrl);
+        res.body.should.have.property('profilePhotoUrl', profilePhotoUrl);
         done();
       });
     });

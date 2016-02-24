@@ -83,6 +83,8 @@ describe('REST API endpoint /post', function() {
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         res.body.should.have.property('ownerId', user.sid);
+        res.body.should.have.property('ownerInfo');
+        res.body.ownerInfo.should.have.property('username', user.username);
         done();
       });
     });

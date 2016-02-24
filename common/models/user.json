@@ -16,10 +16,7 @@
     "username": {
       "type": "string"
     },
-    "userPhotoUrl": {
-      "type": "string"
-    },
-    "coverPhotoUrl": {
+    "profilePhotoUrl": {
       "type": "string"
     },
     "autobiography": {
@@ -58,6 +55,12 @@
       "principalId": "$authenticated",
       "permission": "ALLOW",
       "property": "query"
+    },
+    {
+      "principalType": "ROLE",
+      "principalId": "$authenticated",
+      "permission": "ALLOW",
+      "property": "uploadProfilePhoto"
     }
   ],
   "methods": {}

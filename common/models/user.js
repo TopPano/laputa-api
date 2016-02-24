@@ -1,10 +1,12 @@
 'use strict';
+var assert = require('assert');
 var async = require('async');
+var S3Uploader = require('../utils/S3Uploader');
 
 module.exports = function(User) {
 
   var PAGE_SIZE = 12;
-  User.query = function(id, req, json, callback) {
+  User.query = function(id, json, callback) {
     var Post = User.app.models.post;
     var Follow = User.app.models.follow;
     var where = json.where || undefined;
@@ -90,7 +92,6 @@ module.exports = function(User) {
   User.remoteMethod('query', {
     accepts: [
       { arg: 'id', type: 'string', require: true },
-      { arg: 'req', type: 'object', 'http': { source: 'req' } },
       { arg: 'json', type: 'object', 'http': { source: 'body' } }
     ],
     returns: [ { arg: 'result', type: 'object' } ],
@@ -119,7 +120,7 @@ module.exports = function(User) {
     });
   };
 
-  User.follow = function(followerId, followeeId, req, res, callback) {
+  User.follow = function(followerId, followeeId, callback) {
     verifyFollowing(followerId, followeeId, function(err) {
       if (err) {
         if (err.message.indexOf('Invalid User') !== -1) {
@@ -156,15 +157,13 @@ module.exports = function(User) {
   User.remoteMethod('follow', {
     accepts: [
       { arg: 'followerId', type: 'string', require: true },
-      { arg: 'followeeId', type: 'string', require: true },
-      { arg: 'req', type: 'object', 'http': { source: 'req' } },
-      { arg: 'res', type: 'object', 'http': { source: 'res' } }
+      { arg: 'followeeId', type: 'string', require: true }
     ],
     returns: [ { arg: 'status', type: 'string' } ],
     http: { path: '/:followerId/follow/:followeeId', verb: 'post' }
   });
 
-  User.unfollow = function(followerId, followeeId, req, res, callback) {
+  User.unfollow = function(followerId, followeeId, callback) {
     verifyFollowing(followerId, followeeId, function(err) {
       if (err) {
         if (err.message.indexOf('Invalid User') !== -1) {
@@ -187,12 +186,56 @@ module.exports = function(User) {
   User.remoteMethod('unfollow', {
     accepts: [
       { arg: 'followerId', type: 'string', require: true },
-      { arg: 'followeeId', type: 'string', require: true },
-      { arg: 'req', type: 'object', 'http': { source: 'req' } },
-      { arg: 'res', type: 'object', 'http': { source: 'res' } }
+      { arg: 'followeeId', type: 'string', require: true }
     ],
     returns: [ { arg: 'status', type: 'string' } ],
     http: { path: '/:followerId/unfollow/:followeeId', verb: 'post' }
   });
 
+  User.uploadProfilePhoto = function(id, json, callback) {
+    var uploader = new S3Uploader();
+
+    try {
+      var image = json.image ? new Buffer(json.image, 'base64') : undefined;
+      if (!image) {
+        var error = new Error('No image found');
+        error.status = 400;
+        return callback(error);
+      }
+      var imageFilename = id+'_profile.jpg';
+      var fileKey = 'users/'+id+'/photo/'+imageFilename;
+      uploader.on('success', function(data) {
+        assert(data.hasOwnProperty('Location'), 'Unable to get location property from S3 response object');
+        assert((data.hasOwnProperty('key') || data.hasOwnProperty('Key')), 'Unable to get key property from S3 response object');
+        // TODO: use CDN url
+        User.updateAll({sid: id}, {profilePhotoUrl: data.Location}, function(err) {
+          if (err) { return callback(err); }
+          callback(null, 'success');
+        });
+      });
+      uploader.on('error', function(err) {
+        callback(err);
+      });
+      uploader.send({
+        File: image,
+        Key: fileKey,
+        options: {
+          ACL: 'public-read'
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      var error = new Error('Internal Error');
+      error.status = 500;
+      callback(error);
+    }
+  };
+  User.remoteMethod('uploadProfilePhoto', {
+    accepts: [
+      { arg: 'id', type: 'string', require: true },
+      { arg: 'json', type: 'object', 'http': { source: 'body' } }
+    ],
+    returns: [ { arg: 'status', type: 'string' } ],
+    http: { path: '/:id/photo', verb: 'post' }
+  });
 };

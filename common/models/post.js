@@ -4,7 +4,6 @@ var zlib = require('zlib');
 var moment = require('moment');
 var gm = require('gm');
 var async = require('async');
-var fs = require('fs');
 var crypto = require('crypto');
 var S3Uploader = require('../utils/S3Uploader');
 var VerpixId = require('../utils/verpix-id-gen');
@@ -14,19 +13,6 @@ module.exports = function(Post) {
 
   function getTimeNow() {
     return moment(new Date()).format('YYYY-MM-DD');
-  }
-
-  function createDir(path, callback) {
-    fs.access(path, fs.F_OK, function(err) {
-      if (err) {
-        require('child_process').exec('mkdir -p '+path, function(err) {
-          if (err) { return callback(err); }
-          callback();
-        });
-      } else {
-        callback();
-      }
-    });
   }
 
   function genShardingKey() {
@@ -418,6 +404,21 @@ module.exports = function(Post) {
           if (err) { return callback(err); }
           callback(null, likeList.length);
         });
+      },
+      getUser: function(callback) {
+        var User = Post.app.models.user;
+        User.findById(post.ownerId, function(err, user) {
+          if (err) { return callback(err); }
+          if (!user) {
+            var error = new Error('Internal Error');
+            error.status = 500;
+            return callback(error);
+          }
+          callback(null, {
+            username: user.username,
+            profilePhotoUrl: user.profilePhotoUrl
+          });
+        });
       }
     }, function(err, results) {
       if (err) {
@@ -426,6 +427,7 @@ module.exports = function(Post) {
       }
       post.nodes = results.getNodes;
       post.likes = results.getLikes;
+      post.ownerInfo = results.getUser;
       next();
     });
   });
@@ -481,7 +483,6 @@ module.exports = function(Post) {
   });
 
   Post.unlike = function(postId, req, res, callback) {
-
     Post.findById(postId, function(err, post) {
       if (err) {
         console.error(err);
@@ -513,5 +514,4 @@ module.exports = function(Post) {
     returns: [ { arg: 'status', type: 'string' } ],
     http: { path: '/:id/unlike', verb: 'post' }
   });
-
 };
