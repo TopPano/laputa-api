@@ -9,7 +9,7 @@ var async = require('async');
 var apiVersion = require('../../package.json').version.split('.').shift();
 var endpointRoot = '/api' + (apiVersion > 0 ? '/v' + apiVersion : '');
 var endpoint = endpointRoot + '/users';
-var User, Post;
+var User, Post, Follow;
 
 function json(verb, url) {
   return request(app)[verb](url)
@@ -23,6 +23,7 @@ describe('Users - integration', function() {
   before(function() {
     User = app.models.user;
     Post = app.models.post;
+    Follow = app.models.follow;
   });
 
   function createUserAndLogin(user, callback) {
@@ -73,7 +74,7 @@ describe('Users - integration', function() {
       posts: [
         {
           likes: 501,
-          message: 'Rolling Stones are a dangerous problem in Torres del Paine. Always trying to start it up!'
+          message: 'Running along Charles River.'
         },
         {
           likes: 712,
@@ -122,6 +123,7 @@ describe('Users - integration', function() {
         .expect(200, function(err, res) {
           if (err) { return done(err); }
           assert(res.body.result);
+          console.log('result: '+JSON.stringify(res.body.result));
           res.body.result.should.have.property('page');
           res.body.result.page.should.have.property('hasNextPage', false);
           res.body.result.page.should.have.property('count', friend1.posts.length);
@@ -320,6 +322,151 @@ describe('Users - integration', function() {
           if (err) { return done(err); }
           done();
         });
+      });
+    });
+  });
+
+  describe('User profile', function() {
+    var me = {
+      username: 'me',
+      email: 'me2@foo.com',
+      password: 'password',
+      profilePhotoUrl: 'http://aws.com/',
+      autobiography: 'Hi, I am Richard'
+    };
+    var Jeffrey = {
+      userData: {
+        username: 'Jeffrey',
+        email: 'jeffrey@foo.com',
+        password: 'xx'
+      },
+      posts: [
+        {
+          likes: 101,
+          message: 'Run IBM run!!'
+        },
+        {
+          likes: 113,
+          message: 'My running squad #2...'
+        },
+        {
+          likes: 120,
+          message: 'Happy Chinese New Year...'
+        }
+      ]
+    };
+    var Joey = {
+      userData: {
+        username: 'Joey',
+        email: 'joey@foo.com',
+        password: 'xxx'
+      },
+      posts: [
+        {
+          likes: 78,
+          message: 'Running along Charles River.'
+        },
+        {
+          likes: 91,
+          message: 'Going to give it a try this weekend. Hopefully Chef Watson has a good taste ...'
+        },
+        {
+          likes: 111,
+          message: 'Brilliant idea !'
+        }
+      ]
+    };
+    before(function(done) {
+      async.each([me, Jeffrey.userData, Joey.userData], function(user, callback) {
+        createUserAndLogin(user, function(err, result) {
+          if (err) { return callback(err); }
+          user.sid = result.sid;
+          user.accessToken = result.accessToken;
+          callback();
+        });
+      }, function(err) {
+        if (err) { return done(err); }
+        async.parallel({
+          createPost: function(callback) {
+            // XXX: It's a bit ugly
+            async.each([Jeffrey, Joey], function(user, callback) {
+              async.each(user.posts, function(post, callback) {
+                post.ownerId = user.userData.sid;
+                Post.create(post, function(err) {
+                  if (err) { return callback(err); }
+                  callback();
+                });
+              }, function(err) {
+                if (err) { return callback(err); }
+                callback();
+              });
+            }, function(err) {
+              if (err) { return callback(err); }
+              callback();
+            });
+          },
+          meFollowJeffrey: function(callback) {
+            Follow.create({followerId: me.sid, followeeId: Jeffrey.userData.sid, followAt: new Date()}, function(err) {
+              if (err) { return callback(err); }
+              callback();
+            });
+          },
+          meFollowJoey: function(callback) {
+            Follow.create({followerId: me.sid, followeeId: Joey.userData.sid, followAt: new Date()}, function(err) {
+              if (err) { return callback(err); }
+              callback();
+            });
+          },
+          JeffreyFollowJoey: function(callback) {
+            Follow.create({followerId: Jeffrey.userData.sid, followeeId: Joey.userData.sid, followAt: new Date()}, function(err) {
+              if (err) { return callback(err); }
+              callback();
+            });
+          },
+          JoeyFollowJeffrey: function(callback) {
+            Follow.create({followerId: Joey.userData.sid, followeeId: Jeffrey.userData.sid, followAt: new Date()}, function(err) {
+              if (err) { return callback(err); }
+              callback();
+            });
+          }
+        }, function(err) {
+          if (err) { return done(err); }
+          done();
+        });
+      });
+    });
+
+    it('get user own profile', function(done) {
+      json('get', endpoint+'/'+me.sid+'/profile?access_token='+me.accessToken.id)
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        res.body.profile.should.have.properties({
+          sid: me.sid,
+          username: me.username,
+          profilePhotoUrl: me.profilePhotoUrl,
+          autobiography: me.autobiography,
+          followers: 0,
+          following: 2,
+          posts: 0,
+          isFollowing: false
+        });
+        done();
+      });
+    });
+
+    it('get the profile from other user', function(done) {
+      json('get', endpoint+'/'+Jeffrey.userData.sid+'/profile?access_token='+me.accessToken.id)
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        res.body.profile.should.have.properties({
+          sid: Jeffrey.userData.sid,
+          username: Jeffrey.userData.username,
+          followers: 2,
+          following: 1,
+          posts: 3,
+          isFollowing: true
+        });
+        done();
       });
     });
   });

@@ -238,4 +238,84 @@ module.exports = function(User) {
     returns: [ { arg: 'status', type: 'string' } ],
     http: { path: '/:id/photo', verb: 'post' }
   });
+
+  User.getProfile = function(id, req, callback) {
+    var Follow = User.app.models.follow;
+    var Post = User.app.models.post;
+    async.parallel({
+      basicProfile: function(callback) {
+        User.findById(id, function(err, profile) {
+          if (err) { return callback(err); }
+          callback(null, profile);
+        });
+      },
+      followerNumber: function(callback) {
+        Follow.find({where: {followeeId: id}}, function(err, list) {
+          if (err) { return callback(err); }
+          callback(null, list.length);
+        });
+      },
+      followingNumber: function(callback) {
+        Follow.find({where: {followerId: id}}, function(err, list) {
+          if (err) { return callback(err); }
+          callback(null, list.length);
+        });
+      },
+      postNumber: function(callback) {
+        Post.find({where: {ownerId: id}}, function(err, list) {
+          if (err) { return callback(err); }
+          callback(null, list.length);
+        });
+      },
+      isFollowing: function(callback) {
+        // check if the access token is valid
+        if (!req.accessToken) {
+          var error = new Error('Bad Request: missing access token');
+          error.status = 400;
+          return callback(error);
+        }
+        User.findById(req.accessToken.userId, function(err, profile) {
+          if (err) { return callback(err); }
+          if (!profile) { return callback(new Error('No user with this access token was found.')); }
+          // check if we are getting someone else's profile
+          assert(profile.sid);
+          if (id !== profile.sid) {
+            // we are getting someone's profile data, check if we have followed him/her or not
+            Follow.find({where: {followerId: profile.sid, followeeId: id}}, function(err, list) {
+              if (err) { return callback(err); }
+              if (list.length !== 0) { return callback(null, true); }
+              else { return callback(null, false); }
+            });
+          } else {
+            // we are checking our own profile data
+            callback(null, false);
+          }
+        });
+      }
+    }, function(err, results) {
+      if (err) {
+        console.error(err);
+        return callback(new Error('Internal Error'));
+      }
+      var output = {
+        sid: id,
+        username: results.basicProfile.username,
+        profilePhotoUrl: results.basicProfile.profilePhotoUrl,
+        autobiography: results.basicProfile.autobiography,
+        followers: results.followerNumber,
+        following: results.followingNumber,
+        posts: results.postNumber,
+        isFollowing: results.isFollowing
+      };
+      callback(null, output);
+    });
+  };
+  User.remoteMethod('getProfile', {
+    accepts: [
+      { arg: 'id', type: 'string', require: true },
+      { arg: 'req', type: 'object', 'http': { source: 'req' } }
+    ],
+    returns: [ { arg: 'profile', type: 'string' } ],
+    http: { path: '/:id/profile', verb: 'get' }
+  });
 };

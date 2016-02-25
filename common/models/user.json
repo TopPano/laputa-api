@@ -61,6 +61,12 @@
       "principalId": "$authenticated",
       "permission": "ALLOW",
       "property": "uploadProfilePhoto"
+    },
+    {
+      "principalType": "ROLE",
+      "principalId": "$everyone",
+      "permission": "ALLOW",
+      "property": "getProfile"
     }
   ],
   "methods": {}
