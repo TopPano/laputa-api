@@ -1,0 +1,64 @@
+{
+  "_meta": {
+    "sources": [
+      "loopback/common/models",
+      "loopback/server/models",
+      "../common/models",
+      "./models"
+    ],
+    "mixins": [
+      "loopback/common/mixins",
+      "loopback/server/mixins",
+      "../common/mixins",
+      "./mixins"
+    ]
+  },
+  "User": {
+    "dataSource": "mongoDB",
+    "public": false
+  },
+  "AccessToken": {
+    "dataSource": "mongoDB",
+    "public": false
+  },
+  "ACL": {
+    "dataSource": "mongoDB",
+    "public": false
+  },
+  "RoleMapping": {
+    "dataSource": "mongoDB",
+    "public": false
+  },
+  "Role": {
+    "dataSource": "mongoDB",
+    "public": false
+  },
+  "user": {
+    "dataSource": "mongoDB",
+    "public": true
+  },
+  "post": {
+    "dataSource": "mongoDB",
+    "public": true
+  },
+  "nodemeta": {
+    "dataSource": "mongoDB",
+    "public": false
+  },
+  "like": {
+    "dataSource": "mongoDB",
+    "public": false
+  },
+  "follow": {
+    "dataSource": "mongoDB",
+    "public": false
+  },
+  "snapshot": {
+    "dataSource": "mongoDB",
+    "public": false
+  },
+  "file": {
+    "dataSource": "mongoDB",
+    "public": false
+  }
+}
