@@ -5,55 +5,59 @@ var S3Uploader = require('../utils/S3Uploader');
 
 module.exports = function(User) {
 
-  var PAGE_SIZE = 12;
-  User.query = function(id, json, callback) {
+  User.query = function(id, req, json, callback) {
     var Post = User.app.models.post;
     var Follow = User.app.models.follow;
     var where = json.where || undefined;
+    var PAGE_SIZE = 12;
     var limit = PAGE_SIZE; // default limit
 
-    if (json.limit && (typeof json.limit === 'number') && (0 < json.limit <= (PAGE_SIZE * 3))) {
+    if (json.limit && (typeof json.limit === 'number') && (0 < json.limit) && (json.limit <= (PAGE_SIZE * 3))) {
       limit = json.limit;
     }
+    // get the following user list
     Follow.find({where: {followerId: id}}, function(err, followings) {
       if (err) {
         console.error(err);
         return callback(err);
       }
       var result = [];
-      async.each(followings, function(following, callback) {
-        var query = {
-          where: {
-            ownerId: following.followeeId
-          },
-          limit: limit + 1 // to see if we have next page
-        };
-        // TODO: should have a more comprehensive parser for parsing the where query
-        if (where && (typeof where === 'object')) {
-          try {
-            if ((where.sid.hasOwnProperty('lt') && (typeof where.sid.lt === 'string')) ||
-                (where.sid.hasOwnProperty('gt') && (typeof where.sid.gt === 'string'))) {
-              query.where.sid = where.sid;
-            } else {
-              var error = new Error('Invalid query operator');
-              error.status = 400;
-              return callback(error);
-            }
-          } catch (e) {
-            var error = new Error('Bad request');
+      var query = {
+        where: {},
+        limit: limit + 1 // to see if we have next page
+      };
+      // TODO: should have a more comprehensive parser for parsing the where query
+      if (where && (typeof where === 'object')) {
+        try {
+          if ((where.sid.hasOwnProperty('lt') && (typeof where.sid.lt === 'string')) ||
+              (where.sid.hasOwnProperty('gt') && (typeof where.sid.gt === 'string')))
+          {
+            query.where.sid = where.sid;
+          } else {
+            var error = new Error('Invalid query operator');
             error.status = 400;
             return callback(error);
           }
+        } catch (e) {
+          var error = new Error('Bad request');
+          error.status = 400;
+          return callback(error);
         }
-        Post.find(query, function(err, posts) {
+      }
+      // get the posts for each of the following user
+      async.each(followings, function(following, callback) {
+        query.where.ownerId = following.followeeId;
+        var postQuery = {
+          where: query.where,
+          limit: query.limit
+        };
+        Post.find(postQuery, function(err, posts) {
           if (err) { return callback(err); }
           result = result.concat(posts);
           callback();
         });
       }, function(err) {
-        if (err) {
-          return callback(err);
-        }
+        if (err) { return callback(err); }
 
         result.sort(descending);
 
@@ -76,7 +80,61 @@ module.exports = function(User) {
           output.page.start = null;
           output.page.end = null;
         }
-        callback(null, output);
+        var Like = Post.app.models.like;
+        async.each(output.feed, function(post, callback) {
+          async.parallel({
+            likeCount: function(callback) {
+              Like.find({where: {postId: post.sid}}, function(err, list) {
+                if (err) { return callback(err); }
+                callback(null, list.length);
+              });
+            },
+            isLiked: function(callback) {
+              if (!req.accessToken) {
+                var error = new Error('Bad Request: missing access token');
+                error.status = 400;
+                return callback(error);
+              }
+              User.findById(req.accessToken.userId, function(err, profile) {
+                if (err) { return callback(err); }
+                if (!profile) { return callback(new Error('No user with this access token was found.')); }
+                Like.find({where: {postId: post.sid, userId: req.accessToken.userId}}, function(err, list) {
+                  if (err) { return callback(err); }
+                  if (list.length !== 0) { callback(null, true); }
+                  else { callback(null, false); }
+                });
+              });
+            },
+            ownerInfo: function(callback) {
+              User.findById(post.ownerId, function(err, user) {
+                if (err) { return callback(err); }
+                if (!user) {
+                  var error = new Error('Internal Error');
+                  error.status = 500;
+                  return callback(error);
+                }
+                callback(null, {
+                  username: user.username,
+                  profilePhotoUrl: user.profilePhotoUrl
+                });
+              });
+            }
+          }, function(err, results) {
+            if (err) { return callback(err); }
+            post.likes = {
+              count: results.likeCount,
+              isLiked: results.isLiked
+            };
+            post.ownerInfo = results.ownerInfo;
+            callback();
+          });
+        }, function(err) {
+          if (err) {
+            console.error(err);
+            return callback(new Error('Internal Error'));
+          }
+          callback(null, output);
+        });
       });
     });
 
@@ -92,6 +150,7 @@ module.exports = function(User) {
   User.remoteMethod('query', {
     accepts: [
       { arg: 'id', type: 'string', require: true },
+      { arg: 'req', type: 'object', 'http': { source: 'req' } },
       { arg: 'json', type: 'object', 'http': { source: 'body' } }
     ],
     returns: [ { arg: 'result', type: 'object' } ],
@@ -268,12 +327,12 @@ module.exports = function(User) {
         });
       },
       isFollowing: function(callback) {
-        // check if the access token is valid
         if (!req.accessToken) {
           var error = new Error('Bad Request: missing access token');
           error.status = 400;
           return callback(error);
         }
+        // check if the access token is valid
         User.findById(req.accessToken.userId, function(err, profile) {
           if (err) { return callback(err); }
           if (!profile) { return callback(new Error('No user with this access token was found.')); }

@@ -91,8 +91,8 @@ describe('Posts - integration', function() {
       json('get', endpoint+'/'+post.sid)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
-        assert(typeof res.body.likes === 'number');
-        currentCount = res.body.likes;
+        assert(typeof res.body.likes === 'object');
+        currentCount = res.body.likes.count;
         json('post', endpoint+'/'+post.sid+'/like?access_token='+user.accessToken.id)
         .send({userId: user.sid})
         .expect(200, function(err, res) {
@@ -100,7 +100,7 @@ describe('Posts - integration', function() {
           json('get', endpoint+'/'+post.sid)
           .expect(200, function(err, res) {
             if (err) { return done(err); }
-            res.body.should.have.property('likes', currentCount + 1);
+            res.body.likes.should.have.property('count', currentCount + 1);
             done();
           });
         });
@@ -112,8 +112,8 @@ describe('Posts - integration', function() {
       json('get', endpoint+'/'+post.sid)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
-        assert(typeof res.body.likes === 'number');
-        currentCount = res.body.likes;
+        assert(typeof res.body.likes === 'object');
+        currentCount = res.body.likes.count;
         json('post', endpoint+'/'+post.sid+'/like?access_token='+user.accessToken.id)
         .send({userId: user.sid})
         .expect(200, function(err, res) {
@@ -125,7 +125,7 @@ describe('Posts - integration', function() {
             json('get', endpoint+'/'+post.sid)
             .expect(200, function(err, res) {
               if (err) { return done(err); }
-              res.body.should.have.property('likes', currentCount + 2);
+              res.body.likes.count.should.equal(currentCount + 2);
               done();
             });
           });
@@ -138,8 +138,8 @@ describe('Posts - integration', function() {
       json('get', endpoint+'/'+post.sid)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
-        assert(typeof res.body.likes === 'number');
-        currentCount = res.body.likes;
+        assert(typeof res.body.likes === 'object');
+        currentCount = res.body.likes.count;
         json('post', endpoint+'/'+post.sid+'/like?access_token='+user.accessToken.id)
         .send({userId: user.sid})
         .expect(200, function(err, res) {
@@ -151,7 +151,7 @@ describe('Posts - integration', function() {
             json('get', endpoint+'/'+post.sid)
             .expect(200, function(err, res) {
               if (err) { return done(err); }
-              res.body.should.have.property('likes', currentCount + 1);
+              res.body.likes.count.should.equal(currentCount + 1);
               done();
             });
           });
@@ -168,8 +168,8 @@ describe('Posts - integration', function() {
         json('get', endpoint+'/'+post.sid)
         .expect(200, function(err, res) {
           if (err) { return done(err); }
-          assert(typeof res.body.likes === 'number');
-          currentCount = res.body.likes;
+          assert(typeof res.body.likes === 'object');
+          currentCount = res.body.likes.count;
           json('post', endpoint+'/'+post.sid+'/unlike?access_token='+user.accessToken.id)
           .send({userId: user.sid})
           .expect(200, function(err, res) {
@@ -177,7 +177,7 @@ describe('Posts - integration', function() {
             json('get', endpoint+'/'+post.sid)
             .expect(200, function(err, res) {
               if (err) { return done(err); }
-              res.body.should.have.property('likes', currentCount - 1);
+              res.body.likes.count.should.equal(currentCount - 1);
               done();
             });
           });
@@ -198,8 +198,8 @@ describe('Posts - integration', function() {
           json('get', endpoint+'/'+post.sid)
           .expect(200, function(err, res) {
             if (err) { return done(err); }
-            assert(typeof res.body.likes === 'number');
-            currentCount = res.body.likes;
+            assert(typeof res.body.likes === 'object');
+            currentCount = res.body.likes.count;
             json('post', endpoint+'/'+post.sid+'/unlike?access_token='+user.accessToken.id)
             .send({userId: user.sid})
             .expect(200, function(err, res) {
@@ -211,7 +211,7 @@ describe('Posts - integration', function() {
                 json('get', endpoint+'/'+post.sid)
                 .expect(200, function(err, res) {
                   if (err) { return done(err); }
-                  res.body.should.have.property('likes', currentCount - 2);
+                  res.body.likes.count.should.equal(currentCount - 2);
                   done();
                 });
               });
@@ -230,8 +230,8 @@ describe('Posts - integration', function() {
         json('get', endpoint+'/'+post.sid)
         .expect(200, function(err, res) {
           if (err) { return done(err); }
-          assert(typeof res.body.likes === 'number');
-          currentCount = res.body.likes;
+          assert(typeof res.body.likes === 'object');
+          currentCount = res.body.likes.count;
           json('post', endpoint+'/'+post.sid+'/unlike?access_token='+user.accessToken.id)
           .send({userId: user.sid})
           .expect(200, function(err, res) {
@@ -243,7 +243,7 @@ describe('Posts - integration', function() {
               json('get', endpoint+'/'+post.sid)
               .expect(200, function(err, res) {
                 if (err) { return done(err); }
-                res.body.should.have.property('likes', currentCount - 1);
+                res.body.likes.count.should.equal(currentCount - 1);
                 done();
               });
             });

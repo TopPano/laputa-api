@@ -73,7 +73,6 @@ describe('REST API endpoint /post', function() {
         if (err) { return done(err); }
         res.body.should.have.property('ownerId', user.sid);
         res.body.should.have.property('message', message);
-        res.body.should.have.property('likes', 0);
         done();
       });
     });

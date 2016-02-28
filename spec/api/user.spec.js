@@ -134,11 +134,9 @@ describe('REST API endpoint /users', function() {
     };
     var posts = [
       {
-        likes: 100,
         message: 'I came, I saw, I conquered.'
       },
       {
-        likes: 120,
         message: 'Nice!'
       }
     ];

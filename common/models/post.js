@@ -201,6 +201,8 @@ module.exports = function(Post) {
       var nodeId = ctx.args.data.sid;
       var imgBuf = ctx.req.files.image[0].buffer;
       var imgType = ctx.req.files.image[0].mimetype;
+      var thumbBuf = ctx.req.files.thumb[0].buffer;
+      var thumbType = ctx.req.files.thumb[0].mimetype;
       var imgWidth = ctx.req.body.width;
       var imgHeight = ctx.req.body.height;
       var imgIndex = ctx.req.body.index;
@@ -391,21 +393,42 @@ module.exports = function(Post) {
   }
 
   Post.afterRemote('findById', function(ctx, post, next) {
+    var Like = Post.app.models.like;
+    var User = Post.app.models.user;
+    if (!post) {
+      var error = new Error('No post found');
+      error.status = 404;
+      return next(error);
+    }
     async.parallel({
-      getNodes: function(callback) {
-        getNodeList(post.sid, function(err, nodeList) {
+      nodes: function(callback) {
+        getNodeList(post.sid, function(err, list) {
           if (err) { return callback(err); }
-          callback(null, nodeList);
+          callback(null, list);
         });
       },
-      getLikes: function(callback) {
-        var Like = Post.app.models.like;
-        Like.find({where: {postId: post.sid}}, function(err, likeList) {
+      likeCount: function(callback) {
+        Like.find({where: {postId: post.sid}}, function(err, list) {
           if (err) { return callback(err); }
-          callback(null, likeList.length);
+          callback(null, list.length);
         });
       },
-      getUser: function(callback) {
+      isLiked: function(callback) {
+        if (ctx.req.accessToken) {
+          User.findById(ctx.req.accessToken.userId, function(err, profile) {
+            if (err) { return callback(err); }
+            if (!profile) { return callback(new Error('No user with this access token was found.')); }
+            Like.find({where: {postId: post.sid, userId: ctx.req.accessToken.userId}}, function(err, list) {
+              if (err) { return callback(err); }
+              if (list.length !== 0) { callback(null, true); }
+              else { callback(null, false); }
+            });
+          });
+        } else {
+          callback(null, false);
+        }
+      },
+      ownerInfo: function(callback) {
         var User = Post.app.models.user;
         User.findById(post.ownerId, function(err, user) {
           if (err) { return callback(err); }
@@ -423,11 +446,14 @@ module.exports = function(Post) {
     }, function(err, results) {
       if (err) {
         console.error(err);
-        return next(new Error('Internal error'));
+        return next(new Error('Internal Error'));
       }
-      post.nodes = results.getNodes;
-      post.likes = results.getLikes;
-      post.ownerInfo = results.getUser;
+      post.nodes = results.nodes;
+      post.likes = {
+        count: results.likeCount,
+        isLiked: results.isLiked
+      };
+      post.ownerInfo = results.ownerInfo;
       next();
     });
   });

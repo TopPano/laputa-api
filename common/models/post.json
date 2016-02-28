@@ -22,8 +22,7 @@
       "type": "number"
     },
     "likes": {
-      "type": "number",
-      "default": 0
+      "type": "object"
     },
     "nodes": {
       "type": "object"
