@@ -443,10 +443,10 @@ module.exports = function(Post) {
         timestamp: getTimeNow(),
         imageFilename: ctx.args.data.sid+'.jpg',
         image: image
-      }, function(err, cdnFilename, cdnUrl, s3Filename, s3Url) {
+      }, function(err, result) {
         if (err) { return next(new Error('Invalid image type')); }
-        ctx.args.data.url = s3Url;
-        ctx.args.data.downloadUrl = cdnUrl;
+        ctx.args.data.url = result.s3Url;
+        ctx.args.data.downloadUrl = result.cdnUrl;
         next();
       });
     } catch (err) {
