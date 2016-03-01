@@ -370,13 +370,26 @@ describe('Users - integration', function() {
     });
   });
 
-  describe('User profile', function() {
+  describe('User profile and posts', function() {
     var me = {
-      username: 'me2',
-      email: 'me2@foo.com',
-      password: 'password',
-      profilePhotoUrl: 'http://aws.com/',
-      autobiography: 'Hi, I am Richard'
+      userData: {
+        username: 'me2',
+        email: 'me2@foo.com',
+        password: 'password',
+        profilePhotoUrl: 'http://aws.com/',
+        autobiography: 'Hi, I am Richard'
+      },
+      posts: [
+        {
+          message: 'Hello Paris!!'
+        },
+        {
+          message: 'Let us not take our planet for granted.'
+        },
+        {
+          message: 'Sure, why not! Be my guest!'
+        }
+      ]
     };
     var Jeffrey = {
       userData: {
@@ -415,7 +428,7 @@ describe('Users - integration', function() {
       ]
     };
     before(function(done) {
-      async.each([me, Jeffrey.userData, Joey.userData], function(user, callback) {
+      async.each([me.userData, Jeffrey.userData, Joey.userData], function(user, callback) {
         createUserAndLogin(user, function(err, result) {
           if (err) { return callback(err); }
           user.sid = result.sid;
@@ -427,11 +440,12 @@ describe('Users - integration', function() {
         async.parallel({
           createPost: function(callback) {
             // XXX: It's a bit ugly
-            async.each([Jeffrey, Joey], function(user, callback) {
-              async.each(user.posts, function(post, callback) {
+            async.each([me, Jeffrey, Joey], function(user, callback) {
+              async.eachSeries(user.posts, function(post, callback) {
                 post.ownerId = user.userData.sid;
-                Post.create(post, function(err) {
+                Post.create(post, function(err, newPost) {
                   if (err) { return callback(err); }
+                  post.sid = newPost.sid;
                   callback();
                 });
               }, function(err) {
@@ -444,13 +458,13 @@ describe('Users - integration', function() {
             });
           },
           meFollowJeffrey: function(callback) {
-            Follow.create({followerId: me.sid, followeeId: Jeffrey.userData.sid, followAt: new Date()}, function(err) {
+            Follow.create({followerId: me.userData.sid, followeeId: Jeffrey.userData.sid, followAt: new Date()}, function(err) {
               if (err) { return callback(err); }
               callback();
             });
           },
           meFollowJoey: function(callback) {
-            Follow.create({followerId: me.sid, followeeId: Joey.userData.sid, followAt: new Date()}, function(err) {
+            Follow.create({followerId: me.userData.sid, followeeId: Joey.userData.sid, followAt: new Date()}, function(err) {
               if (err) { return callback(err); }
               callback();
             });
@@ -469,23 +483,57 @@ describe('Users - integration', function() {
           }
         }, function(err) {
           if (err) { return done(err); }
-          done();
+          async.parallel({
+            meLikedJeffreyPost3: function(callback) {
+              Like.create({postId: Jeffrey.posts[2].sid, userId: me.userData.sid}, function(err) {
+                if (err) { return callback(err); }
+                callback();
+              });
+            },
+            meLikedJoeyPost1: function(callback) {
+              Like.create({postId: Joey.posts[0].sid, userId: me.userData.sid}, function(err) {
+                if (err) { return callback(err); }
+                callback();
+              });
+            },
+            JeffreyLikedMyPost3: function(callback) {
+              Like.create({postId: me.posts[2].sid, userId: Jeffrey.userData.sid}, function(err) {
+                if (err) { return callback(err); }
+                callback();
+              });
+            },
+            JoeyLikedMyPost3: function(callback) {
+              Like.create({postId: me.posts[2].sid, userId: Joey.userData.sid}, function(err) {
+                if (err) { return callback(err); }
+                callback();
+              });
+            },
+            ILikedMyPost2: function(callback) {
+              Like.create({postId: me.posts[1].sid, userId: me.userData.sid}, function(err) {
+                if (err) { return callback(err); }
+                callback();
+              });
+            }
+          }, function(err) {
+            if (err) { return done(err); }
+            done();
+          });
         });
       });
     });
 
     it('get user own profile', function(done) {
-      json('get', endpoint+'/'+me.sid+'/profile?access_token='+me.accessToken.id)
+      json('get', endpoint+'/'+me.userData.sid+'/profile?access_token='+me.userData.accessToken.id)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         res.body.profile.should.have.properties({
-          sid: me.sid,
-          username: me.username,
-          profilePhotoUrl: me.profilePhotoUrl,
-          autobiography: me.autobiography,
+          sid: me.userData.sid,
+          username: me.userData.username,
+          profilePhotoUrl: me.userData.profilePhotoUrl,
+          autobiography: me.userData.autobiography,
           followers: 0,
           following: 2,
-          posts: 0,
+          posts: 3,
           isFollowing: false
         });
         done();
@@ -493,7 +541,7 @@ describe('Users - integration', function() {
     });
 
     it('get the profile from other user', function(done) {
-      json('get', endpoint+'/'+Jeffrey.userData.sid+'/profile?access_token='+me.accessToken.id)
+      json('get', endpoint+'/'+Jeffrey.userData.sid+'/profile?access_token='+me.userData.accessToken.id)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         res.body.profile.should.have.properties({
@@ -504,6 +552,37 @@ describe('Users - integration', function() {
           posts: 3,
           isFollowing: true
         });
+        done();
+      });
+    });
+
+    it('query user own posts', function(done) {
+      json('post', endpoint+'/'+me.userData.sid+'/profile/query?access_token='+me.userData.accessToken.id)
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        res.body.result.should.have.property('page');
+        res.body.result.page.should.have.property('hasNextPage', false);
+        res.body.result.page.should.have.property('count', me.posts.length);
+
+        res.body.result.should.have.property('feed');
+        res.body.result.feed.should.be.instanceof(Array).with.lengthOf(me.posts.length);
+        res.body.result.feed[0].likes.should.have.properties({ count: 2, isLiked: false });
+        res.body.result.feed[1].likes.should.have.properties({ count: 1, isLiked: true });
+        done();
+      });
+    });
+
+    it('query posts from other user', function(done) {
+      json('post', endpoint+'/'+Jeffrey.userData.sid+'/profile/query?access_token='+me.userData.accessToken.id)
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        res.body.result.should.have.property('page');
+        res.body.result.page.should.have.property('hasNextPage', false);
+        res.body.result.page.should.have.property('count', Jeffrey.posts.length);
+
+        res.body.result.should.have.property('feed');
+        res.body.result.feed.should.be.instanceof(Array).with.lengthOf(Jeffrey.posts.length);
+        res.body.result.feed[0].likes.should.have.properties({ count: 1, isLiked: true });
         done();
       });
     });

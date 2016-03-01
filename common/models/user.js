@@ -5,6 +5,15 @@ var S3Uploader = require('../utils/S3Uploader');
 
 module.exports = function(User) {
 
+  function descending(a,b) {
+    if (a.sid > b.sid)
+      return -1;
+    else if (a.sid < b.sid)
+      return 1;
+    else
+      return 0;
+  }
+
   User.query = function(id, req, json, callback) {
     var Post = User.app.models.post;
     var Follow = User.app.models.follow;
@@ -137,15 +146,6 @@ module.exports = function(User) {
         });
       });
     });
-
-    function descending(a,b) {
-      if (a.sid > b.sid)
-        return -1;
-      else if (a.sid < b.sid)
-        return 1;
-      else
-        return 0;
-    }
   };
   User.remoteMethod('query', {
     accepts: [
@@ -376,5 +376,130 @@ module.exports = function(User) {
     ],
     returns: [ { arg: 'profile', type: 'string' } ],
     http: { path: '/:id/profile', verb: 'get' }
+  });
+
+  User.profileQuery = function(id, req, json, callback) {
+    var Post = User.app.models.post;
+    var Follow = User.app.models.follow;
+    var where = json.where || undefined;
+    var PAGE_SIZE = 12;
+    var limit = PAGE_SIZE; // default limit
+
+    if (json.limit && (typeof json.limit === 'number') && (0 < json.limit) && (json.limit <= (PAGE_SIZE * 3))) {
+      limit = json.limit;
+    }
+
+    var result = [];
+    var query = {
+      where: {},
+      limit: limit + 1 // to see if we have next page
+    };
+    // TODO: should have a more comprehensive parser for parsing the where query
+    if (where && (typeof where === 'object')) {
+      try {
+        if ((where.sid.hasOwnProperty('lt') && (typeof where.sid.lt === 'string')) ||
+            (where.sid.hasOwnProperty('gt') && (typeof where.sid.gt === 'string')))
+          {
+            query.where.sid = where.sid;
+          } else {
+            var error = new Error('Invalid query operator');
+            error.status = 400;
+            return callback(error);
+          }
+      } catch (e) {
+        var error = new Error('Bad request');
+        error.status = 400;
+        return callback(error);
+      }
+    }
+
+    query.where.ownerId = id;
+    Post.find(query, function(err, posts) {
+      if (err) { return callback(err); }
+      posts.sort(descending);
+      var output = { page: {}, feed: [] }, i;
+      if (posts.length > limit) {
+        output.page.hasNextPage = true;
+        output.page.count = limit;
+        output.page.start = posts[0].sid;
+        output.page.end = posts[limit - 1].sid;
+        output.feed = posts.slice(0, limit);
+      } else if (0 < posts.length && posts.length <= limit) {
+        output.page.hasNextPage = false;
+        output.page.count = posts.length;
+        output.page.start = posts[0].sid;
+        output.page.end = posts[posts.length - 1].sid;
+        output.feed = posts.slice(0, posts.length);
+      } else {
+        output.page.hasNextPage = false;
+        output.page.count = 0;
+        output.page.start = null;
+        output.page.end = null;
+      }
+      var Like = Post.app.models.like;
+      async.each(output.feed, function(post, callback) {
+        async.parallel({
+          likeCount: function(callback) {
+            Like.find({where: {postId: post.sid}}, function(err, list) {
+              if (err) { return callback(err); }
+              callback(null, list.length);
+            });
+          },
+          isLiked: function(callback) {
+            if (!req.accessToken) {
+              var error = new Error('Bad Request: missing access token');
+              error.status = 400;
+              return callback(error);
+            }
+            User.findById(req.accessToken.userId, function(err, profile) {
+              if (err) { return callback(err); }
+              if (!profile) { return callback(new Error('No user with this access token was found.')); }
+              Like.find({where: {postId: post.sid, userId: req.accessToken.userId}}, function(err, list) {
+                if (err) { return callback(err); }
+                if (list.length !== 0) { callback(null, true); }
+                else { callback(null, false); }
+              });
+            });
+          },
+          ownerInfo: function(callback) {
+            User.findById(post.ownerId, function(err, user) {
+              if (err) { return callback(err); }
+              if (!user) {
+                var error = new Error('Internal Error');
+                error.status = 500;
+                return callback(error);
+              }
+              callback(null, {
+                username: user.username,
+                profilePhotoUrl: user.profilePhotoUrl
+              });
+            });
+          }
+        }, function(err, results) {
+          if (err) { return callback(err); }
+          post.likes = {
+            count: results.likeCount,
+            isLiked: results.isLiked
+          };
+          post.ownerInfo = results.ownerInfo;
+          callback();
+        });
+      }, function(err) {
+        if (err) {
+          console.error(err);
+          return callback(new Error('Internal Error'));
+        }
+        callback(null, output);
+      });
+    });
+  };
+  User.remoteMethod('profileQuery', {
+    accepts: [
+      { arg: 'id', type: 'string', require: true },
+      { arg: 'req', type: 'object', 'http': { source: 'req' } },
+      { arg: 'json', type: 'object', 'http': { source: 'body' } }
+    ],
+    returns: [ { arg: 'result', type: 'object' } ],
+    http: { path: '/:id/profile/query', verb: 'post' }
   });
 };

@@ -67,6 +67,12 @@
       "principalId": "$everyone",
       "permission": "ALLOW",
       "property": "getProfile"
+    },
+    {
+      "principalType": "ROLE",
+      "principalId": "$everyone",
+      "permission": "ALLOW",
+      "property": "profileQuery"
     }
   ],
   "methods": {}
