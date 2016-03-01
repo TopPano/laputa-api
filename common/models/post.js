@@ -1,13 +1,15 @@
 'use strict';
 var assert = require('assert');
-var zlib = require('zlib');
+//var zlib = require('zlib');
 var moment = require('moment');
-var gm = require('gm');
+//var gm = require('gm');
 var async = require('async');
 var crypto = require('crypto');
 var S3Uploader = require('../utils/S3Uploader');
 var VerpixId = require('../utils/verpix-id-gen');
 var idGen = new VerpixId();
+var gearmanode = require('gearmanode');
+var gearClient = gearmanode.client();
 
 module.exports = function(Post) {
 
@@ -34,7 +36,12 @@ module.exports = function(Post) {
         // TODO: use real CDN download url
         var cdnFilename = data.key || data.Key;
         var cdnUrl = data.Location;
-        callback(null, cdnFilename, cdnUrl, s3Filename, s3Url);
+        callback(null, {
+          cdnFilename: cdnFilename,
+          cdnUrl: cdnUrl,
+          s3Filename: s3Filename,
+          s3Url: s3Url
+        });
       });
       uploader.on('error', function(err) {
         callback(err);
@@ -51,6 +58,7 @@ module.exports = function(Post) {
     }
   }
 
+  /*
   function processImage(params, callback) {
     var now = getTimeNow();
 
@@ -193,6 +201,7 @@ module.exports = function(Post) {
       return tileGeometries;
     }
   }
+  */
 
   Post.beforeRemote('*.__create__nodes', function(ctx, instance, next) {
 
@@ -201,13 +210,16 @@ module.exports = function(Post) {
       var nodeId = ctx.args.data.sid;
       var imgBuf = ctx.req.files.image[0].buffer;
       var imgType = ctx.req.files.image[0].mimetype;
-      var thumbBuf = ctx.req.files.thumb[0].buffer;
-      var thumbType = ctx.req.files.thumb[0].mimetype;
       var imgWidth = ctx.req.body.width;
       var imgHeight = ctx.req.body.height;
       var imgIndex = ctx.req.body.index;
+      var thumbBuf = ctx.req.files.thumbnail[0].buffer;
+      var thumbType = ctx.req.files.thumbnail[0].mimetype;
       var now = getTimeNow();
 
+      if (!thumbBuf || !thumbType) {
+        return next(new Error('Missing properties'));
+      }
       if (!imgBuf || !imgType || !imgWidth || !imgHeight) {
         return next(new Error('Missing properties'));
       }
@@ -215,6 +227,51 @@ module.exports = function(Post) {
         return next(new Error('Invalid image type'));
       }
 
+      async.parallel({
+        srcImg: function(callback) {
+          upload({
+            type: 'pan',
+            quality: 'src',
+            postId: postId,
+            timestamp: now,
+            imageFilename: nodeId+'.jpg',
+            image: imgBuf
+          }, callback);
+        },
+        thumbnail: function(callback) {
+          upload({
+            type: 'pan',
+            quality: 'thumb',
+            postId: postId,
+            timestamp: now,
+            imageFilename: nodeId+'.jpg',
+            image: thumbBuf
+          }, callback);
+        }
+      }, function(err, results) {
+        if (err) {
+          // TODO: we might want to rollback any success upload if there is an error occured,
+          //       we could either do the rollback here or have another program to clean up
+          //       the dangling uploaded images.
+          //       I prefer the latter solution, the former one would make the error handling
+          //       process too complicated to maintain.
+          console.error(err);
+          return next(err);
+        }
+        ctx.args.data.thumbnailUrl = results.thumbnail.s3Url;
+        ctx.args.data.srcUrl = results.srcImg.s3Url;
+        ctx.args.data.srcDownloadUrl = results.srcImg.cdnUrl;
+        if (imgIndex === 1) {
+          Post.updateAll({sid: postId}, {imageUrl: results.thumbnail.s3Url}, function(err) {
+            if (err) { return next(err); }
+            next();
+          });
+        } else {
+          next();
+        }
+      });
+
+      /*
       var nodeFiles = [];
 
       zlib.inflate(imgBuf, function(err, uzImgBuf) {
@@ -277,6 +334,7 @@ module.exports = function(Post) {
           });
         });
       });
+      */
     } catch (err) {
       console.error(err);
       next(new Error('Invalid request'));
@@ -284,7 +342,18 @@ module.exports = function(Post) {
   });
 
   Post.afterRemote('*.__create__nodes', function(ctx, instance, next) {
-
+    var job = gearClient.submitJob('process image', JSON.stringify({
+      postId: ctx.req.params.id,
+      nodeId: ctx.args.data.sid,
+      image: {
+        width: ctx.req.body.width,
+        height: ctx.req.body.height,
+        buffer: ctx.req.files.image[0].buffer.toString('base64'),
+        hasZipped: ctx.req.files.image[0].mimetype === 'application/zip' ? true : false
+      }
+    }));
+    next();
+    /*
     if (ctx.hasOwnProperty('nodeFiles')) {
       async.each(ctx.nodeFiles, function(file, callback) {
         instance.files.create(file, function(err) {
@@ -301,6 +370,57 @@ module.exports = function(Post) {
     } else {
       next();
     }
+    */
+  });
+
+  Post.nodeCreateCallback = function(postId, nodeId, json, callback) {
+    console.log('node create callback: %s, %s', postId, nodeId);
+    if (json.status !== 'success') {
+      // TODO: retry!!
+      console.error('Failed to process image!!');
+      return callback(null, null);
+    }
+    var response = json.response;
+    if (!response.srcMobileUrl || !response.srcMobileDownloadUrl || !response.files) {
+      console.error('Failed to process image!!');
+      return callback(null, null);
+    }
+    var Nodemeta = Post.app.models.nodemeta;
+    var File = Post.app.models.file;
+    async.parallel({
+      saveNodemeta: function(callback) {
+        Nodemeta.updateAll({sid: nodeId}, {
+          srcMobileUrl: response.srcMobileUrl,
+          srcMobileDownloadUrl: response.srcMobileDownloadUrl
+        }, function(err) {
+          if (err) { return callback(err); }
+          callback();
+        });
+      },
+      saveNodeFiles: function(callback) {
+        async.each(response.files, function(file, callback) {
+          File.create(file, function(err) {
+            if (err) { return callback(err); }
+            callback();
+          });
+        }, function(err) {
+          if (err) { return callback(err); }
+          callback();
+        });
+      }
+    }, function(err) {
+      if (err) { return callback(err); }
+      callback(null, null);
+    });
+
+  };
+  Post.remoteMethod('nodeCreateCallback', {
+    accepts: [
+      { arg: 'id', type: 'string', require: true },
+      { arg: 'nodeId', type: 'string', require: true },
+      { arg: 'json', type: 'object', http: { source: 'body' } }
+    ],
+    http: { path: '/:id/nodes/:nodeId/callback', verb: 'post' }
   });
 
   Post.beforeRemote('*.__create__snapshots', function(ctx, instance, next) {

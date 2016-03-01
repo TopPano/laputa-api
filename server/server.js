@@ -30,6 +30,8 @@ boot(app, __dirname, function(err) {
 
   // start the server if `$ node server.js`
   if (require.main === module) {
+    app.start();
+    /*
     if (process.env.NODE_ENV === 'local') {
       var loader = require('./test/loader');
       loader.installImageRoute(app);
@@ -40,5 +42,6 @@ boot(app, __dirname, function(err) {
     } else {
       app.start();
     }
+    */
   }
 });
