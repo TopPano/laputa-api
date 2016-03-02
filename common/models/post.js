@@ -1,13 +1,12 @@
 'use strict';
 var assert = require('assert');
-//var zlib = require('zlib');
 var moment = require('moment');
-//var gm = require('gm');
 var async = require('async');
 var crypto = require('crypto');
 var S3Uploader = require('../utils/S3Uploader');
 var VerpixId = require('../utils/verpix-id-gen');
 var idGen = new VerpixId();
+var genShardingKey = require('../utils/sharding-key-gen');
 var gearmanode = require('gearmanode');
 var gearClient = gearmanode.client();
 
@@ -15,11 +14,6 @@ module.exports = function(Post) {
 
   function getTimeNow() {
     return moment(new Date()).format('YYYY-MM-DD');
-  }
-
-  function genShardingKey() {
-    var keylen = 4;
-    return crypto.randomBytes(Math.ceil(keylen/2)).toString('hex');
   }
 
   function upload(params, callback) {
@@ -57,151 +51,6 @@ module.exports = function(Post) {
       callback(err);
     }
   }
-
-  /*
-  function processImage(params, callback) {
-    var now = getTimeNow();
-
-    async.parallel({
-      uploadThumb: function(callback) {
-        var croppedWidth = params.width / 2;
-        var croppedHeight = params.height / 2;
-        var croppedPositionX = params.width / 4;
-        var croppedPositionY = params.height / 4;
-        gm(params.image)
-        .crop(croppedWidth, croppedHeight, croppedPositionX, croppedPositionY)
-        .resize(300, 150)
-        .toBuffer('JPG', function(err, buffer) {
-          if (err) { return callback(err); }
-          upload({
-            type: 'pan',
-            quality: 'thumb',
-            postId: params.postId,
-            timestamp: now,
-            imageFilename: params.nodeId+'.jpg',
-            image: buffer
-          }, function(err, cdnFilename, cdnUrl, s3Filename, s3Url) {
-            if (err) { return callback(err); }
-            //ctx.args.data.thumbnailUrl = s3Url;
-            callback(null, s3Url);
-          });
-        });
-      },
-      tileImgHigh: function(callback) {
-        var tileGeometries = calTileGeometries(params.width, params.height);
-        var files = [];
-        async.each(tileGeometries, function(tile, callback) {
-          gm(params.image)
-          .crop(tile.width, tile.height, tile.x, tile.y)
-          .toBuffer('JPG', function(err, buffer) {
-            if (err) { return callback(err); }
-            upload({
-              type: 'pan',
-              quality: 'high',
-              postId: params.postId,
-              timestamp: now,
-              imageFilename: params.nodeId+'_equirectangular_'+tile.idx+'.jpg',
-              image: buffer
-            }, function(err, cdnFilename, cdnUrl) {
-              if (err) { return callback(err); }
-              //ctx.nodeFiles.push({
-              files.push({
-                name: cdnFilename,
-                url: cdnUrl,
-                postId: params.postId
-              });
-              callback();
-            });
-          });
-        }, function(err) {
-          if (err) { return callback(err); }
-          callback(null, files);
-        });
-      },
-      tileImgLow: function(callback) {
-        gm(params.image)
-        .resize(4096, 2048)
-        .toBuffer('JPG', function(err, buffer) {
-          if (err) { return callback(err); }
-          async.parallel({
-            resizedImg: function(callback) {
-              upload({
-                type: 'pan',
-                quality: 'src',
-                postId: params.postId,
-                timestamp: now,
-                imageFilename: params.nodeId+'_low.jpg',
-                image: buffer
-              }, function(err, cdnFilename, cdnUrl, s3Filename, s3Url) {
-                if (err) { return callback(err); }
-                //ctx.args.data.srcMobileUrl = s3Url;
-                //ctx.args.data.srcMobileDownloadUrl = cdnUrl;
-                callback(null, { srcMobileUrl: s3Url, srcMobileDownloadUrl: cdnUrl });
-              });
-            },
-            tiledResizedImg: function(callback) {
-              var tileGeometries = calTileGeometries(4096, 2048);
-              var files = [];
-              async.each(tileGeometries, function(tile, callback) {
-                gm(buffer)
-                .crop(tile.width, tile.height, tile.x, tile.y)
-                .toBuffer('JPG', function(err, buffer) {
-                  if (err) { return callback(err); }
-                  upload({
-                    type: 'pan',
-                    quality: 'low',
-                    postId: params.postId,
-                    timestamp: now,
-                    imageFilename: params.nodeId+'_equirectangular_'+tile.idx+'.jpg',
-                    image: buffer
-                  }, function(err, cdnFilename, cdnUrl) {
-                    if (err) { return callback(err); }
-                    //ctx.nodeFiles.push({
-                    files.push({
-                      name: cdnFilename,
-                      url: cdnUrl,
-                      postId: params.postId
-                    });
-                    callback();
-                  });
-                });
-              }, function(err) {
-                if (err) { return callback(err); }
-                callback(null, files);
-              });
-            }
-          }, function(err, results) {
-            if (err) { return callback(err); }
-            callback(null, results);
-          });
-        });
-      }
-    }, function(err, results) {
-      if (err) { return callback(err); }
-      callback(null, results);
-    });
-
-    function calTileGeometries(imgWidth, imgHeight) {
-      var tileWidth = imgWidth / 4;
-      var tileHeight = imgHeight / 2;
-      var tileGeometries = [0, 1, 2, 3, 4, 5, 6, 7].map(function(i) {
-        var geometry = {};
-        geometry.idx = i;
-        geometry.width = tileWidth;
-        geometry.height = tileHeight;
-        if (i < 4) {
-          geometry.x = i * tileWidth;
-          geometry.y = 0;
-        } else {
-          geometry.x = (i % 4) * tileWidth;
-          geometry.y = tileHeight;
-        }
-        return geometry;
-      });
-      return tileGeometries;
-    }
-  }
-  */
 
   Post.beforeRemote('*.__create__nodes', function(ctx, instance, next) {
 
@@ -274,71 +123,6 @@ module.exports = function(Post) {
           next();
         }
       });
-
-      /*
-      var nodeFiles = [];
-
-      zlib.inflate(imgBuf, function(err, uzImgBuf) {
-        if (err) {
-          console.error(err);
-          return next(new Error('Internal error'));
-        }
-        upload({
-          type: 'pan',
-          quality: 'src',
-          postId: postId,
-          timestamp: now,
-          imageFilename: nodeId+'.jpg',
-          image: uzImgBuf
-        }, function(err, cdnFilename, cdnUrl, s3Filename, s3Url) {
-          if (err) {
-            console.error(err);
-            return next(new Error('Internal error'));
-          }
-          ctx.args.data.srcUrl = s3Url;
-          ctx.args.data.srcDownloadUrl = cdnUrl;
-          nodeFiles.push({
-            name: cdnFilename,
-            url: cdnUrl,
-            postId: postId
-          });
-          // TODO: separate image processing from api to another process or service
-          processImage({
-            width: imgWidth,
-            height: imgHeight,
-            image: uzImgBuf,
-            postId: postId,
-            nodeId: nodeId
-          }, function(err, results) {
-            if (err) {
-              console.error(err);
-              return next(new Error('Internal error'));
-            }
-            ctx.args.data.thumbnailUrl = results.uploadThumb;
-            ctx.args.data.srcMobileUrl = results.tileImgLow.resizedImg.srcMobileUrl;
-            ctx.args.data.srcMobileDownloadUrl = results.tileImgLow.resizedImg.srcMobileDownloadUrl;
-            ctx.nodeFiles = nodeFiles.concat(results.tileImgHigh, results.tileImgLow.tiledResizedImg);
-            if (imgIndex === '1') {
-              Post.findById(postId, function(err, post) {
-                if (err) {
-                  console.error(err);
-                  return next(new Error('Internal error'));
-                }
-                post.updateAttributes({thumbnailUrl: results.uploadThumb}, function(err) {
-                  if (err) {
-                    console.error(err);
-                    return next(new Error('Internal error'));
-                  }
-                  next();
-                });
-              });
-            } else {
-              next();
-            }
-          });
-        });
-      });
-      */
     } catch (err) {
       console.error(err);
       next(new Error('Invalid request'));
@@ -396,77 +180,7 @@ module.exports = function(Post) {
       });
     });
     next();
-    /*
-    if (ctx.hasOwnProperty('nodeFiles')) {
-      async.each(ctx.nodeFiles, function(file, callback) {
-        instance.files.create(file, function(err) {
-          if (err) { return callback(err); }
-          callback();
-        });
-      }, function(err) {
-        if (err) {
-          // TODO: rollback the created node instance
-          return next(new Error('Internal error'));
-        }
-        next();
-      });
-    } else {
-      next();
-    }
-    */
   });
-
-  /*
-  Post.nodeCreateCallback = function(postId, nodeId, json, callback) {
-    console.log('create node callback %s %s', postId, nodeId);
-    console.log(JSON.stringify(json));
-    if (json.status !== 'success') {
-      // TODO: retry!!
-      console.error('Failed to process image!!');
-      return callback(null, null);
-    }
-    var response = json.response;
-    if (!response.srcMobileUrl || !response.srcMobileDownloadUrl || !response.files) {
-      console.error('Failed to process image!!');
-      return callback(null, null);
-    }
-    var Nodemeta = Post.app.models.nodemeta;
-    var File = Post.app.models.file;
-    async.parallel({
-      saveNodemeta: function(callback) {
-        Nodemeta.updateAll({sid: nodeId}, {
-          srcMobileUrl: response.srcMobileUrl,
-          srcMobileDownloadUrl: response.srcMobileDownloadUrl
-        }, function(err) {
-          if (err) { return callback(err); }
-          callback();
-        });
-      },
-      saveNodeFiles: function(callback) {
-        async.each(response.files, function(file, callback) {
-          File.create(file, function(err) {
-            if (err) { return callback(err); }
-            callback();
-          });
-        }, function(err) {
-          if (err) { return callback(err); }
-          callback();
-        });
-      }
-    }, function(err) {
-      if (err) { return callback(err); }
-      callback(null, null);
-    });
-  };
-  Post.remoteMethod('nodeCreateCallback', {
-    accepts: [
-      { arg: 'id', type: 'string', require: true },
-      { arg: 'nodeId', type: 'string', require: true },
-      { arg: 'json', type: 'object', http: { source: 'body' } }
-    ],
-    http: { path: '/:id/nodes/:nodeId/callback', verb: 'post' }
-  });
-  */
 
   Post.beforeRemote('*.__create__snapshots', function(ctx, instance, next) {
     try {

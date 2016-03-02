@@ -169,31 +169,6 @@ function processImage(params, callback) {
   }
 }
 
-/*
-function replyComplete(options, callback) {
-  assert(typeof options === 'object');
-  assert(options.postId);
-  assert(options.nodeId);
-  request({
-    method: 'POST',
-    uri: 'http://'+HOST+'/api/posts/'+options.postId+'/nodes/'+options.nodeId+'/callback',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      status: options.status,
-      response: options.response
-    })
-  }, function(err, res, body) {
-    if (err) { return callback(err); }
-    if (res.statusCode !== HTTPStatus.NO_CONTENT) {
-      var error = new Error(HTTPStatus[res.statusCode]);
-      error.status = res.statusCode;
-      return callback(error);
-    }
-    callback();
-  });
-}
-*/
-
 worker.addFunction('process image', function(job) {
   var params = JSON.parse(job.payload);
   var options = {
