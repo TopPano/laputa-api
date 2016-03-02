@@ -15,7 +15,10 @@
     "index": {
       "type": "number"
     },
-    "heading": {
+    "lat": {
+      "type": "number"
+    },
+    "lng": {
       "type": "number"
     },
     "width": {

@@ -12,14 +12,14 @@
       "id": true,
       "generated": false
     },
-    "imageUrl": {
-      "type": "string"
-    },
-    "message": {
+    "thumbnailUrl": {
       "type": "string"
     },
     "numOfImages": {
       "type": "number"
+    },
+    "message": {
+      "type": "string"
     },
     "likes": {
       "type": "object"

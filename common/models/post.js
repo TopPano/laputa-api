@@ -215,9 +215,11 @@ module.exports = function(Post) {
       var imgIndex = ctx.req.body.index;
       var thumbBuf = ctx.req.files.thumbnail[0].buffer;
       var thumbType = ctx.req.files.thumbnail[0].mimetype;
+      var thumbLat = ctx.req.body.thumbLat;
+      var thumbLng = ctx.req.body.thumbLng;
       var now = getTimeNow();
 
-      if (!thumbBuf || !thumbType) {
+      if (!thumbBuf || !thumbType || !thumbLat || !thumbLng) {
         return next(new Error('Missing properties'));
       }
       if (!imgBuf || !imgType || !imgWidth || !imgHeight) {
@@ -261,8 +263,10 @@ module.exports = function(Post) {
         ctx.args.data.thumbnailUrl = results.thumbnail.s3Url;
         ctx.args.data.srcUrl = results.srcImg.s3Url;
         ctx.args.data.srcDownloadUrl = results.srcImg.cdnUrl;
+        ctx.args.data.lat = thumbLat;
+        ctx.args.data.lng = thumbLng;
         if (imgIndex === 1) {
-          Post.updateAll({sid: postId}, {imageUrl: results.thumbnail.s3Url}, function(err) {
+          Post.updateAll({sid: postId}, {thumbnailUrl: results.thumbnail.s3Url}, function(err) {
             if (err) { return next(err); }
             next();
           });
@@ -320,7 +324,7 @@ module.exports = function(Post) {
                   console.error(err);
                   return next(new Error('Internal error'));
                 }
-                post.updateAttributes({imageUrl: results.uploadThumb}, function(err) {
+                post.updateAttributes({thumbnailUrl: results.uploadThumb}, function(err) {
                   if (err) {
                     console.error(err);
                     return next(new Error('Internal error'));
@@ -374,7 +378,6 @@ module.exports = function(Post) {
   });
 
   Post.nodeCreateCallback = function(postId, nodeId, json, callback) {
-    console.log('node create callback: %s, %s', postId, nodeId);
     if (json.status !== 'success') {
       // TODO: retry!!
       console.error('Failed to process image!!');
@@ -412,7 +415,6 @@ module.exports = function(Post) {
       if (err) { return callback(err); }
       callback(null, null);
     });
-
   };
   Post.remoteMethod('nodeCreateCallback', {
     accepts: [

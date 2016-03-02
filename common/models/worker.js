@@ -4,6 +4,7 @@ var worker = gearmanode.worker();
 var gm = require('gm');
 var S3Uploader = require('../utils/S3Uploader');
 var assert = require('assert');
+var HTTPStatus = require('http-status');
 var genShardingKey = require('../utils/sharding-key-gen');
 var request = require('request');
 var async = require('async');
@@ -174,13 +175,21 @@ function replyComplete(options, callback) {
   assert(options.nodeId);
   request({
     method: 'POST',
-    uri: 'http://'+HOST+'/api/posts/'+options.postId+'/nodes/'+options.nodeId+'/callabck',
+    uri: 'http://'+HOST+'/api/posts/'+options.postId+'/nodes/'+options.nodeId+'/callback',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       status: options.status,
       response: options.response
     })
-  }, callback);
+  }, function(err, res, body) {
+    if (err) { return callback(err); }
+    if (res.statusCode !== HTTPStatus.NO_CONTENT) {
+      var error = new Error(HTTPStatus[res.statusCode]);
+      error.status = res.statusCode;
+      return callback(error);
+    }
+    callback();
+  });
 }
 
 worker.addFunction('process image', function(job) {
@@ -207,8 +216,8 @@ worker.addFunction('process image', function(job) {
         nodeId: params.nodeId
       }, function(err, results) {
         if (err) {
-          options.status = 'failure';
           console.error(err);
+          options.status = 'failure';
           replyComplete(options, function(err) {
             if (err) { console.error(err); }
           });
@@ -219,7 +228,7 @@ worker.addFunction('process image', function(job) {
         options.response.srcMobileDownloadUrl = results.mobileImages.downsized.cdnUrl;
         options.response.files = results.webImages.concat(results.mobileImages.tiled);
         replyComplete(options, function(err) {
-          if (err) { console.error(err); }
+          if (err) { return console.error(err); }
         });
       });
     });
