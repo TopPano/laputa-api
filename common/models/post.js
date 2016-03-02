@@ -356,6 +356,47 @@ module.exports = function(Post) {
         hasZipped: ctx.req.files.image[0].mimetype === 'application/zip' ? true : false
       }
     }));
+    job.on('complete', function() {
+      console.log('response: '+job.response);
+      var response = JSON.parse(job.response);
+      if (response.status !== 'success') {
+        // TODO: retry!!
+        return console.error('Failed to process image!!');
+      }
+      if (!response.srcMobileUrl || !response.srcMobileDownloadUrl || !response.files) {
+        return console.error('Failed to process image!!');
+      }
+      var Nodemeta = Post.app.models.nodemeta;
+      var File = Post.app.models.file;
+      // at the time the function being called, Nodemeta and File should already be loaded
+      assert(Nodemeta);
+      assert(File);
+      async.parallel({
+        saveNodemeta: function(callback) {
+          Nodemeta.updateAll({sid: response.nodeId}, {
+            srcMobileUrl: response.srcMobileUrl,
+            srcMobileDownloadUrl: response.srcMobileDownloadUrl
+          }, function(err) {
+            if (err) { return callback(err); }
+            callback();
+          });
+        },
+        saveNodeFiles: function(callback) {
+          async.each(response.files, function(file, callback) {
+            File.create(file, function(err) {
+              if (err) { return callback(err); }
+              callback();
+            });
+          }, function(err) {
+            if (err) { return callback(err); }
+            callback();
+          });
+        }
+      }, function(err) {
+        if (err) { console.error(err); }
+        gearClient.close();
+      });
+    });
     next();
     /*
     if (ctx.hasOwnProperty('nodeFiles')) {
@@ -377,7 +418,10 @@ module.exports = function(Post) {
     */
   });
 
+  /*
   Post.nodeCreateCallback = function(postId, nodeId, json, callback) {
+    console.log('create node callback %s %s', postId, nodeId);
+    console.log(JSON.stringify(json));
     if (json.status !== 'success') {
       // TODO: retry!!
       console.error('Failed to process image!!');
@@ -424,6 +468,7 @@ module.exports = function(Post) {
     ],
     http: { path: '/:id/nodes/:nodeId/callback', verb: 'post' }
   });
+  */
 
   Post.beforeRemote('*.__create__snapshots', function(ctx, instance, next) {
     try {

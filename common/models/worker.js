@@ -202,11 +202,10 @@ worker.addFunction('process image', function(job) {
   if (params.image.hasZipped) {
     zlib.inflate(new Buffer(params.image.buffer, 'base64'), function(err, uzImgBuf) {
       if (err) {
-        options.status = 'failure';
-        replyComplete(options, function(err) {
-          if (err) { console.error(err); }
-        });
-        return;
+        console.error(err);
+        return job.workComplete(JSON.stringify({
+          status: 'failure'
+        }));
       }
       processImage({
         width: params.image.width,
@@ -217,19 +216,18 @@ worker.addFunction('process image', function(job) {
       }, function(err, results) {
         if (err) {
           console.error(err);
-          options.status = 'failure';
-          replyComplete(options, function(err) {
-            if (err) { console.error(err); }
-          });
-          return;
+          return job.workComplete(JSON.stringify({
+            status: 'failure'
+          }));
         }
-        options.status = 'success';
-        options.response.srcMobileUrl = results.mobileImages.downsized.s3Url;
-        options.response.srcMobileDownloadUrl = results.mobileImages.downsized.cdnUrl;
-        options.response.files = results.webImages.concat(results.mobileImages.tiled);
-        replyComplete(options, function(err) {
-          if (err) { return console.error(err); }
-        });
+        job.workComplete(JSON.stringify({
+          status: 'success',
+          postId: params.postId,
+          nodeId: params.nodeId,
+          srcMobileUrl: results.mobileImages.downsized.s3Url,
+          srcMobileDownloadUrl: results.mobileImages.downsized.cdnUrl,
+          files: results.webImages.concat(results.mobileImages.tiled)
+        }));
       });
     });
   }
