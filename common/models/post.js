@@ -357,7 +357,6 @@ module.exports = function(Post) {
       }
     }));
     job.on('complete', function() {
-      console.log('response: '+job.response);
       var response = JSON.parse(job.response);
       if (response.status !== 'success') {
         // TODO: retry!!
@@ -394,7 +393,6 @@ module.exports = function(Post) {
         }
       }, function(err) {
         if (err) { console.error(err); }
-        gearClient.close();
       });
     });
     next();
