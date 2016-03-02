@@ -114,7 +114,7 @@ module.exports = function(Post) {
         ctx.args.data.srcDownloadUrl = results.srcImg.cdnUrl;
         ctx.args.data.lat = thumbLat;
         ctx.args.data.lng = thumbLng;
-        if (imgIndex === 1) {
+        if (imgIndex === '1') {
           Post.updateAll({sid: postId}, {thumbnailUrl: results.thumbnail.s3Url}, function(err) {
             if (err) { return next(err); }
             next();
