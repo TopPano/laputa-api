@@ -81,9 +81,16 @@ describe('REST API endpoint /post', function() {
       json('get', endpoint+'/'+post.sid)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
+        res.body.should.have.property('created');
+        res.body.should.have.property('modified');
         res.body.should.have.property('ownerId', user.sid);
         res.body.should.have.property('ownerInfo');
         res.body.ownerInfo.should.have.property('username', user.username);
+        res.body.should.have.property('likes');
+        res.body.likes.should.have.properties({
+          count: 0,
+          isLiked: false
+        });
         done();
       });
     });
@@ -242,24 +249,23 @@ describe('REST API endpoint /post', function() {
 
     it.skip('create a new node for the given post', function(done) {
       json('post', endpoint+'/'+post.sid+'/nodes?access_token='+user.accessToken.id, 'multipart/form-data')
-      .field('heading', '30')
       .field('width', '8192')
       .field('height', '4096')
       .field('index', '1')
+      .field('thumbLat', '30')
+      .field('thumbLng', '90')
+      .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
       .attach('image', __dirname+'/fixtures/1.jpg.zip')
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         json('get', endpoint+'/'+post.sid+'/nodes/'+res.body.sid)
         .expect(200, function(err, res) {
           if (err) { return done(err); }
-          res.body.should.have.properties({
-            heading: 30
-          });
           res.body.should.have.property('thumbnailUrl');
           res.body.should.have.property('srcUrl');
           res.body.should.have.property('srcDownloadUrl');
-          res.body.should.have.property('srcMobileUrl');
-          res.body.should.have.property('srcMobileDownloadUrl');
+          res.body.should.have.property('lat', 30);
+          res.body.should.have.property('lng', 90);
           done();
         });
       });
