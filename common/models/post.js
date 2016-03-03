@@ -230,6 +230,29 @@ module.exports = function(Post) {
     next();
   });
 
+  Post.afterRemote('deleteById', function(ctx, instance, next) {
+    var postId = ctx.req.params.id;
+    var Nodemeta = Post.app.models.nodemeta;
+    var File = Post.app.models.file;
+    async.parallel({
+      deleteAllNodes: function(callback) {
+        Nodemeta.destroyAll({postId: postId}, function(err) {
+          if (err) { return callback(err); }
+          callback();
+        });
+      },
+      deleteAllFiles: function(callback) {
+        File.destroyAll({postId: postId}, function(err) {
+          if (err) { return callback(err); }
+          callback();
+        });
+      }
+    }, function(err) {
+      if (err) { return next(err); }
+      next();
+    });
+  });
+
   Post.observe('before save', function(ctx, next) {
     if (ctx.instance && ctx.isNewInstance) {
       // on create
