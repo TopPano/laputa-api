@@ -53,7 +53,6 @@ module.exports = function(Post) {
   }
 
   Post.beforeRemote('*.__create__nodes', function(ctx, instance, next) {
-
     try {
       var postId = ctx.req.params.id;
       var nodeId = ctx.args.data.sid;
@@ -177,6 +176,9 @@ module.exports = function(Post) {
         }
       }, function(err) {
         if (err) { console.error(err); }
+        Post.updateAll({sid: response.postId}, {status: 'completed'}, function(err) {
+          if (err) { console.error(err); }
+        });
       });
     });
     next();

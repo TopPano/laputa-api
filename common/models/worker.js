@@ -199,6 +199,7 @@ worker.addFunction('process image', function(job) {
         }
         job.workComplete(JSON.stringify({
           status: 'success',
+          postId: params.postId,
           nodeId: params.nodeId,
           srcMobileUrl: results.mobileImages.downsized.s3Url,
           srcMobileDownloadUrl: results.mobileImages.downsized.cdnUrl,

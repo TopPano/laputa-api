@@ -32,7 +32,9 @@ module.exports = function(User) {
       }
       var result = [];
       var query = {
-        where: {},
+        where: {
+          status: 'completed'
+        },
         limit: limit + 1 // to see if we have next page
       };
       // TODO: should have a more comprehensive parser for parsing the where query
@@ -391,7 +393,9 @@ module.exports = function(User) {
 
     var result = [];
     var query = {
-      where: {},
+      where: {
+        status: 'completed'
+      },
       limit: limit + 1 // to see if we have next page
     };
     // TODO: should have a more comprehensive parser for parsing the where query

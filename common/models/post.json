@@ -12,6 +12,10 @@
       "id": true,
       "generated": false
     },
+    "status": {
+      "type": "string",
+      "default": "pending"
+    },
     "thumbnailUrl": {
       "type": "string"
     },
