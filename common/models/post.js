@@ -76,7 +76,9 @@ module.exports = function(Post) {
       if (imgType !== 'application/zip') {
         return next(new Error('Invalid image type'));
       }
-
+      if (thumbType !== 'image/jpeg') {
+        return next(new Error('Invalid thumbnail type'));
+      }
       async.parallel({
         srcImg: function(callback) {
           upload({
@@ -84,7 +86,7 @@ module.exports = function(Post) {
             quality: 'src',
             postId: postId,
             timestamp: now,
-            imageFilename: nodeId+'.jpg',
+            imageFilename: nodeId + '.jpg.zip',
             image: imgBuf
           }, callback);
         },
