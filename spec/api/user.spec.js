@@ -206,6 +206,32 @@ describe('REST API endpoint /users', function() {
         done();
       });
     });
+
+    it('change user profile photo', function(done) {
+      var image = fs.readFileSync(__dirname+'/fixtures/user_profile_photo.jpeg').toString('base64');
+      json('post', endpoint+'/'+user.sid+'/photo?access_token='+user.accessToken.id)
+      .send({
+        image: image
+      })
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        res.body.should.have.property('status', 'success');
+        json('post', endpoint+'/'+user.sid+'/photo?access_token='+user.accessToken.id)
+        .send({
+          image: image
+        })
+        .expect(200, function(err, res) {
+          if (err) { return done(err); }
+          res.body.should.have.property('status', 'success');
+          json('get', endpoint+'/'+user.sid+'/profile?access_token='+user.accessToken.id)
+          .expect(200, function(err, res) {
+            res.body.profile.should.have.property('profilePhotoUrl');
+            res.body.profile.profilePhotoUrl.should.match(/profile_2.jpg$/);
+            done();
+          });
+        });
+      });
+    });
   });
 
   describe('User following', function() {

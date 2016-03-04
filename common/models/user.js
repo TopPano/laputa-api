@@ -2,6 +2,7 @@
 var assert = require('assert');
 var async = require('async');
 var S3Uploader = require('../utils/S3Uploader');
+var S3Remover = require('../utils/S3Remover');
 
 module.exports = function(User) {
 
@@ -263,25 +264,71 @@ module.exports = function(User) {
         error.status = 400;
         return callback(error);
       }
-      var imageFilename = id+'_profile.jpg';
-      var fileKey = 'users/'+id+'/photo/'+imageFilename;
-      uploader.on('success', function(data) {
-        assert(data.hasOwnProperty('Location'), 'Unable to get location property from S3 response object');
-        assert((data.hasOwnProperty('key') || data.hasOwnProperty('Key')), 'Unable to get key property from S3 response object');
-        // TODO: use CDN url
-        User.updateAll({sid: id}, {profilePhotoUrl: data.Location}, function(err) {
-          if (err) { return callback(err); }
-          callback(null, 'success');
-        });
-      });
-      uploader.on('error', function(err) {
-        callback(err);
-      });
-      uploader.send({
-        File: image,
-        Key: fileKey,
-        options: {
-          ACL: 'public-read'
+      User.findById(id, function(err, user) {
+        if (err) { return callback(err); }
+        if (!user) {
+          var error = new Error('User Not Found');
+          error.status = 404;
+          return callback(error);
+        }
+        // TODO: ugly.......
+        var photoIndex = 1;
+        if (user.profilePhotoUrl) {
+          photoIndex = (parseInt(user.profilePhotoUrl.split('_')[2].split('.')[0], 10) + 1) % 1024;
+          var remover = new S3Remover();
+          remover.on('success', function(data) {
+            var imageFilename = id+'_profile_'+photoIndex+'.jpg';
+            var fileKey = 'users/'+id+'/photo/'+imageFilename;
+            uploader.on('success', function(data) {
+              assert(data.hasOwnProperty('Location'), 'Unable to get location property from S3 response object');
+              assert((data.hasOwnProperty('key') || data.hasOwnProperty('Key')), 'Unable to get key property from S3 response object');
+              // update with the new profile photo url
+              // TODO: use CDN url
+              User.updateAll({sid: id}, {profilePhotoUrl: data.Location}, function(err) {
+                if (err) { return callback(err); }
+                callback(null, 'success');
+              });
+            });
+            uploader.on('error', function(err) {
+              callback(err);
+            });
+            uploader.send({
+              File: image,
+              Key: fileKey,
+              options: {
+                ACL: 'public-read'
+              }
+            });
+          });
+          remover.on('error', function(err) {
+            callback(err);
+          });
+          remover.remove({
+            Key: user.profilePhotoUrl.split('/').slice(3, 7).join('/')
+          });
+        } else {
+          var imageFilename = id+'_profile_'+photoIndex+'.jpg';
+          var fileKey = 'users/'+id+'/photo/'+imageFilename;
+          uploader.on('success', function(data) {
+            assert(data.hasOwnProperty('Location'), 'Unable to get location property from S3 response object');
+            assert((data.hasOwnProperty('key') || data.hasOwnProperty('Key')), 'Unable to get key property from S3 response object');
+            // update with the new profile photo url
+            // TODO: use CDN url
+            User.updateAll({sid: id}, {profilePhotoUrl: data.Location}, function(err) {
+              if (err) { return callback(err); }
+              callback(null, 'success');
+            });
+          });
+          uploader.on('error', function(err) {
+            callback(err);
+          });
+          uploader.send({
+            File: image,
+            Key: fileKey,
+            options: {
+              ACL: 'public-read'
+            }
+          });
         }
       });
     } catch (err) {
