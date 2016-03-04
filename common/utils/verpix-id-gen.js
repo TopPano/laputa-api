@@ -72,8 +72,14 @@ var intformat = require('biguint-format');
       id.writeUInt16BE(Math.floor(time / VerpixId.POW9) & 0xFFFF, 2);
       id.writeUInt16BE(Math.floor(time / VerpixId.POW25) & 0xFFFF, 0);
 
+      // XXX: Default Base64 encoding contains '/' character which will confuse the API server when parsing
+      //      the url that contains a base64 encoded id in it, so according to the suggestion of RFC 4648
+      //      that we can change a different alphabat for base64url which replace "+" to "-" and "/" to "_".
+      //
+      //      http://stackoverflow.com/questions/11449577/why-is-base64-encode-adding-a-slash-in-the-result
+      var base64UrlId = id.toString('base64').replace(/\//g, '_').replace(/\+/g, '-');
+      process.nextTick(callback.bind(null, null, {id: base64UrlId, timestamp: time}));
       //process.nextTick(callback.bind(null, null, {id: intformat(id, 'dec'), timestamp: time}));
-      process.nextTick(callback.bind(null, null, {id: id.toString('base64'), timestamp: time}));
     }
   };
 
