@@ -25,6 +25,11 @@
   },
   "validations": [],
   "relations": {
+    "identities": {
+      "type": "hasMany",
+      "model": "userIdentity",
+      "foreignKey": "userId"
+    },
     "posts": {
       "type": "hasMany",
       "model": "post",

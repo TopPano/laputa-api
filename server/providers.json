@@ -1,0 +1,10 @@
+{
+  "facebook-token-login": {
+    "provider": "facebook-token",
+    "module": "passport-facebook-token",
+    "authScheme": "oAuth 2.0",
+    "clientID": "589634317860022",
+    "clientSecret": "1d847021d22398516d480e2ecf543020",
+    "callbackURL": "/auth/facebook-token/callback"
+  }
+}

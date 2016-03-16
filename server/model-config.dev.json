@@ -37,6 +37,10 @@
     "dataSource": "mongoDB",
     "public": true
   },
+  "userIdentity": {
+    "dataSource": "mongoDB",
+    "public": false
+  },
   "post": {
     "dataSource": "mongoDB",
     "public": true

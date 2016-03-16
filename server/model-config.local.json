@@ -37,6 +37,10 @@
     "dataSource": "memoryDB",
     "public": true
   },
+  "userIdentity": {
+    "dataSource": "memoryDB",
+    "public": false
+  },
   "post": {
     "dataSource": "memoryDB",
     "public": true

@@ -37,6 +37,10 @@
     "dataSource": "db",
     "public": true
   },
+  "userIdentity": {
+    "dataSource": "db",
+    "public": false
+  },
   "post": {
     "dataSource": "db",
     "public": true

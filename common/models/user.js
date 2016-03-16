@@ -1,6 +1,7 @@
 'use strict';
 var assert = require('assert');
 var async = require('async');
+var passport = require('passport');
 var S3Uploader = require('../utils/S3Uploader');
 var S3Remover = require('../utils/S3Remover');
 
@@ -14,6 +15,27 @@ module.exports = function(User) {
     else
       return 0;
   }
+
+  User.authFacebook = function(callback) {
+    passport.authenticate('facebook-token-login', function(err, user, info) {
+      if (err) { return callback(err); }
+      if (!user) {
+        var error = new Error('authentication error');
+        error.status = 401;
+        return callback(error);
+      }
+      if (info && info.accessToken) {
+        return callback(null, {
+          accessToken: info.accessToken.id,
+          userId: user.id
+        });
+      }
+    });
+  };
+  User.remoteMethod('authFacebook', {
+    returns: [ { arg: 'result', type: 'object' } ],
+    http: { path: '/auth/facebook', verb: 'get' }
+  });
 
   User.query = function(id, req, json, callback) {
     var Post = User.app.models.post;
