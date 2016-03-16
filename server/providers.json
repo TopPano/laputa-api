@@ -1,5 +1,5 @@
 {
-  "facebook-token-login": {
+  "facebook-token": {
     "provider": "facebook-token",
     "module": "passport-facebook-token",
     "authScheme": "oAuth 2.0",

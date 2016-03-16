@@ -42,7 +42,7 @@ app.use(multer({storage: multer.memoryStorage()}).fields([
 app.middleware('session:after', passport.initialize());
 
 var FacebookTokenStrategy = require('passport-facebook-token');
-var provider = 'facebook-token-login';
+var provider = 'facebook-token';
 passport.use(provider, new FacebookTokenStrategy({
   clientID: config[provider].clientID,
   clientSecret: config[provider].clientSecret,

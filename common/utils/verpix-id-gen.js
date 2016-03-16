@@ -1,4 +1,4 @@
-var intformat = require('biguint-format');
+//var intformat = require('biguint-format');
 (function () {
   'use strict';
   /* jslint bitwise: true */

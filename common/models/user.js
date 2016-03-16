@@ -16,8 +16,8 @@ module.exports = function(User) {
       return 0;
   }
 
-  User.authFacebook = function(callback) {
-    passport.authenticate('facebook-token-login', function(err, user, info) {
+  User.authFacebookToken = function(req, res, callback) {
+    passport.authenticate('facebook-token', function(err, user, info) {
       if (err) { return callback(err); }
       if (!user) {
         var error = new Error('authentication error');
@@ -30,11 +30,15 @@ module.exports = function(User) {
           userId: user.id
         });
       }
-    });
+    })(req, res);
   };
-  User.remoteMethod('authFacebook', {
-    returns: [ { arg: 'result', type: 'object' } ],
-    http: { path: '/auth/facebook', verb: 'get' }
+  User.remoteMethod('authFacebookToken', {
+    accepts: [
+      { arg: 'req', type: 'object', 'http': { source: 'req' } },
+      { arg: 'res', type: 'object', 'http': { source: 'res' } }
+    ],
+    returns: [ { arg: 'auth', type: 'object' } ],
+    http: { path: '/auth/facebook/token', verb: 'get' }
   });
 
   User.query = function(id, req, json, callback) {
