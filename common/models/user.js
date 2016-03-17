@@ -381,11 +381,39 @@ module.exports = function(User) {
   User.getProfile = function(id, req, callback) {
     var Follow = User.app.models.follow;
     var Post = User.app.models.post;
+    var UserIdentity = User.app.models.userIdentity;
     async.parallel({
       basicProfile: function(callback) {
         User.findById(id, function(err, profile) {
           if (err) { return callback(err); }
-          callback(null, profile);
+          if (!profile) {
+            var error = new Error('User Not Found');
+            error.status = 404;
+            return callback(error);
+          }
+          if (profile.username && profile.username.slice('.')[0] === 'facebook-token') {
+            UserIdentity.find({ where: {userId: profile.sid }}, function(err, userIdentity) {
+              if (err) { return callback(err); }
+              if (!userIdentity) {
+                var error = new Error('User Identity Not Found');
+                error.status = 500;
+                return callback(error);
+              }
+              var username;
+              if (!!userIdentity.profile.displayName) {
+                username = userIdentity.profile.displayName;
+              } else {
+                username = userIdentity.profile.name.givenName + ' ' + userIdentity.profile.name.familyName;
+              }
+              callback(null, {
+                username: username,
+                profilePhotoUrl: profile.profilePhotoUrl,
+                autobiography: profile.autobiography
+              });
+            });
+          } else {
+            callback(null, profile);
+          }
         });
       },
       followerNumber: function(callback) {
