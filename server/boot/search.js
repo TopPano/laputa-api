@@ -1,8 +1,11 @@
+var async = require('async');
 module.exports = function (server) {
   // Install search route
   var router = server.loopback.Router();
+  var User = server.models.user;
   var Post = server.models.post;
   var Like = server.models.like;
+  var AccessToken = server.models.accessToken;
   router.post('/api/search/recent', function(req, res) {
     var where = req.body.where || undefined;
     var PAGE_SIZE = 12;
@@ -71,18 +74,26 @@ module.exports = function (server) {
             });
           },
           isLiked: function(callback) {
-            if (!req.accessToken) {
+            if (!req.query['access_token']) {
               var error = new Error('Bad Request: missing access token');
               error.status = 400;
               return callback(error);
             }
-            User.findById(req.accessToken.userId, function(err, profile) {
+            AccessToken.findById(req.query['access_token'], function(err, token) {
               if (err) { return callback(err); }
-              if (!profile) { return callback(new Error('No user with this access token was found.')); }
-              Like.find({where: {postId: post.sid, userId: req.accessToken.userId}}, function(err, list) {
+              if (!token) {
+                var error = new Error('Internal Error');
+                error.status = 500;
+                return callback(error);
+              }
+              User.findById(token.userId, function(err, profile) {
                 if (err) { return callback(err); }
-                if (list.length !== 0) { callback(null, true); }
-                else { callback(null, false); }
+                if (!profile) { return callback(new Error('No user with this access token was found.')); }
+                Like.find({where: {postId: post.sid, userId: req.accessToken.userId}}, function(err, list) {
+                  if (err) { return callback(err); }
+                  if (list.length !== 0) { callback(null, true); }
+                  else { callback(null, false); }
+                });
               });
             });
           },
@@ -112,9 +123,9 @@ module.exports = function (server) {
       }, function(err) {
         if (err) {
           console.error(err);
-          return callback(new Error('Internal Error'));
+          return res.status(500).send('Internal Error');
         }
-        res.send(output);
+        res.send({result: output});
       });
     });
   });
