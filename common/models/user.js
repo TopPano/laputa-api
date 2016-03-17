@@ -391,19 +391,19 @@ module.exports = function(User) {
             error.status = 404;
             return callback(error);
           }
-          if (profile.username && profile.username.slice('.')[0] === 'facebook-token') {
+          if (profile.username && profile.username.split('.')[0] === 'facebook-token') {
             UserIdentity.find({ where: {userId: profile.sid }}, function(err, userIdentity) {
               if (err) { return callback(err); }
-              if (!userIdentity) {
+              if (userIdentity.length === 0) {
                 var error = new Error('User Identity Not Found');
                 error.status = 500;
                 return callback(error);
               }
               var username;
-              if (!!userIdentity.profile.displayName) {
-                username = userIdentity.profile.displayName;
+              if (!!userIdentity[0].profile.displayName) {
+                username = userIdentity[0].profile.displayName;
               } else {
-                username = userIdentity.profile.name.givenName + ' ' + userIdentity.profile.name.familyName;
+                username = userIdentity[0].profile.name.givenName + ' ' + userIdentity[0].profile.name.familyName;
               }
               callback(null, {
                 username: username,
