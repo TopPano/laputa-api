@@ -5,7 +5,7 @@ module.exports = function (server) {
   var User = server.models.user;
   var Post = server.models.post;
   var Like = server.models.like;
-  var AccessToken = server.models.accessToken;
+  var AccessToken = server.models.AccessToken;
   router.post('/api/search/recent', function(req, res) {
     var where = req.body.where || undefined;
     var PAGE_SIZE = 12;
@@ -89,7 +89,7 @@ module.exports = function (server) {
               User.findById(token.userId, function(err, profile) {
                 if (err) { return callback(err); }
                 if (!profile) { return callback(new Error('No user with this access token was found.')); }
-                Like.find({where: {postId: post.sid, userId: req.accessToken.userId}}, function(err, list) {
+                Like.find({where: {postId: post.sid, userId: token.userId}}, function(err, list) {
                   if (err) { return callback(err); }
                   if (list.length !== 0) { callback(null, true); }
                   else { callback(null, false); }
