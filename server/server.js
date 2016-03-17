@@ -62,19 +62,6 @@ passport.use(provider, new FacebookTokenStrategy({
     done(err, user, authInfo);
   });
 }));
-/*
-passportConfigurator.init();
-passportConfigurator.setupModels({
-  userModel: app.models.user,
-  userIdentityModel: app.models.userIdentity,
-  userCredentialModel: app.models.userCredential
-});
-for (var s in config) {
-  var c = config[s];
-  c.session = c.session !== false;
-  passportConfigurator.configureProvider(s, c);
-}
-*/
 
 // start the server if `$ node server.js`
 if (require.main === module) {

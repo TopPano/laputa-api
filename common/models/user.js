@@ -92,6 +92,7 @@ module.exports = function(User) {
         query.where.ownerId = following.followeeId;
         var postQuery = {
           where: query.where,
+          order: 'sid DESC',
           limit: query.limit
         };
         Post.find(postQuery, function(err, posts) {

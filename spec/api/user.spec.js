@@ -51,12 +51,12 @@ describe('REST API endpoint /users', function() {
 
     it('create a new user', function(done) {
       json('post', endpoint)
-        .send(user)
-        .expect(200, function(err, res) {
-          if (err) { return done(err); }
-          res.body.should.have.property('email', user.email);
-          done();
-        });
+      .send(user)
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        res.body.should.have.property('email', user.email);
+        done();
+      });
     });
 
     it('reject user creation of duplicated username', function(done) {
@@ -104,17 +104,17 @@ describe('REST API endpoint /users', function() {
 
     it('login a user by providing valid credentials', function(done) {
       json('post', endpoint + '/login')
-        .send({
-          email: user.email,
-          password: user.password
-        })
-        .expect(200, function(err, res) {
-          if (err) { return done(err); }
-          res.body.should.have.property('id');
-          res.body.should.have.property('userId', user.sid);
-          user.accessToken = res.body;
-          done();
-        });
+      .send({
+        email: user.email,
+        password: user.password
+      })
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        res.body.should.have.property('id');
+        res.body.should.have.property('userId', user.sid);
+        user.accessToken = res.body;
+        done();
+      });
     });
 
     it('logout a user by providing access token', function(done) {
