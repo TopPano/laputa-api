@@ -503,6 +503,7 @@ module.exports = function(User) {
       where: {
         status: 'completed'
       },
+      order: 'sid DESC',
       limit: limit + 1 // to see if we have next page
     };
     // TODO: should have a more comprehensive parser for parsing the where query
