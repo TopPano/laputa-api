@@ -494,10 +494,14 @@ module.exports = function(User) {
     var PAGE_SIZE = 12;
     var limit = PAGE_SIZE; // default limit
 
-    if (json.limit && (typeof json.limit === 'number') && (0 < json.limit) && (json.limit <= (PAGE_SIZE * 3))) {
-      limit = json.limit;
+    if (json.limit) {
+      if (typeof json.limit === 'string') {
+        json.limit = parseInt(json.limit, 10);
+      }
+      if (json.limit > 0) {
+        limit = json.limit;
+      }
     }
-
     var result = [];
     var query = {
       where: {
