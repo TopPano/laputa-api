@@ -12,7 +12,7 @@ module.exports = function (server) {
 
   var FacebookTokenStrategy = require('passport-facebook-token');
   var provider = 'facebook-token';
-  passport.use(provider, new FacebookTokenStrategty({
+  passport.use(provider, new FacebookTokenStrategy({
     clientID: config[provider].clientID,
     clientSecret: config[provider].clientSecret
   }, function(accessToken, refreshToken, profile, done) {
