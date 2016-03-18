@@ -1,7 +1,6 @@
 var loopback = require('loopback');
 var boot = require('loopback-boot');
 var multer = require('multer');
-var passport = require('passport');
 
 var app = module.exports = loopback();
 
@@ -18,15 +17,6 @@ app.start = function() {
   });
 };
 
-// Attempt to build the providers/passport config
-var config = {};
-try {
-  config = require('./providers.json');
-} catch (err) {
-  console.trace(err);
-  process.exit(1); // fatal
-}
-
 // Bootstrap the application, configure models, datasources and middleware.
 // Sub-apps like REST API are mounted via boot scripts.
 boot(app, __dirname, function(err) {
@@ -38,30 +28,6 @@ app.use(multer({storage: multer.memoryStorage()}).fields([
   { name: 'thumbnail', maxCount: 1 },
   { name: 'image', maxCount: 1 }
 ])); // for parsing multipart/form-data
-
-app.middleware('session:after', passport.initialize());
-
-var FacebookTokenStrategy = require('passport-facebook-token');
-var provider = 'facebook-token';
-passport.use(provider, new FacebookTokenStrategy({
-  clientID: config[provider].clientID,
-  clientSecret: config[provider].clientSecret,
-  passReqToCallback: true
-}, function(req, accessToken, refreshToken, profile, done) {
-  var userIdentityModel = app.models.userIdentity;
-  userIdentityModel.login(provider, config.authScheme, profile, {
-    accessToken: accessToken,
-    refreshToken: refreshToken
-  }, function(err, user, identity, token) {
-    var authInfo = {
-      identity: identity
-    };
-    if (token) {
-      authInfo.accessToken = token;
-    }
-    done(err, user, authInfo);
-  });
-}));
 
 // start the server if `$ node server.js`
 if (require.main === module) {
