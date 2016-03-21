@@ -238,9 +238,30 @@ module.exports = function(Post) {
     var File = Post.app.models.file;
     async.parallel({
       deleteAllNodes: function(callback) {
-        Nodemeta.destroyAll({postId: postId}, function(err) {
+        Nodemeta.find({ where: { postId: postId } }, function(err, nodes) {
           if (err) { return callback(err); }
-          callback();
+          if (nodes.length === 0) { return callback(); }
+          var imageList = [];
+          nodes.forEach(function(node) {
+            imageList.push(decodeUrl(node.thumbnailUrl.split('/').slice(3).join('/')));
+            imageList.push(decodeUrl(node.srcUrl.split('/').slice(3).join('/')));
+            imageList.push(decodeUrl(node.srcMobileUrl.split('/').slice(3).join('/')));
+          });
+          var job = gearClient.submitJob('delete images', JSON.stringify({
+            imageList: imageList
+          }));
+          job.on('complete', function() {
+            var response = JSON.parse(job.response);
+            if (response.status === 'failure') {
+              return console.error('Failed to delete images!!');
+            } else if (response.status === 'no operation') {
+              return console.log('No images to delete');
+            }
+          });
+          Nodemeta.destroyAll({postId: postId}, function(err) {
+            if (err) { return callback(err); }
+            callback();
+          });
         });
       },
       deleteAllFiles: function(callback) {
@@ -251,7 +272,8 @@ module.exports = function(Post) {
           files.forEach(function(file) {
             // fileurl format: https://S3_HOSTNAME/posts/POSTID/SHARDINGKEY/pan/high/DATE/IMAGE_FILENAME
             // we only need strings after 'S3_HOSTNAME/'
-            imageList.push(file.url.split('/').slice(3).join('/'));
+            var fileUrl = file.url.split('/').slice(3).join('/');
+            imageList.push(decodeUrl(fileUrl));
           });
           var job = gearClient.submitJob('delete images', JSON.stringify({
             imageList: imageList
@@ -274,6 +296,13 @@ module.exports = function(Post) {
       if (err) { return next(err); }
       next();
     });
+
+    function decodeUrl(url) {
+      if (url.indexOf('%3D') !== -1) {
+        url = url.replace(/%3D/g, '=');
+      }
+      return url;
+    }
   });
 
   Post.observe('before save', function(ctx, next) {
