@@ -3,6 +3,7 @@ var moment = require('moment');
 var worker = gearmanode.worker();
 var gm = require('gm');
 var S3Uploader = require('../utils/S3Uploader');
+var S3Remover = require('../utils/S3Remover');
 var assert = require('assert');
 var HTTPStatus = require('http-status');
 var genShardingKey = require('../utils/sharding-key-gen');
@@ -208,4 +209,28 @@ worker.addFunction('process image', function(job) {
       });
     });
   }
+});
+
+worker.addFunction('delete images', function(job) {
+  var params = JSON.parse(job.payload);
+  if (!params.imageList || typeof params.imageList !== 'Array' || params.imageList.length === 0) {
+    return job.workComplete(JSON.stringify({
+      status: 'no operation'
+    }));
+  }
+
+  var remover = new S3Remover();
+  remover.on('success', function(data) {
+    job.workComplete(JSON.stringify({
+      status: 'success'
+    }));
+  });
+  remover.on('error', function(err) {
+    job.workComplete(JSON.stringify({
+      status: 'failure'
+    }));
+  });
+  remover.remove({
+    Key: params.imageList
+  });
 });

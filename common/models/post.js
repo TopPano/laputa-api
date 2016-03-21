@@ -244,9 +244,32 @@ module.exports = function(Post) {
         });
       },
       deleteAllFiles: function(callback) {
-        File.destroyAll({postId: postId}, function(err) {
+        File.find({postId: postId}, function(err, files) {
           if (err) { return callback(err); }
-          callback();
+          if (files.length === 0) { return callback(); }
+          var imageList = [];
+          files.forEach(function(file) {
+            // fileurl format: https://S3_HOSTNAME/posts/POSTID/SHARDINGKEY/pan/high/DATE/IMAGE_FILENAME
+            // we only need strings after 'S3_HOSTNAME/'
+            imageList.push(file.url.split('/').slice(3).join('/'));
+          });
+          var job = gearClient.submitJob('delete images', JSON.stringify({
+            imageList: imageList
+          }));
+          job.on('complete', function() {
+            var response = JSON.parse(job.response);
+            if (response.status === 'failure') {
+              return console.error('Failed to delete images!!');
+            } else if (response.status === 'no operation') {
+              return console.log('No images to delete');
+            }
+            console.log('S3 delete completed');
+          });
+          File.destroyAll({postId: postId}, function(err) {
+            if (err) { return callback(err); }
+            console.log('File delete completed');
+            callback();
+          });
         });
       }
     }, function(err) {

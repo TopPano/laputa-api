@@ -9,20 +9,39 @@ function S3Remover() {
       EVENT_PROGRESS = 'progress';
 
   S3Remover.prototype.remove = function(params) {
-    var s3RemoveParams = {
-      Bucket: params['Bucket'] || process.env.S3_BKT,
-      Key: params.Key
-    };
     var s3 = new AWS.S3();
-    var remover = s3.deleteObject(s3RemoveParams);
+    var remover;
+    var s3RemoveParams = {
+      Bucket: params.Bucket || process.env.S3_BKT
+    };
 
-    // Start removing an object in S3 bucket.
+    if(util.isArray(params.Key)) {
+      // Key is an array.
+      s3RemoveParams.Delete = {
+        Objects: [],
+        Quiet: false
+      };
+      params.Key.forEach(function(key) {
+        if(typeof key === 'string') {
+          s3RemoveParams.Delete.Objects.push({ Key: key });
+        }
+      });
+      remover = s3.deleteObjects(s3RemoveParams);
+    } else if(typeof params.Key === 'string') {
+      // Key is a string.
+      s3RemoveParams.Key = params.Key;
+      remover = s3.deleteObject(s3RemoveParams);
+    } else {
+      // TODO: Error handling for wrong type of Key.
+    }
+
+    // Start removing object(s) in S3 bucket.
     remover.send(function(err, data) {
       if(err) {
-        // Error while deleting an object.
+        // Error while deleting object(s).
         _this.emit(EVENT_ERROR, err);
       } else {
-        // Success deleting an object.
+        // Successfully deleting object(s).
         // We should notice that it return success even the object key does not exist.
         _this.emit(EVENT_SUCCESS, data);
       }
@@ -30,7 +49,7 @@ function S3Remover() {
 
     return _this;
   };
-}
+};
 
 util.inherits(S3Remover, EventEmitter);
 
