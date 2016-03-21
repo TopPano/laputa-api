@@ -244,7 +244,7 @@ module.exports = function(Post) {
         });
       },
       deleteAllFiles: function(callback) {
-        File.find({postId: postId}, function(err, files) {
+        File.find({ where: { postId: postId } }, function(err, files) {
           if (err) { return callback(err); }
           if (files.length === 0) { return callback(); }
           var imageList = [];
@@ -263,11 +263,9 @@ module.exports = function(Post) {
             } else if (response.status === 'no operation') {
               return console.log('No images to delete');
             }
-            console.log('S3 delete completed');
           });
           File.destroyAll({postId: postId}, function(err) {
             if (err) { return callback(err); }
-            console.log('File delete completed');
             callback();
           });
         });

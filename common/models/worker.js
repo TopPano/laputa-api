@@ -213,7 +213,7 @@ worker.addFunction('process image', function(job) {
 
 worker.addFunction('delete images', function(job) {
   var params = JSON.parse(job.payload);
-  if (!params.imageList || typeof params.imageList !== 'Array' || params.imageList.length === 0) {
+  if (!params.imageList || params.imageList.length === 0) {
     return job.workComplete(JSON.stringify({
       status: 'no operation'
     }));
