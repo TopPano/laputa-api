@@ -297,9 +297,14 @@ module.exports = function(Post) {
       next();
     });
 
+    // AWS S3 won't decode the encoded url key so that the encoded url key will be considered as not matching
+    // the uploaded key on S3
     function decodeUrl(url) {
       if (url.indexOf('%3D') !== -1) {
         url = url.replace(/%3D/g, '=');
+      }
+      if (url.indexOf('%2F') !== -1) {
+        url = url.replace(/%2F/g, '/');
       }
       return url;
     }
