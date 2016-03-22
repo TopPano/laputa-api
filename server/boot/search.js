@@ -12,17 +12,17 @@ module.exports = function (server) {
     var limit = PAGE_SIZE;
 
     if (!req.query['access_token']) {
-      var error = new Error('Bad Request: missing access token');
-      error.status = 400;
-      return callback(error);
+      return res.status(400).send({error: 'Bad Request: missing access token'});
     }
 
     AccessToken.findById(req.query['access_token'], function(err, token) {
-      if (err) { return callback(err); }
+      if (err) {
+        console.error(err);
+        return res.status(500).send({error: 'Internal Error'});
+      }
       if (!token) {
-        var error = new Error('Internal Error');
-        error.status = 500;
-        return callback(error);
+        console.error('Token not found');
+        return res.status(500).send({error: 'Internal Error'});
       }
       if (req.body.limit) {
         if (typeof req.body.limit === 'string') {
@@ -47,14 +47,11 @@ module.exports = function (server) {
             {
               query.where.sid = where.sid;
             } else {
-              var error = new Error('Invalid query operator');
-              error.status = 400;
-              return callback(error);
+              return res.status(400).send({error: 'Invalid query operator'});
             }
         } catch (e) {
-          var error = new Error('Bad request');
-          error.status = 400;
-          return callback(error);
+          console.error(e);
+          return res.status(400).send({error: 'Bad Request'});
         }
       }
       Post.find(query, function(err, posts) {
