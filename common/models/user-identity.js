@@ -29,7 +29,9 @@ module.exports = function(UserIdentity) {
     // Let's create a user for that
     var email = profile.emails && profile.emails[0] && profile.emails[0].value;
     if (!email && !options.emailOptional) {
-
+      // Fake an e-mail
+      email = (profile.username || profile.id) + '@verpix.' +
+              (profile.provider || provider) + '.me';
     }
     var username = provider + '.' + (profile.username || profile.id);
     var password = generateKey('password');
