@@ -322,18 +322,6 @@ module.exports = function(User) {
       }
     }, function(err, followers) {
       if (err) { return callback(err); }
-      // XXX: Didn't find a way to filter the unnecessary properties in identities' profile object with
-      //      loopback's scope(fields) filter, so we manually filter those properties here...
-      followers.forEach(function(follower) {
-        if (follower.follower.identities.length !== 0) {
-          var profile = {};
-          // Currently, for third-party login, we only support facebook, so the following profile
-          // format is for facebook only
-          profile.displayName = follower.follower.identities[0].profile.displayName;
-          profile.name = follower.follower.identities[0].profile.name;
-          follower.follower.identities[0].profile = profile;
-        }
-      });
       callback(null, followers);
     });
   };
@@ -364,18 +352,6 @@ module.exports = function(User) {
       }
     }, function(err, following) {
       if (err) { return callback(err); }
-      // XXX: Didn't find a way to filter the unnecessary properties in identities' profile object with
-      //      loopback's scope(fields) filter, so we manually filter those properties here...
-      following.forEach(function(user) {
-        if (user.following.identities.length !== 0) {
-          var profile = {};
-          // Currently, for third-party login, we only support facebook, so the following profile
-          // format is for facebook only
-          profile.displayName = user.following.identities[0].profile.displayName;
-          profile.name = user.following.identities[0].profile.name;
-          user.following.identities[0].profile = profile;
-        }
-      });
       callback(null, following);
     });
   };
