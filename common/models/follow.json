@@ -13,12 +13,12 @@
   },
   "validations": [],
   "relations": {
-    "follower": {
+    "fans": {
       "type": "belongsTo",
       "model": "user",
       "foreignKey": "followerId"
     },
-    "followee": {
+    "following": {
       "type": "belongsTo",
       "model": "user",
       "foreignKey": "followeeId"

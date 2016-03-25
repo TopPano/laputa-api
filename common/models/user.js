@@ -303,13 +303,13 @@ module.exports = function(User) {
     http: { path: '/:followerId/unfollow/:followeeId', verb: 'post' }
   });
 
-  User.listFollowers = function(id, callback) {
+  User.listFans = function(id, callback) {
     var Follow = User.app.models.follow;
     Follow.find({
       where: { followeeId: id },
       fields: [ 'followerId', 'followAt' ],
       include: {
-        relation: 'follower',
+        relation: 'fans',
         scope: {
           fields: [ 'username', 'profilePhotoUrl' ],
           include: {
@@ -325,12 +325,12 @@ module.exports = function(User) {
       callback(null, followers);
     });
   };
-  User.remoteMethod('listFollowers', {
+  User.remoteMethod('listFans', {
     accepts: [
       { arg: 'id', type: 'string', require: true }
     ],
     returns: [ { arg: 'result', type: 'string' } ],
-    http: { path: '/:id/followers', verb: 'get' }
+    http: { path: '/:id/fans', verb: 'get' }
   });
 
   User.listFollowing = function(id, callback) {
@@ -339,7 +339,7 @@ module.exports = function(User) {
       where: { followerId: id },
       fields: [ 'followeeId', 'followAt' ],
       include: {
-        relation: 'followee',
+        relation: 'following',
         scope: {
           fields: [ 'username', 'profilePhotoUrl' ],
           include: {
