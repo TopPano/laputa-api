@@ -307,9 +307,9 @@ module.exports = function(User) {
     var Follow = User.app.models.follow;
     Follow.find({
       where: { followeeId: id },
-      fields: [ 'followerId', 'followAt' ],
+      fields: [ 'followAt' ],
       include: {
-        relation: 'fans',
+        relation: 'fan',
         scope: {
           fields: [ 'username', 'profilePhotoUrl' ],
           include: {
@@ -337,7 +337,7 @@ module.exports = function(User) {
     var Follow = User.app.models.follow;
     Follow.find({
       where: { followerId: id },
-      fields: [ 'followeeId', 'followAt' ],
+      fields: [ 'followAt' ],
       include: {
         relation: 'following',
         scope: {

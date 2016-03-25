@@ -13,7 +13,7 @@
   },
   "validations": [],
   "relations": {
-    "fans": {
+    "fan": {
       "type": "belongsTo",
       "model": "user",
       "foreignKey": "followerId"
