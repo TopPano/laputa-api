@@ -84,6 +84,18 @@
       "principalId": "$everyone",
       "permission": "ALLOW",
       "property": "profileQuery"
+    },
+    {
+      "principalType": "ROLE",
+      "principalId": "$authenticated",
+      "permission": "ALLOW",
+      "property": "listFollowers"
+    },
+    {
+      "principalType": "ROLE",
+      "principalId": "$authenticated",
+      "permission": "ALLOW",
+      "property": "listFollowing"
     }
   ],
   "methods": {}
