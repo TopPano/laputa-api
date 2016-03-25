@@ -12,7 +12,18 @@
     "followAt": { "type": "date" }
   },
   "validations": [],
-  "relations": {},
+  "relations": {
+    "follower": {
+      "type": "belongsTo",
+      "model": "user",
+      "foreignKey": "followerId"
+    },
+    "followee": {
+      "type": "belongsTo",
+      "model": "user",
+      "foreignKey": "followeeId"
+    }
+  },
   "acls": [],
   "methods": {}
 }

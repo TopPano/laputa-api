@@ -7,6 +7,23 @@ var S3Remover = require('../utils/S3Remover');
 
 module.exports = function(User) {
 
+  /*
+  function sendEmail(from, to, subject, content) {
+    var job = gearClient.submitJob('send email', JSON.stringify({
+      from: from,
+      to: to,
+      subject: subject,
+      content: content
+    }));
+    job.on('complete', function() {
+      var response = JSON.parse(job.response);
+      if (response.status === 'failure') {
+        console.error('Failed to send email');
+      }
+    });
+  }
+  */
+
   function descending(a,b) {
     if (a.sid > b.sid)
       return -1;
@@ -284,6 +301,98 @@ module.exports = function(User) {
     ],
     returns: [ { arg: 'status', type: 'string' } ],
     http: { path: '/:followerId/unfollow/:followeeId', verb: 'post' }
+  });
+
+  User.listFollowers = function(id, callback) {
+    var Follow = User.app.models.follow;
+    Follow.find({
+      where: { followeeId: id },
+      fields: [ 'followerId', 'followAt' ],
+      include: {
+        relation: 'follower',
+        scope: {
+          fields: [ 'username', 'profilePhotoUrl' ],
+          include: {
+            relation: 'identities',
+            scope: {
+              fields: [ 'provider', 'profile' ]
+            }
+          }
+        }
+      }
+    }, function(err, followers) {
+      if (err) { return callback(err); }
+      var output = [], i;
+      followers.forEach(function(follower) {
+        var info = {
+          id: follower.followerId,
+          followAt: follower.followAt,
+          profilePhotoUrl: follower.follower.profilePhotoUrl
+        };
+        if (follower.follower && follower.follower.identities) {
+          if (follower.follower.identities.provider === 'facebook-token') {
+            info['username'] = follower.follower.identities.profile.displayName;
+          }
+        } else {
+          info['username'] = follower.follower.username;
+        }
+        output.push(info);
+      });
+      callback(null, output);
+    });
+  };
+  User.remoteMethod('listFollowers', {
+    accepts: [
+      { arg: 'id', type: 'string', require: true }
+    ],
+    returns: [ { arg: 'result', type: 'string' } ],
+    http: { path: '/:id/followers', verb: 'get' }
+  });
+
+  User.listFollowing = function(id, callback) {
+    var Follow = User.app.models.follow;
+    Follow.find({
+      where: { followerId: id },
+      fields: [ 'followeeId', 'followAt' ],
+      include: {
+        relation: 'followee',
+        scope: {
+          fields: [ 'username', 'profilePhotoUrl' ],
+          include: {
+            relation: 'identities',
+            scope: {
+              fields: [ 'provider', 'profile' ]
+            }
+          }
+        }
+      }
+    }, function(err, following) {
+      if (err) { return callback(err); }
+      var output = [], i;
+      following.forEach(function(user) {
+        var info = {
+          id: user.followeeId,
+          followAt: user.followAt,
+          profilePhotoUrl: user.following.profilePhotoUrl
+        };
+        if (user.following && user.following.identities) {
+          if (user.following.identities.provider === 'facebook-token') {
+            info['username'] = user.following.identities.profile.displayName;
+          }
+        } else {
+          info['username'] = user.following.username;
+        }
+        output.push(info);
+      });
+      callback(null, output);
+    });
+  };
+  User.remoteMethod('listFollowing', {
+    accepts: [
+      { arg: 'id', type: 'string', require: true }
+    ],
+    returns: [ { arg: 'result', type: 'string' } ],
+    http: { path: '/:id/following', verb: 'get' }
   });
 
   User.uploadProfilePhoto = function(id, json, callback) {
@@ -618,4 +727,33 @@ module.exports = function(User) {
     returns: [ { arg: 'result', type: 'object' } ],
     http: { path: '/:id/profile/query', verb: 'post' }
   });
+
+  /*
+  User.getFeedback = function(id, json, callback) {
+    User.findById(id, function(err, user) {
+      if (err) { return callback(err); }
+      if (!user) { return callback(new Error('No user with the id was found')); }
+      if (!user.email) { return callback(new Error('Internal Error')); }
+      if (json.message && typeof json.message === 'string' && json.message !== '') {
+        var subject = '[Feedback] ' + json.message.slice(0, 50) + '...';
+        var content = 'User ID: ' + user.sid + '\n' +
+                      'User Name: ' + user.username + '\n' +
+                      'Message: ' + json.message;
+        User.app.models.Email.send({
+
+        });
+        sendEmail(user.email, 'Service', subject, content);
+      }
+      callback(null, 'success');
+    });
+  };
+  User.remoteMethod('getFeedback', {
+    accepts: [
+      { arg: 'id', type: 'string', require: true },
+      { arg: 'json', type: 'object', 'http': { source: 'body' } }
+    ],
+    returns: [ { arg: 'result', type: 'object' } ],
+    http: { path: '/:id/feedback', verb: 'post' }
+  });
+  */
 };

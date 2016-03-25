@@ -39,7 +39,7 @@ module.exports = function (server) {
         },
         order: 'sid DESC',
         limit: limit + 1 // to see if we have next page
-      }
+      };
       if (where && (typeof where === 'object')) {
         try {
           if ((where.sid.hasOwnProperty('lt') && (typeof where.sid.lt === 'string')) ||

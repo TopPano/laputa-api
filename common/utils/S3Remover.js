@@ -49,7 +49,7 @@ function S3Remover() {
 
     return _this;
   };
-};
+}
 
 util.inherits(S3Remover, EventEmitter);
 
