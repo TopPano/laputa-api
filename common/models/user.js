@@ -322,23 +322,19 @@ module.exports = function(User) {
       }
     }, function(err, followers) {
       if (err) { return callback(err); }
-      var output = [], i;
+      // XXX: Didn't find a way to filter the unnecessary properties in identities' profile object with
+      //      loopback's scope(fields) filter, so we manually filter those properties here...
       followers.forEach(function(follower) {
-        var info = {
-          id: follower.followerId,
-          followAt: follower.followAt,
-          profilePhotoUrl: follower.follower.profilePhotoUrl
-        };
-        if (follower.follower && follower.follower.identities) {
-          if (follower.follower.identities.provider === 'facebook-token') {
-            info['username'] = follower.follower.identities.profile.displayName;
-          }
-        } else {
-          info['username'] = follower.follower.username;
+        if (follower.follower.identities.length !== 0) {
+          var profile = {};
+          // Currently, for third-party login, we only support facebook, so the following profile
+          // format is for facebook only
+          profile.displayName = follower.follower.identities[0].profile.displayName;
+          profile.name = follower.follower.identities[0].profile.name;
+          follower.follower.identities[0].profile = profile;
         }
-        output.push(info);
       });
-      callback(null, output);
+      callback(null, followers);
     });
   };
   User.remoteMethod('listFollowers', {
@@ -368,23 +364,19 @@ module.exports = function(User) {
       }
     }, function(err, following) {
       if (err) { return callback(err); }
-      var output = [], i;
+      // XXX: Didn't find a way to filter the unnecessary properties in identities' profile object with
+      //      loopback's scope(fields) filter, so we manually filter those properties here...
       following.forEach(function(user) {
-        var info = {
-          id: user.followeeId,
-          followAt: user.followAt,
-          profilePhotoUrl: user.following.profilePhotoUrl
-        };
-        if (user.following && user.following.identities) {
-          if (user.following.identities.provider === 'facebook-token') {
-            info['username'] = user.following.identities.profile.displayName;
-          }
-        } else {
-          info['username'] = user.following.username;
+        if (user.following.identities.length !== 0) {
+          var profile = {};
+          // Currently, for third-party login, we only support facebook, so the following profile
+          // format is for facebook only
+          profile.displayName = user.following.identities[0].profile.displayName;
+          profile.name = user.following.identities[0].profile.name;
+          user.following.identities[0].profile = profile;
         }
-        output.push(info);
       });
-      callback(null, output);
+      callback(null, following);
     });
   };
   User.remoteMethod('listFollowing', {
