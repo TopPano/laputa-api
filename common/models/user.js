@@ -251,15 +251,28 @@ module.exports = function(User) {
       //        Tracking issues:
       //          https://github.com/strongloop/loopback-datasource-juggler/issues/121
       //          https://github.com/strongloop/loopback-datasource-juggler/issues/478
-      Follow.find({where: {followerId: followerId, followeeId: followeeId}}, function(err, result) {
+      var followObj = { followerId: followerId, followeeId: followeeId };
+      Follow.findOrCreate({ where: followObj }, followObj, function(err, result, created) {
         if (err) { return callback(err); }
-        if (result.length === 0) {
-          Follow.create({followerId: followerId, followeeId: followeeId, followAt: new Date()}, function(err, result) {
+        if (created) {
+          var reverseFollowObj = { followerId: followeeId, followeeId: followerId };
+          Follow.findOne({ where: reverseFollowObj }, function(err, result) {
             if (err) { return callback(err); }
-            callback(null, 'success');
+            if (result) {
+              Follow.updateAll({
+                or: [
+                  followObj,
+                  reverseFollowObj
+                ]
+              }, { isFriend: true }, function(err, info) {
+                if (err) { return callback(err); }
+                callback(null, 'success');
+              });
+            } else {
+              callback(null, 'success');
+            }
           });
         } else {
-          // Ignore duplicate following
           callback(null, 'success');
         }
       });
@@ -303,13 +316,13 @@ module.exports = function(User) {
     http: { path: '/:followerId/unfollow/:followeeId', verb: 'post' }
   });
 
-  User.listFans = function(id, callback) {
+  User.listFollowers = function(id, callback) {
     var Follow = User.app.models.follow;
     Follow.find({
       where: { followeeId: id },
-      fields: [ 'followerId', 'followAt' ],
+      fields: [ 'followerId', 'isFriend', 'followAt' ],
       include: {
-        relation: 'fan',
+        relation: 'follower',
         scope: {
           fields: [ 'username', 'profilePhotoUrl' ],
           include: {
@@ -325,19 +338,19 @@ module.exports = function(User) {
       callback(null, followers);
     });
   };
-  User.remoteMethod('listFans', {
+  User.remoteMethod('listFollowers', {
     accepts: [
       { arg: 'id', type: 'string', require: true }
     ],
     returns: [ { arg: 'result', type: 'string' } ],
-    http: { path: '/:id/fans', verb: 'get' }
+    http: { path: '/:id/followers', verb: 'get' }
   });
 
   User.listFollowing = function(id, callback) {
     var Follow = User.app.models.follow;
     Follow.find({
       where: { followerId: id },
-      fields: [ 'followeeId', 'followAt' ],
+      fields: [ 'followeeId', 'isFriend', 'followAt' ],
       include: {
         relation: 'following',
         scope: {

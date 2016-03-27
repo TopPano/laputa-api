@@ -89,7 +89,7 @@
       "principalType": "ROLE",
       "principalId": "$authenticated",
       "permission": "ALLOW",
-      "property": "listFans"
+      "property": "listFollowers"
     },
     {
       "principalType": "ROLE",
