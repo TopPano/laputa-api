@@ -501,4 +501,38 @@ module.exports = function(Post) {
     returns: [ { arg: 'status', type: 'string' } ],
     http: { path: '/:id/unlike', verb: 'post' }
   });
+
+  Post.getLikeList = function(postId, callback) {
+    console.log('id: '+postId);
+    var Like = Post.app.models.like;
+    Like.find({
+      where: { postId: postId },
+      fields: [ 'userId', 'likeAt' ],
+      include: {
+        relation: 'user',
+        scope: {
+          fields: [ 'username', 'profilePhotoUrl' ],
+          include: {
+            relation: 'identities',
+            scope: {
+              fields: [ 'provider', 'profile' ]
+            }
+          }
+        }
+      }
+    }, function(err, likes) {
+      if (err) {
+        console.error(err);
+        return callback(err);
+      }
+      callback(null, likes);
+    });
+  };
+  Post.remoteMethod('getLikeList', {
+    accepts: [
+      { arg: 'id', type: 'string', require: true },
+    ],
+    returns: [ { arg: 'result', type: 'object' } ],
+    http: { path: '/:id/likes', verb: 'get' }
+  });
 };
