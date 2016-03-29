@@ -502,8 +502,7 @@ module.exports = function(Post) {
     http: { path: '/:id/unlike', verb: 'post' }
   });
 
-  Post.getLikeList = function(postId, callback) {
-    console.log('id: '+postId);
+  Post.getLikeList = function(postId, req, callback) {
     var Like = Post.app.models.like;
     Like.find({
       where: { postId: postId },
@@ -512,12 +511,21 @@ module.exports = function(Post) {
         relation: 'user',
         scope: {
           fields: [ 'username', 'profilePhotoUrl' ],
-          include: {
-            relation: 'identities',
-            scope: {
-              fields: [ 'provider', 'profile' ]
+          include: [
+            {
+              relation: 'followers',
+              scope: {
+                where: { followerId: req.accessToken.userId },
+                fields: [ 'followeeId', 'isFriend', 'followAt' ]
+              }
+            },
+            {
+              relation: 'identities',
+              scope: {
+                fields: [ 'provider', 'profile' ]
+              }
             }
-          }
+          ]
         }
       }
     }, function(err, likes) {
@@ -531,6 +539,7 @@ module.exports = function(Post) {
   Post.remoteMethod('getLikeList', {
     accepts: [
       { arg: 'id', type: 'string', require: true },
+      { arg: 'req', type: 'object', 'http': { source: 'req' } }
     ],
     returns: [ { arg: 'result', type: 'object' } ],
     http: { path: '/:id/likes', verb: 'get' }

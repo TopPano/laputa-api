@@ -34,6 +34,16 @@
       "type": "hasMany",
       "model": "post",
       "foreignKey": "ownerId"
+    },
+    "followers": {
+      "type": "hasMany",
+      "model": "follow",
+      "foreignKey": "followeeId"
+    },
+    "following": {
+      "type": "hasMany",
+      "model": "follow",
+      "foreignKey": "followerId"
     }
   },
   "acls": [
