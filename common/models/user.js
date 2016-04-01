@@ -7,23 +7,6 @@ var S3Remover = require('../utils/S3Remover');
 
 module.exports = function(User) {
 
-  /*
-  function sendEmail(from, to, subject, content) {
-    var job = gearClient.submitJob('send email', JSON.stringify({
-      from: from,
-      to: to,
-      subject: subject,
-      content: content
-    }));
-    job.on('complete', function() {
-      var response = JSON.parse(job.response);
-      if (response.status === 'failure') {
-        console.error('Failed to send email');
-      }
-    });
-  }
-  */
-
   function descending(a,b) {
     if (a.sid > b.sid)
       return -1;
@@ -320,6 +303,7 @@ module.exports = function(User) {
   User.disableRemoteMethod('__get__followers', false);
   User.disableRemoteMethod('__create__followers', false);
   User.disableRemoteMethod('__delete__followers', false);
+  User.disableRemoteMethod('__get__following', false);
   User.disableRemoteMethod('__create__following', false);
   User.disableRemoteMethod('__delete__following', false);
 
@@ -714,6 +698,17 @@ module.exports = function(User) {
     ],
     returns: [ { arg: 'result', type: 'object' } ],
     http: { path: '/:id/profile/query', verb: 'post' }
+  });
+
+  User.changePassword = function(id, callback) {
+
+  };
+  User.remoteMethod('changePassword', {
+    accepts: [
+      { arg: 'id', type: 'string', require: true }
+    ],
+    returns: [ { arg: 'result', type: 'string' } ],
+    http: { path: '/:id/password', verb: 'post' }
   });
 
   User.createFeedback = function(id, json, callback) {
