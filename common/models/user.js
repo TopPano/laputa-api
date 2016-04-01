@@ -316,6 +316,13 @@ module.exports = function(User) {
     http: { path: '/:followerId/unfollow/:followeeId', verb: 'post' }
   });
 
+  // disable default remote methods
+  User.disableRemoteMethod('__get__followers', false);
+  User.disableRemoteMethod('__create__followers', false);
+  User.disableRemoteMethod('__delete__followers', false);
+  User.disableRemoteMethod('__create__following', false);
+  User.disableRemoteMethod('__delete__following', false);
+
   User.listFollowers = function(id, callback) {
     var Follow = User.app.models.follow;
     Follow.find({
@@ -709,32 +716,45 @@ module.exports = function(User) {
     http: { path: '/:id/profile/query', verb: 'post' }
   });
 
-  /*
-  User.getFeedback = function(id, json, callback) {
+  User.createFeedback = function(id, json, callback) {
     User.findById(id, function(err, user) {
       if (err) { return callback(err); }
       if (!user) { return callback(new Error('No user with the id was found')); }
       if (!user.email) { return callback(new Error('Internal Error')); }
       if (json.message && typeof json.message === 'string' && json.message !== '') {
+        var appVersion = json.appVersion || 'not provided';
+        var deviceName = json.device.name || 'not provided';
+        var deviceOS = json.device.os || 'not provided';
         var subject = '[Feedback] ' + json.message.slice(0, 50) + '...';
         var content = 'User ID: ' + user.sid + '\n' +
-                      'User Name: ' + user.username + '\n' +
+                      'Username: ' + user.username + '\n' +
+                      'App Version: ' + appVersion + '\n' +
+                      'Device Name: ' + deviceName + '\n' +
+                      'Device OS: ' + deviceOS + '\n\n' +
                       'Message: ' + json.message;
         User.app.models.Email.send({
-
+          to: 'service@verpix.me',
+          from: user.email,
+          subject: subject,
+          text: content
+        }, function(err) {
+          if (err) {
+            console.error(err);
+            return callback(err);
+          }
+          callback(null, 'success');
         });
-        sendEmail(user.email, 'Service', subject, content);
+      } else {
+        callback(null, 'success');
       }
-      callback(null, 'success');
     });
   };
-  User.remoteMethod('getFeedback', {
+  User.remoteMethod('createFeedback', {
     accepts: [
       { arg: 'id', type: 'string', require: true },
       { arg: 'json', type: 'object', 'http': { source: 'body' } }
     ],
-    returns: [ { arg: 'result', type: 'object' } ],
+    returns: [ { arg: 'result', type: 'string' } ],
     http: { path: '/:id/feedback', verb: 'post' }
   });
-  */
 };

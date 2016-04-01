@@ -2,5 +2,25 @@
   "memoryDB": {
     "name": "memoryDB",
     "connector": "memory"
+  },
+  "email": {
+    "name": "email",
+    "connector": "mail",
+    "transports": [
+      {
+        "type": "smtp",
+        "host": "smtp.gmail.com",
+        "port": 465,
+        "secure": true,
+        "auth": {
+          "xoauth2": {
+            "user": "service@verpix.me",
+            "clientId": "889382302510-6p6d1bu5antqjgdb2td64e9kiq6ha934.apps.googleusercontent.com",
+            "clientSecret": "byy4U385AXwkHAZ94hmohyca",
+            "refreshToken": "1/Oh0udAYmU9daSs8Q-HRbp03fDfHT3SCEQEPlmksFplsMEudVrK5jSpoR30zcRFq6"
+          }
+        }
+      }
+    ]
   }
 }

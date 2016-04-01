@@ -516,7 +516,7 @@ module.exports = function(Post) {
               relation: 'followers',
               scope: {
                 where: { followerId: req.accessToken.userId },
-                fields: [ 'followeeId', 'isFriend', 'followAt' ]
+                fields: [ 'followeeId', 'followerId', 'followAt' ]
               }
             },
             {
