@@ -25,10 +25,7 @@ module.exports = function(User) {
         return callback(error);
       }
       if (info && info.accessToken) {
-        return callback(null, {
-          accessToken: info.accessToken.id,
-          userId: user.id
-        });
+        return callback(null, info.accessToken);
       }
     })(req, res);
   };
