@@ -391,17 +391,22 @@ module.exports = function(Post) {
       },
       ownerInfo: function(callback) {
         var User = Post.app.models.user;
-        User.findById(post.ownerId, function(err, user) {
+        User.findById(post.ownerId, {
+          fields: [ 'sid', 'username', 'profilePhotoUrl' ],
+          include: {
+            relation: 'identities',
+            scope: {
+              fields: [ 'provider', 'profile' ]
+            }
+          }
+        }, function(err, user) {
           if (err) { return callback(err); }
           if (!user) {
             var error = new Error('Internal Error');
             error.status = 500;
             return callback(error);
           }
-          callback(null, {
-            username: user.username,
-            profilePhotoUrl: user.profilePhotoUrl
-          });
+          callback(null, user);
         });
       }
     }, function(err, results) {
