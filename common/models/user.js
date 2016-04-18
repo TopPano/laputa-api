@@ -328,11 +328,11 @@ module.exports = function(User) {
       }
     }, function(err, followers) {
       if (err) { return callback(err); }
-      async.each(followers.result, function(user, callback) {
+      async.each(followers, function(user, callback) {
         Follow.find({
           where: {
             followeeId: user.followerId,
-            followerId: req.accessToken.uesrId
+            followerId: req.accessToken.userId
           }
         }, function(err, result) {
           if (err) { return callback(err); }
@@ -377,11 +377,11 @@ module.exports = function(User) {
       }
     }, function(err, following) {
       if (err) { return callback(err); }
-      async.each(following.result, function(user, callback) {
+      async.each(following, function(user, callback) {
         Follow.find({
           where: {
             followeeId: user.followeeId,
-            followerId: req.accessToken.uesrId
+            followerId: req.accessToken.userId
           }
         }, function(err, result) {
           if (err) { return callback(err); }
