@@ -309,11 +309,11 @@ module.exports = function(User) {
   User.disableRemoteMethod('__create__following', false);
   User.disableRemoteMethod('__delete__following', false);
 
-  User.listFollowers = function(id, callback) {
+  User.listFollowers = function(id, req, callback) {
     var Follow = User.app.models.follow;
     Follow.find({
       where: { followeeId: id },
-      fields: [ 'followerId', 'isFriend', 'followAt' ],
+      fields: [ 'followerId', 'followAt' ],
       include: {
         relation: 'follower',
         scope: {
@@ -328,22 +328,41 @@ module.exports = function(User) {
       }
     }, function(err, followers) {
       if (err) { return callback(err); }
-      callback(null, followers);
+      async.each(followers.result, function(user, callback) {
+        Follow.find({
+          where: {
+            followeeId: user.followerId,
+            followerId: req.accessToken.uesrId
+          }
+        }, function(err, result) {
+          if (err) { return callback(err); }
+          if (result.length === 0) {
+            user.isFriend = false;
+          } else {
+            user.isFriend = true;
+          }
+          callback();
+        });
+      }, function(err) {
+        if (err) { return callback(err); }
+        callback(null, followers);
+      });
     });
   };
   User.remoteMethod('listFollowers', {
     accepts: [
-      { arg: 'id', type: 'string', require: true }
+      { arg: 'id', type: 'string', require: true },
+      { arg: 'req', type: 'object', 'http': { source: 'req' } }
     ],
     returns: [ { arg: 'result', type: 'string' } ],
     http: { path: '/:id/followers', verb: 'get' }
   });
 
-  User.listFollowing = function(id, callback) {
+  User.listFollowing = function(id, req, callback) {
     var Follow = User.app.models.follow;
     Follow.find({
       where: { followerId: id },
-      fields: [ 'followeeId', 'isFriend', 'followAt' ],
+      fields: [ 'followeeId', 'followAt' ],
       include: {
         relation: 'following',
         scope: {
@@ -358,12 +377,31 @@ module.exports = function(User) {
       }
     }, function(err, following) {
       if (err) { return callback(err); }
-      callback(null, following);
+      async.each(following.result, function(user, callback) {
+        Follow.find({
+          where: {
+            followeeId: user.followeeId,
+            followerId: req.accessToken.uesrId
+          }
+        }, function(err, result) {
+          if (err) { return callback(err); }
+          if (result.length === 0) {
+            user.isFriend = false;
+          } else {
+            user.isFriend = true;
+          }
+          callback();
+        });
+      }, function(err) {
+        if (err) { return callback(err); }
+        callback(null, following);
+      });
     });
   };
   User.remoteMethod('listFollowing', {
     accepts: [
-      { arg: 'id', type: 'string', require: true }
+      { arg: 'id', type: 'string', require: true },
+      { arg: 'req', type: 'object', 'http': { source: 'req' } }
     ],
     returns: [ { arg: 'result', type: 'string' } ],
     http: { path: '/:id/following', verb: 'get' }
