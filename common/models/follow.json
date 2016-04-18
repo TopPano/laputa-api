@@ -9,7 +9,6 @@
   "properties": {
     "followerId": { "type": "string", "require": true },
     "followeeId": { "type": "string", "require": true },
-    "isFriend": { "type": "boolean", "default": false },
     "followAt": { "type": "date" }
   },
   "validations": [],

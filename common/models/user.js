@@ -237,29 +237,9 @@ module.exports = function(User) {
       //          https://github.com/strongloop/loopback-datasource-juggler/issues/121
       //          https://github.com/strongloop/loopback-datasource-juggler/issues/478
       var followObj = { followerId: followerId, followeeId: followeeId };
-      Follow.findOrCreate({ where: followObj }, followObj, function(err, result, created) {
+      Follow.findOrCreate({ where: followObj }, followObj, function(err) {
         if (err) { return callback(err); }
-        if (created) {
-          var reverseFollowObj = { followerId: followeeId, followeeId: followerId };
-          Follow.findOne({ where: reverseFollowObj }, function(err, result) {
-            if (err) { return callback(err); }
-            if (result) {
-              Follow.updateAll({
-                or: [
-                  followObj,
-                  reverseFollowObj
-                ]
-              }, { isFriend: true }, function(err, info) {
-                if (err) { return callback(err); }
-                callback(null, 'success');
-              });
-            } else {
-              callback(null, 'success');
-            }
-          });
-        } else {
-          callback(null, 'success');
-        }
+        callback(null, 'success');
       });
     });
   };
