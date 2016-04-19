@@ -195,6 +195,11 @@ module.exports = function(User) {
   });
 
   var verifyFollowing = function(followerId, followeeId, done) {
+    if (followerId === followeeId) {
+      var error = new Error('Self following is not allowed');
+      error.status = 400;
+      return done(error);
+    }
     async.parallel({
       verifyFollower: function(callback) {
         User.findById(followerId, function(err, user) {
