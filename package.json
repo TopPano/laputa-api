@@ -17,6 +17,7 @@
     "cors": "^2.5.2",
     "gearmanode": "^0.9.2",
     "gm": "^1.21.1",
+    "http-status": "^0.2.2",
     "loopback": "^2.26.1",
     "loopback-boot": "^2.12.1",
     "loopback-component-explorer": "^2.1.0",
