@@ -1,3 +1,4 @@
+var loopback = require('loopback');
 module.exports = function enableAuthentication(server) {
   // enable authentication
   server.enableAuth();
@@ -10,14 +11,20 @@ module.exports = function enableAuthentication(server) {
     var token = req.accessToken;
     if (!token) { return next(); }
     var now = new Date();
-    var time = now.getTime() - token.created.getTime();
-    // don't extend the token if it has expired or just been issued less than a week
-    // NOTE: ttl should be longer than a week
-    if ( time > req.accessToken.ttl || time  < 604800 ) {
+    var elapsed = now.getTime() - token.created.getTime();
+    if (elapsed < 604800000 /* one week in milliseconds */) {
+      // performance optimization:
+      // do not update the token more often than once per week
+      // XXX: ttl should NOT be less than a week otherwise the token
+      //      will never be updated
+      return next();
+    }
+    if (elapsed > (token.ttl * 1000 /* convert ttl into milliseconds */)) {
+      // don't extend the token if it has already expired
       return next();
     }
     req.accessToken.created = now;
-    req.accessToken.ttl = 2419200; // four week
+    req.accessToken.ttl = 2419200; // four week in seconds
     req.accessToken.save(next);
   });
 };
