@@ -23,7 +23,6 @@ boot(app, __dirname, function(err) {
   if (err) throw err;
 });
 
-app.use(loopback.token({currentUserLiteral: 'me'}));
 app.use(multer({storage: multer.memoryStorage()}).fields([
   { name: 'thumbnail', maxCount: 1 },
   { name: 'image', maxCount: 1 }
