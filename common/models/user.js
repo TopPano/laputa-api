@@ -730,15 +730,41 @@ module.exports = function(User) {
     http: { path: '/:id/profile/query', verb: 'post' }
   });
 
-  User.changePassword = function(id, callback) {
-
+  User.changePassword = function(id, body, callback) {
+    var oldPassword = body.oldPassword || null;
+    var newPassword = body.newPassword || null;
+    if (!oldPassword || !newPassword) {
+      var error = new Error('Missing Information');
+      error.status = 400;
+      return callback(error);
+    }
+    User.findById(id, function(err, user) {
+      var error;
+      if (err) { return callback(err); }
+      if (!user) {
+        error = new Error('User Not Found');
+        error.status = 404;
+        return callback(error);
+      }
+      user.hasPassword(oldPassword, function(err, isMatch) {
+        if (err) { return callback(err); }
+        if (isMatch) {
+          user.updateAttribute('password', newPassword, callback);
+        } else {
+          error = new Error('Incorrect Old Password');
+          error.status = 401;
+          callback(error);
+        }
+      });
+    });
   };
   User.remoteMethod('changePassword', {
     accepts: [
-      { arg: 'id', type: 'string', require: true }
+      { arg: 'id', type: 'string', require: true },
+      { arg: 'json', type: 'object', 'http': { source: 'body' } }
     ],
     returns: [ { arg: 'result', type: 'string' } ],
-    http: { path: '/:id/password', verb: 'post' }
+    http: { path: '/:id/changePassword', verb: 'post' }
   });
 
   User.createFeedback = function(id, json, callback) {

@@ -57,6 +57,10 @@
     "dataSource": "memoryDB",
     "public": false
   },
+  "location": {
+    "dataSource": "memoryDB",
+    "public": false
+  },
   "snapshot": {
     "dataSource": "memoryDB",
     "public": false
