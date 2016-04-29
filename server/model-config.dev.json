@@ -57,6 +57,10 @@
     "dataSource": "mongoDB",
     "public": false
   },
+  "location": {
+    "dataSource": "mongoDB",
+    "public": false
+  },
   "snapshot": {
     "dataSource": "mongoDB",
     "public": false

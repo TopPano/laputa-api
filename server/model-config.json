@@ -60,6 +60,10 @@
     "dataSource": "db",
     "public": false
   },
+  "location": {
+    "dataSource": "db",
+    "public": false
+  },
   "snapshot": {
     "dataSource": "db",
     "public": false

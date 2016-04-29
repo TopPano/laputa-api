@@ -52,7 +52,7 @@ module.exports = function(Post) {
     }
   }
 
-  Post.beforeRemote('*.__create__nodes', function(ctx, instance, next) {
+  Post.beforeRemote('*.__create__nodes', function(ctx, post, next) {
     try {
       var postId = ctx.req.params.id;
       var nodeId = ctx.args.data.sid;
@@ -65,6 +65,9 @@ module.exports = function(Post) {
       var thumbType = ctx.req.files.thumbnail[0].mimetype;
       var thumbLat = ctx.req.body.thumbLat;
       var thumbLng = ctx.req.body.thumbLng;
+      var locationName = ctx.req.body.locationName;
+      var locationLat = ctx.req.body.locationLat;
+      var locationLng = ctx.req.body.locationLng;
       var now = getTimeNow();
 
       if (!thumbBuf || !thumbType || !thumbLat || !thumbLng) {
@@ -99,6 +102,15 @@ module.exports = function(Post) {
             imageFilename: nodeId+'.jpg',
             image: thumbBuf
           }, callback);
+        },
+        updatePostLocation: function(callback) {
+          post.locations.create({
+            name: locationName,
+            geo: {
+              lat: locationLat,
+              lng: locationLng
+            }
+          }, callback);
         }
       }, function(err, results) {
         if (err) {
@@ -130,7 +142,7 @@ module.exports = function(Post) {
     }
   });
 
-  Post.afterRemote('*.__create__nodes', function(ctx, instance, next) {
+  Post.afterRemote('*.__create__nodes', function(ctx, unused, next) {
     var job = gearClient.submitJob('process image', JSON.stringify({
       postId: ctx.req.params.id,
       nodeId: ctx.args.data.sid,
@@ -186,7 +198,7 @@ module.exports = function(Post) {
     next();
   });
 
-  Post.beforeRemote('*.__create__snapshots', function(ctx, instance, next) {
+  Post.beforeRemote('*.__create__snapshots', function(ctx, unused, next) {
     try {
       var postId = ctx.req.params.id;
       var image = ctx.req.files.image[0].buffer;
@@ -218,7 +230,7 @@ module.exports = function(Post) {
     }
   });
 
-  Post.afterRemote('*.__get__files', function(ctx, instance, next) {
+  Post.afterRemote('*.__get__files', function(ctx, unused, next) {
     if (ctx.result) {
       var result = ctx.result;
       assert(Array.isArray(result));
@@ -232,7 +244,7 @@ module.exports = function(Post) {
     next();
   });
 
-  Post.afterRemote('deleteById', function(ctx, instance, next) {
+  Post.afterRemote('deleteById', function(ctx, unused, next) {
     var postId = ctx.req.params.id;
     var Nodemeta = Post.app.models.nodemeta;
     var File = Post.app.models.file;

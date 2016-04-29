@@ -1,0 +1,23 @@
+{
+  "name": "location",
+  "plural": "locations",
+  "base": "PersistedModel",
+  "idInjection": false,
+  "options": {
+    "validateUpsert": true
+  },
+  "properties": {
+    "name": { "type": "string", "require": true },
+    "geo": { "type": "geopoint", "require": true }
+  },
+  "validations": [],
+  "relations": {
+    "post": {
+      "type": "belongsTo",
+      "model": "post",
+      "foreignKey": "postId"
+    }
+  },
+  "acls": [],
+  "methods": {}
+}

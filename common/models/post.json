@@ -28,12 +28,6 @@
     "nodes": {
       "type": "object"
     },
-    "address": {
-      "type": "string"
-    },
-    "geolocation": {
-      "type": "geopoint"
-    },
     "created": {
       "type": "date"
     },
