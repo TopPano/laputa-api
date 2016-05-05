@@ -503,7 +503,7 @@ module.exports = function(User) {
               if (err) { return callback(err); }
               if (userIdentity.length === 0) {
                 var error = new Error('User Identity Not Found');
-                error.status = 500;
+                error.status = 404;
                 return callback(error);
               }
               var username;
@@ -544,7 +544,7 @@ module.exports = function(User) {
       isFollowing: function(callback) {
         if (!req.accessToken) {
           var error = new Error('Bad Request: missing access token');
-          error.status = 400;
+          error.status = 401;
           return callback(error);
         }
         // check if the access token is valid
@@ -568,6 +568,9 @@ module.exports = function(User) {
       }
     }, function(err, results) {
       if (err) {
+        if (err.status && err.status >= 400) {
+          return callback(err);
+        }
         console.error(err);
         return callback(new Error('Internal Error'));
       }
