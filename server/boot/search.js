@@ -10,12 +10,18 @@ module.exports = function (server) {
     var where = req.body.where || undefined;
     var PAGE_SIZE = 12;
     var limit = PAGE_SIZE;
+    var accessToken = null;
 
-    if (!req.query['access_token']) {
+    if (req.query['access_token']) {
+      accessToken = req.query['access_token'];
+    } else if (req.get('Authorization')) {
+      accessToken = req.get('Authorization');
+    }
+    if (!accessToken) {
       return res.status(400).send({error: 'Bad Request: missing access token'});
     }
 
-    AccessToken.findById(req.query['access_token'], function(err, token) {
+    AccessToken.findById(accessToken, function(err, token) {
       if (err) {
         console.error(err);
         return res.status(500).send({error: 'Internal Error'});
