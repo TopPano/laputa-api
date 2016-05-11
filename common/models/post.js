@@ -443,7 +443,7 @@ module.exports = function(Post) {
         count: results.likeCount,
         isLiked: results.isLiked
       };
-      post.location = reuslts.location;
+      post.location = results.location;
       post.ownerInfo = results.ownerInfo;
       next();
     });
