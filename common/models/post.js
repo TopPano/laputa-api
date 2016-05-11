@@ -66,8 +66,8 @@ module.exports = function(Post) {
       var thumbLat = ctx.req.body.thumbLat;
       var thumbLng = ctx.req.body.thumbLng;
       var locationName = ctx.req.body.locationName || null;
-      var locationLat = ctx.req.body.locationLat ? parseInt(ctx.req.body.locationLat, 10) : null;
-      var locationLng = ctx.req.body.locationLng ? parseInt(ctx.req.body.locationLng, 10) : null;
+      var locationLat = ctx.req.body.locationLat || null;
+      var locationLng = ctx.req.body.locationLng || null;
       var now = getTimeNow();
 
       if (!thumbBuf || !thumbType || !thumbLat || !thumbLng) {
