@@ -65,9 +65,9 @@ module.exports = function(Post) {
       var thumbType = ctx.req.files.thumbnail[0].mimetype;
       var thumbLat = ctx.req.body.thumbLat;
       var thumbLng = ctx.req.body.thumbLng;
-      var locationName = ctx.req.body.locationName;
-      var locationLat = ctx.req.body.locationLat;
-      var locationLng = ctx.req.body.locationLng;
+      var locationName = ctx.req.body.locationName || null;
+      var locationLat = ctx.req.body.locationLat ? parseInt(ctx.req.body.locationLat, 10) : null;
+      var locationLng = ctx.req.body.locationLng ? parseInt(ctx.req.body.locationLng, 10) : null;
       var now = getTimeNow();
 
       if (!thumbBuf || !thumbType || !thumbLat || !thumbLng) {
@@ -104,13 +104,19 @@ module.exports = function(Post) {
           }, callback);
         },
         updatePostLocation: function(callback) {
-          post.locations.create({
-            name: locationName,
-            geo: {
-              lat: locationLat,
-              lng: locationLng
-            }
-          }, callback);
+          var Location = Post.app.models.location;
+          if (!locationName) {
+            return callback();
+          } else {
+            Location.create({
+              name: locationName,
+              geo: {
+                lat: locationLat,
+                lng: locationLng
+              },
+              postId: postId
+            }, callback);
+          }
         }
       }, function(err, results) {
         if (err) {
@@ -368,6 +374,7 @@ module.exports = function(Post) {
   Post.afterRemote('findById', function(ctx, post, next) {
     var Like = Post.app.models.like;
     var User = Post.app.models.user;
+    var Location = Post.app.models.location;
     if (!post) {
       var error = new Error('No post found');
       error.status = 404;
@@ -381,7 +388,7 @@ module.exports = function(Post) {
         });
       },
       likeCount: function(callback) {
-        Like.find({where: {postId: post.sid}}, function(err, list) {
+        Like.find({ where: {postId: post.sid} }, function(err, list) {
           if (err) { return callback(err); }
           callback(null, list.length);
         });
@@ -401,8 +408,13 @@ module.exports = function(Post) {
           callback(null, false);
         }
       },
+      location: function(callback) {
+        Location.find({ where: { postId: post.sid } }, function(err, location) {
+          if (err) { return callback(err); }
+          callback(null, location);
+        });
+      },
       ownerInfo: function(callback) {
-        var User = Post.app.models.user;
         User.findById(post.ownerId, {
           fields: [ 'sid', 'username', 'profilePhotoUrl' ],
           include: {
@@ -431,6 +443,7 @@ module.exports = function(Post) {
         count: results.likeCount,
         isLiked: results.isLiked
       };
+      post.location = reuslts.location;
       post.ownerInfo = results.ownerInfo;
       next();
     });
