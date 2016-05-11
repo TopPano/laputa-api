@@ -411,7 +411,10 @@ module.exports = function(Post) {
       location: function(callback) {
         Location.find({ where: { postId: post.sid } }, function(err, location) {
           if (err) { return callback(err); }
-          callback(null, location);
+          if (location.length === 0) {
+            return callback(null, {});
+          }
+          callback(null, location[0]);
         });
       },
       ownerInfo: function(callback) {
