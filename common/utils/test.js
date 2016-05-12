@@ -14,9 +14,16 @@ async.times(10, function(n, next) {
   });
 }, function(err) {
   if (err) { return console.log(err); }
+  console.log('ids: ');
   console.log(ids);
+  console.log('-------------------------');
+  console.log('ids sort: ');
   console.log(ids.sort(compare));
+  console.log('-------------------------');
+  console.log('idStr sort: ');
   console.log(idStr.sort());
+  console.log('-------------------------');
+  console.log('idTime sort: ');
   console.log(idTime.sort());
   if (ids[1].id > ids[2].id) {
     console.log('ids[1]: '+ids[1].id+' is bigger than id[2]: '+ids[2].id);

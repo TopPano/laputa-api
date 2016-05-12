@@ -77,9 +77,28 @@
       //      that we can change a different alphabat for base64url which replace "+" to "-" and "/" to "_".
       //
       //      http://stackoverflow.com/questions/11449577/why-is-base64-encode-adding-a-slash-in-the-result
-      var base64UrlId = id.toString('base64').replace(/\//g, '_').replace(/\+/g, '-');
-      process.nextTick(callback.bind(null, null, {id: base64UrlId, timestamp: time}));
+      //var base64UrlId = id.toString('base64').replace(/\//g, '_').replace(/\+/g, '-');
+      //process.nextTick(callback.bind(null, null, {id: base64UrlId, timestamp: time}));
       //process.nextTick(callback.bind(null, null, {id: intformat(id, 'dec'), timestamp: time}));
+      // XXX: Updated 2016.5.12
+      //      When sorting base64 encoded id, in some cases the result will be reversed to the real id value
+      //      (before base64 encoding). The root cause is that some of the order of base64 characters are
+      //      reversed to the order of ASCII characters. For example:
+      //      In base64:
+      //        Char    Value
+      //        ----    -----
+      //         v        47
+      //         1        53
+      //
+      //        Order: 1 > v
+      //      In ASCII:
+      //        Char    Value
+      //        ----    -----
+      //         v        76
+      //         1        31
+      //
+      //        Order: v > 1
+      process.nextTick(callback.bind(null ,null, { id: id.toString('hex'), timestamp: time }));
     }
   };
 
