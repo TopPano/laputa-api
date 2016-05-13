@@ -20,12 +20,28 @@ module.exports = function(User) {
     passport.authenticate('facebook-token', function(err, user, info) {
       if (err) { return callback(err); }
       if (!user) {
-        var error = new Error('authentication error');
+        var error = new Error('Authentication Error');
         error.status = 401;
         return callback(error);
       }
       if (info && info.accessToken) {
-        return callback(null, info.accessToken);
+        if (req.query.include === 'user') {
+          var UserIdentity = User.app.models.userIdentity;
+          UserIdentity.find({
+            where: { userId: user.sid },
+            fields: ['provider', 'profile']
+          }, function(err, identity) {
+            if (err) { return callback(err); }
+            if (identity.length === 0) {
+              var error = new Error('Authentication Error');
+              error.status = 401;
+              return callback(error);
+            }
+            return callback(null, { token: info.accessToken, user: user, identity: identity[0] });
+          });
+        } else {
+          return callback(null, info.accessToken);
+        }
       }
     })(req, res);
   };
