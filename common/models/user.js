@@ -5,6 +5,8 @@ var passport = require('passport');
 var S3Uploader = require('../utils/S3Uploader');
 var S3Remover = require('../utils/S3Remover');
 
+var log = require('debug')('server:rest:user');
+
 module.exports = function(User) {
 
   function descending(a,b) {
@@ -55,6 +57,7 @@ module.exports = function(User) {
   });
 
   User.query = function(id, req, json, callback) {
+    log('in query');
     var Post = User.app.models.post;
     var Follow = User.app.models.follow;
     var where = json.where || undefined;
@@ -201,6 +204,7 @@ module.exports = function(User) {
             console.error(err);
             return callback(new Error('Internal Error'));
           }
+          log('query result returned');
           callback(null, output);
         });
       });
@@ -619,6 +623,7 @@ module.exports = function(User) {
   });
 
   User.profileQuery = function(id, req, json, callback) {
+    log('in profile query');
     var Post = User.app.models.post;
     var Follow = User.app.models.follow;
     var where = json.where || undefined;
@@ -747,6 +752,7 @@ module.exports = function(User) {
           console.error(err);
           return callback(new Error('Internal Error'));
         }
+        log('profile query returned');
         callback(null, output);
       });
     });

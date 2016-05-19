@@ -10,6 +10,8 @@ gearClient.jobServers.forEach(function(server) {
   server.setOption('exceptions', function() {});
 });
 
+var log = require('debug')('server:rest:post');
+
 module.exports = function(Post) {
 
   Post.validatesInclusionOf('mediaType', { in: [ 'panoPhoto', 'livePhoto' ] });
@@ -19,15 +21,18 @@ module.exports = function(Post) {
   }
 
   function createAsyncJob(options) {
+    log('in createAsyncJob');
     var job;
     switch (options.jobType) {
       case 'panoPhoto': {
+        log('creating async job: '+options.jobType);
         job = gearClient.submitJob('handlePanoPhoto', JSON.stringify({
           postId: options.postId,
           image: assign({}, options.image, { buffer: options.image.buffer.toString('base64') }),
           thumbnail: assign({}, options.thumbnail, { buffer: options.thumbnail.buffer.toString('base64') })
         }));
         job.on('complete', function() {
+          log('job completed for '+options.jobType);
           var response = JSON.parse(job.response);
           Post.updateAll({ sid: response.postId }, {
             status: 'completed',
@@ -45,6 +50,7 @@ module.exports = function(Post) {
             }
           }, function(err) {
             if (err) { console.error(err); }
+            log('updated post successfully');
           });
         });
         break;
@@ -89,6 +95,7 @@ module.exports = function(Post) {
   }
 
   Post.createPanoPhoto = function(req, callback) {
+    log('in createPanoPhoto');
     try {
       var caption = req.body.caption;
       var imgBuf = req.files.image[0].buffer;
@@ -138,6 +145,7 @@ module.exports = function(Post) {
         ownerId: req.accessToken.userId
       };
       if (locationProviderId) {
+        log('creating panoPhoto with location provider ID');
         Location.findOrCreate({
           where: {
             and: [
@@ -163,6 +171,7 @@ module.exports = function(Post) {
             error.status = 500;
             return callback(error);
           }
+          log('location created');
           postObj.locationId = location.id;
           Post.create(postObj, function(err, post) {
             if (err) { return callback(err); }
@@ -178,10 +187,12 @@ module.exports = function(Post) {
               },
               thumbnail: { buffer: thumbBuf }
             });
+            log('post created');
             callback(null, { postId: post.sid });
           });
         });
       } else if (locationName) {
+        log('creating panoPhoto with only location name');
         Location.create({
           name: locationName,
           geo: {
@@ -195,6 +206,7 @@ module.exports = function(Post) {
             error.status = 500;
             return callback(error);
           }
+          log('location created');
           postObj.locationId = location.id;
           Post.create(postObj, function(err, post) {
             if (err) { return callback(err); }
@@ -210,10 +222,12 @@ module.exports = function(Post) {
               },
               thumbnail: { buffer: thumbBuf }
             });
+            log('post created');
             callback(null, { postId: post.sid });
           });
         });
       } else {
+        log('create panoPhoto without location');
         Post.create(postObj, function(err, post) {
           if (err) { return callback(err); }
           // create a job for worker
@@ -228,6 +242,7 @@ module.exports = function(Post) {
             },
             thumbnail: { buffer: thumbBuf }
           });
+          log('post created');
           callback(null, { postId: post.sid });
         });
       }
@@ -274,6 +289,7 @@ module.exports = function(Post) {
   });
 
   Post.findPostById = function(id, req, callback) {
+    log('in findPostById');
     Post.findById(id, {
       include: [
         {
@@ -302,6 +318,7 @@ module.exports = function(Post) {
         error.status = 404;
         return callback(error);
       }
+      log('post found');
       var Like = Post.app.models.like;
       var User = Post.app.models.user;
       async.parallel({
@@ -332,6 +349,7 @@ module.exports = function(Post) {
           count: results.likeCount,
           isLiked: results.isLiked
         };
+        log('post returned');
         callback(null, post);
       });
     });
