@@ -68,12 +68,23 @@ module.exports = function(Post) {
       default:
         return;
     }
-    job.on('exception', function(e) {
-      console.error('[ %s ]: %s', job.name, e.toString());
-    });
-    job.on('timeout', function() {
-      console.error('[ %s ]: job timeout', job.name);
-    });
+    if (job) {
+      job.on('socketError', function(serverId, e) {
+        console.error('[ %s ]: onSocketError: server: %s, error: %s', job.name, serverId, e.toString());
+      });
+      job.on('jobServerError', function(serverId, code, message) {
+        console.error('[ %s ]: onJobServerError: code: %s, message: %s', serverId, code, message);
+      });
+      job.on('error', function(e) {
+        console.error('[ %s ]: onError: %s', job.name, e.toString());
+      });
+      job.on('exception', function(e) {
+        console.error('[ %s ]: onException: %s', job.name, e.toString());
+      });
+      job.on('timeout', function() {
+        console.error('[ %s ]: job timeout', job.name);
+      });
+    }
     return job;
   }
 
