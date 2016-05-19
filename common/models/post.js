@@ -170,6 +170,38 @@ module.exports = function(Post) {
             callback(null, { postId: post.sid });
           });
         });
+      } else if (locationName) {
+        Location.create({
+          name: locationName,
+          geo: {
+            lat: locationLat,
+            lng: locationLng
+          }
+        }, function(err, location) {
+          if (err) { return callback(err); }
+          if (!location) {
+            var error = new Error('Failed to Create Location');
+            error.status = 500;
+            return callback(error);
+          }
+          postObj.locationId = location.id;
+          Post.create(postObj, function(err, post) {
+            if (err) { return callback(err); }
+            // create a job for worker
+            createAsyncJob({
+              jobType: mediaType,
+              postId: post.sid,
+              image: {
+                width: imgWidth,
+                height: imgHeight,
+                buffer: imgBuf,
+                hasZipped: true
+              },
+              thumbnail: { buffer: thumbBuf }
+            });
+            callback(null, { postId: post.sid });
+          });
+        });
       } else {
         Post.create(postObj, function(err, post) {
           if (err) { return callback(err); }
