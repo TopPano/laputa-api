@@ -106,7 +106,13 @@ module.exports = function(User) {
         var postQuery = {
           where: query.where,
           order: 'sid DESC',
-          limit: query.limit
+          limit: query.limit,
+          include: {
+            relation: 'location',
+            scope: {
+              fields: [ 'name', 'geo', 'city', 'street', 'zip' ]
+            }
+          }
         };
         Post.find(postQuery, function(err, posts) {
           if (err) { return callback(err); }
@@ -633,7 +639,13 @@ module.exports = function(User) {
         status: 'completed'
       },
       order: 'sid DESC',
-      limit: limit + 1 // to see if we have next page
+      limit: limit + 1, // to see if we have next page
+      include: {
+        relation: 'location',
+        scope: {
+          fields: [ 'name', 'geo', 'city', 'street', 'zip' ]
+        }
+      }
     };
     // TODO: should have a more comprehensive parser for parsing the where query
     if (where && (typeof where === 'object')) {

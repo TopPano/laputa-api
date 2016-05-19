@@ -44,7 +44,13 @@ module.exports = function (server) {
           ownerId: { neq: token.userId }
         },
         order: 'sid DESC',
-        limit: limit + 1 // to see if we have next page
+        limit: limit + 1, // to see if we have next page
+        include: {
+          relation: 'location',
+          scope: {
+            fields: [ 'name', 'geo', 'city', 'street', 'zip' ]
+          }
+        }
       };
       if (where && (typeof where === 'object')) {
         try {
