@@ -45,10 +45,6 @@
     "dataSource": "mongoDB",
     "public": true
   },
-  "nodemeta": {
-    "dataSource": "mongoDB",
-    "public": false
-  },
   "like": {
     "dataSource": "mongoDB",
     "public": false
@@ -58,14 +54,6 @@
     "public": false
   },
   "location": {
-    "dataSource": "mongoDB",
-    "public": false
-  },
-  "snapshot": {
-    "dataSource": "mongoDB",
-    "public": false
-  },
-  "file": {
     "dataSource": "mongoDB",
     "public": false
   }

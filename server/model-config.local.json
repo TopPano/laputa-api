@@ -45,10 +45,6 @@
     "dataSource": "memoryDB",
     "public": true
   },
-  "nodemeta": {
-    "dataSource": "memoryDB",
-    "public": false
-  },
   "like": {
     "dataSource": "memoryDB",
     "public": false
@@ -58,14 +54,6 @@
     "public": false
   },
   "location": {
-    "dataSource": "memoryDB",
-    "public": false
-  },
-  "snapshot": {
-    "dataSource": "memoryDB",
-    "public": false
-  },
-  "file": {
     "dataSource": "memoryDB",
     "public": false
   }

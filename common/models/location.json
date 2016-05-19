@@ -7,17 +7,16 @@
     "validateUpsert": true
   },
   "properties": {
+    "provider": "string",
+    "providerId": "string",
     "name": { "type": "string", "require": true },
-    "geo": { "type": "geopoint", "require": true }
+    "geo": { "type": "geopoint", "require": true },
+    "city": "string",
+    "street": "string",
+    "zip": "number"
   },
   "validations": [],
-  "relations": {
-    "post": {
-      "type": "belongsTo",
-      "model": "post",
-      "foreignKey": "postId"
-    }
-  },
+  "relations": {},
   "acls": [],
   "methods": {}
 }

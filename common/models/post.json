@@ -16,59 +16,65 @@
       "type": "string",
       "default": "pending"
     },
-    "thumbnailUrl": {
-      "type": "string"
+    "dimension": {
+      "width": "number",
+      "height": "number",
+      "lat": "number",
+      "lng": "number"
     },
-    "message": {
-      "type": "string"
+    "thumbnail": {
+      "srcUrl": "string",
+      "downloadUrl": "string"
     },
-    "likes": {
-      "type": "object"
+    "mediaType": {
+      "type": "string",
+      "required": true
     },
-    "nodes": {
-      "type": "object"
-    },
-    "created": {
-      "type": "date"
-    },
-    "modified": {
-      "type": "date"
-    }
+    "media": "object",
+    "caption": "string",
+    "likes": "object",
+    "created": "date",
+    "modified": "date"
   },
   "validations": [],
   "relations": {
-    "nodes": {
-      "type": "hasMany",
-      "model": "nodemeta",
-      "foreignKey": "postId"
+    "location": {
+      "type": "belongsTo",
+      "model": "location",
+      "foreignKey": "locationId"
     },
-    "snapshots": {
-      "type": "embedsMany",
-      "model": "snapshot",
-      "property": "snapshotList",
-      "options": {
-        "validate": true,
-        "forceId": false
-      }
-    },
-    "files": {
-      "type": "hasMany",
-      "model": "file",
-      "foreignKey": "postId"
+    "owner": {
+      "type": "belongsTo",
+      "model": "user",
+      "foreignKey": "ownerId"
     }
   },
   "acls": [
     {
+      "accessType": "*",
       "principalType": "ROLE",
       "principalId": "$everyone",
-      "accessType": "WRITE",
       "permission": "DENY"
     },
     {
+      "accessType": "READ",
+      "principalType": "ROLE",
+      "principalId": "$everyone",
+      "permission": "ALLOW"
+    },
+    {
+      "accessType": "EXECUTE",
       "principalType": "ROLE",
       "principalId": "$authenticated",
-      "accessType": "WRITE",
-      "permission": "ALLOW"
+      "permission": "ALLOW",
+      "property": "deleteById"
+    },
+    {
+      "accessType": "EXECUTE",
+      "principalType": "ROLE",
+      "principalId": "$authenticated",
+      "permission": "ALLOW",
+      "property": "createPanoPhoto"
     }
   ],
   "methods": {}
