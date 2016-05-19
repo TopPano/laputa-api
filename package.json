@@ -6,7 +6,8 @@
     "pretest": "jshint .",
     "test": "NODE_ENV=dev DB_HOST=52.196.75.75 DB_PORT=27019 DB_USER=verpix-api DB_PASSWORD=1234 S3_BKT=verpix-img-development mocha -C -R spec spec/ --recursive --timeout 30000",
     "dev": "NODE_ENV=dev DB_HOST=52.196.75.75 DB_PORT=27019 DB_USER=verpix-api DB_PASSWORD=1234 S3_BKT=verpix-img-development node .",
-    "local": "NODE_ENV=local node ."
+    "start": "NODE_ENV='production' pm2 start server/server.js --name verpix-api",
+    "stop": "NODE_ENV='production' pm2 delete verpix-api -s &> /dev/null"
   },
   "dependencies": {
     "async": "^1.5.0",

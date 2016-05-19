@@ -14,20 +14,25 @@ Install dependent libraries:
 $ brew install imagemagick
 $ brew install graphicsmagick
 ```
+2. [pm2](http://pm2.keymetrics.io/)
+```
+$ npm install pm2 -g
+```
 
 Start the server.
+In production environment:
 ```
-$ node .
+$ npm start
 ```
 
-Or, start the server with pre-loaded test data.
+In developement environment:
 ```
-$ npm run-script local
+$ npm run-script dev
 ```
 
 Then you can access the server api via:
 
-  http://localhost:3000/api
+  http://HOSTNAME:3000/api
 
 # Testing
 ```
