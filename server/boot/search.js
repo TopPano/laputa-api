@@ -1,5 +1,5 @@
 var async = require('async');
-var log = require('debug')('server:rest:search');
+var logger = require('winston');
 module.exports = function (server) {
   // Install search route
   var router = server.loopback.Router();
@@ -8,7 +8,7 @@ module.exports = function (server) {
   var Like = server.models.like;
   var AccessToken = server.models.AccessToken;
   router.post('/api/search/recent', function(req, res) {
-    log('in /api/search/recent');
+    logger.debug('in /api/search/recent');
     var where = req.body.where || undefined;
     var PAGE_SIZE = 12;
     var limit = PAGE_SIZE;
@@ -141,7 +141,7 @@ module.exports = function (server) {
             console.error(err);
             return res.status(500).send('Internal Error');
           }
-          log('search result returned');
+          logger.debug('search result returned');
           res.send({result: output});
         });
       });

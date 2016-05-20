@@ -2,6 +2,7 @@
 var assign = require('lodash/assign');
 var moment = require('moment');
 var async = require('async');
+var logger = require('winston');
 var VerpixId = require('../utils/verpix-id-gen');
 var idGen = new VerpixId();
 
@@ -10,7 +11,6 @@ gearClient.jobServers.forEach(function(server) {
   server.setOption('exceptions', function() {});
 });
 
-var log = require('debug')('server:rest:post');
 
 module.exports = function(Post) {
 
@@ -21,18 +21,18 @@ module.exports = function(Post) {
   }
 
   function createAsyncJob(options) {
-    log('in createAsyncJob');
+    logger.debug('in createAsyncJob');
     var job;
     switch (options.jobType) {
       case 'panoPhoto': {
-        log('creating async job: '+options.jobType);
+        logger.debug('creating async job: '+options.jobType);
         job = gearClient.submitJob('handlePanoPhoto', JSON.stringify({
           postId: options.postId,
           image: assign({}, options.image, { buffer: options.image.buffer.toString('base64') }),
           thumbnail: assign({}, options.thumbnail, { buffer: options.thumbnail.buffer.toString('base64') })
         }));
         job.on('complete', function() {
-          log('job completed for '+options.jobType);
+          logger.debug('job completed for '+options.jobType);
           var response = JSON.parse(job.response);
           Post.updateAll({ sid: response.postId }, {
             status: 'completed',
@@ -49,8 +49,8 @@ module.exports = function(Post) {
               srcMobileTiledImages: response.srcMobileTiledImages
             }
           }, function(err) {
-            if (err) { console.error(err); }
-            log('updated post successfully');
+            if (err) { logger.error(err); }
+            logger.debug('updated post successfully');
           });
         });
         break;
@@ -76,26 +76,26 @@ module.exports = function(Post) {
     }
     if (job) {
       job.on('socketError', function(serverId, e) {
-        console.error('[ %s ]: onSocketError: server: %s, error: %s', job.name, serverId, e.toString());
+        logger.error('[ %s ]: onSocketError: server: %s, error: %s', job.name, serverId, e.toString());
       });
       job.on('jobServerError', function(serverId, code, message) {
-        console.error('[ %s ]: onJobServerError: code: %s, message: %s', serverId, code, message);
+        logger.error('[ %s ]: onJobServerError: code: %s, message: %s', serverId, code, message);
       });
       job.on('error', function(e) {
-        console.error('[ %s ]: onError: %s', job.name, e.toString());
+        logger.error('[ %s ]: onError: %s', job.name, e.toString());
       });
       job.on('exception', function(e) {
-        console.error('[ %s ]: onException: %s', job.name, e.toString());
+        logger.error('[ %s ]: onException: %s', job.name, e.toString());
       });
       job.on('timeout', function() {
-        console.error('[ %s ]: job timeout', job.name);
+        logger.error('[ %s ]: job timeout', job.name);
       });
     }
     return job;
   }
 
   Post.createPanoPhoto = function(req, callback) {
-    log('in createPanoPhoto');
+    logger.debug('in createPanoPhoto');
     try {
       var caption = req.body.caption;
       var imgBuf = req.files.image[0].buffer;
@@ -145,7 +145,7 @@ module.exports = function(Post) {
         ownerId: req.accessToken.userId
       };
       if (locationProviderId) {
-        log('creating panoPhoto with location provider ID');
+        logger.debug('creating panoPhoto with location provider ID');
         Location.findOrCreate({
           where: {
             and: [
@@ -171,7 +171,7 @@ module.exports = function(Post) {
             error.status = 500;
             return callback(error);
           }
-          log('location created');
+          logger.debug('location created');
           postObj.locationId = location.id;
           Post.create(postObj, function(err, post) {
             if (err) { return callback(err); }
@@ -187,12 +187,12 @@ module.exports = function(Post) {
               },
               thumbnail: { buffer: thumbBuf }
             });
-            log('post created');
+            logger.debug('post created');
             callback(null, { postId: post.sid });
           });
         });
       } else if (locationName) {
-        log('creating panoPhoto with only location name');
+        logger.debug('creating panoPhoto with only location name');
         Location.create({
           name: locationName,
           geo: {
@@ -206,7 +206,7 @@ module.exports = function(Post) {
             error.status = 500;
             return callback(error);
           }
-          log('location created');
+          logger.debug('location created');
           postObj.locationId = location.id;
           Post.create(postObj, function(err, post) {
             if (err) { return callback(err); }
@@ -222,12 +222,12 @@ module.exports = function(Post) {
               },
               thumbnail: { buffer: thumbBuf }
             });
-            log('post created');
+            logger.debug('post created');
             callback(null, { postId: post.sid });
           });
         });
       } else {
-        log('create panoPhoto without location');
+        logger.debug('create panoPhoto without location');
         Post.create(postObj, function(err, post) {
           if (err) { return callback(err); }
           // create a job for worker
@@ -242,7 +242,7 @@ module.exports = function(Post) {
             },
             thumbnail: { buffer: thumbBuf }
           });
-          log('post created');
+          logger.debug('post created');
           callback(null, { postId: post.sid });
         });
       }
@@ -289,7 +289,7 @@ module.exports = function(Post) {
   });
 
   Post.findPostById = function(id, req, callback) {
-    log('in findPostById');
+    logger.debug('in findPostById');
     Post.findById(id, {
       include: [
         {
@@ -318,7 +318,7 @@ module.exports = function(Post) {
         error.status = 404;
         return callback(error);
       }
-      log('post found');
+      logger.debug('post found');
       var Like = Post.app.models.like;
       var User = Post.app.models.user;
       async.parallel({
@@ -349,7 +349,7 @@ module.exports = function(Post) {
           count: results.likeCount,
           isLiked: results.isLiked
         };
-        log('post returned');
+        logger.debug('post returned');
         callback(null, post);
       });
     });
@@ -366,7 +366,7 @@ module.exports = function(Post) {
   Post.like = function(postId, req, res, callback) {
     Post.findById(postId, function(err, post) {
       if (err) {
-        console.error(err);
+        logger.error(err);
         return callback(err);
       }
       if (!post) {
@@ -416,7 +416,7 @@ module.exports = function(Post) {
   Post.unlike = function(postId, req, res, callback) {
     Post.findById(postId, function(err, post) {
       if (err) {
-        console.error(err);
+        logger.error(err);
         return callback(err);
       }
       if (!post) {
@@ -474,7 +474,7 @@ module.exports = function(Post) {
       }
     }, function(err, likes) {
       if (err) {
-        console.error(err);
+        logger.error(err);
         return callback(err);
       }
       callback(null, likes);

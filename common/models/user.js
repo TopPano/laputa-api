@@ -2,10 +2,9 @@
 var assert = require('assert');
 var async = require('async');
 var passport = require('passport');
+var logger = require('winston');
 var S3Uploader = require('../utils/S3Uploader');
 var S3Remover = require('../utils/S3Remover');
-
-var log = require('debug')('server:rest:user');
 
 module.exports = function(User) {
 
@@ -57,7 +56,7 @@ module.exports = function(User) {
   });
 
   User.query = function(id, req, json, callback) {
-    log('in query');
+    logger.debug('in query');
     var Post = User.app.models.post;
     var Follow = User.app.models.follow;
     var where = json.where || undefined;
@@ -75,7 +74,7 @@ module.exports = function(User) {
     // get the following user list
     Follow.find({where: {followerId: id}}, function(err, followings) {
       if (err) {
-        console.error(err);
+        logger.error(err);
         return callback(err);
       }
       var result = [];
@@ -201,10 +200,10 @@ module.exports = function(User) {
           });
         }, function(err) {
           if (err) {
-            console.error(err);
+            logger.error(err);
             return callback(new Error('Internal Error'));
           }
-          log('query result returned');
+          logger.debug('query result returned');
           callback(null, output);
         });
       });
@@ -296,7 +295,7 @@ module.exports = function(User) {
       var Follow = User.app.models.follow;
       Follow.destroyAll({followerId: followerId, followeeId: followeeId}, function(err) {
         if (err) {
-          console.error(err);
+          logger.error(err);
           return callback(err);
         }
         callback(null, 'success');
@@ -496,7 +495,7 @@ module.exports = function(User) {
         }
       });
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       var error = new Error('Internal Error');
       error.status = 500;
       callback(error);
@@ -597,7 +596,7 @@ module.exports = function(User) {
         if (err.status && err.status >= 400) {
           return callback(err);
         }
-        console.error(err);
+        logger.error(err);
         return callback(new Error('Internal Error'));
       }
       var output = {
@@ -623,7 +622,7 @@ module.exports = function(User) {
   });
 
   User.profileQuery = function(id, req, json, callback) {
-    log('in profile query');
+    logger.debug('in profile query');
     var Post = User.app.models.post;
     var Follow = User.app.models.follow;
     var where = json.where || undefined;
@@ -749,10 +748,10 @@ module.exports = function(User) {
         });
       }, function(err) {
         if (err) {
-          console.error(err);
+          logger.error(err);
           return callback(new Error('Internal Error'));
         }
-        log('profile query returned');
+        logger.debug('profile query returned');
         callback(null, output);
       });
     });
@@ -827,7 +826,7 @@ module.exports = function(User) {
           text: content
         }, function(err) {
           if (err) {
-            console.error(err);
+            logger.error(err);
             return callback(err);
           }
           callback(null, 'success');
