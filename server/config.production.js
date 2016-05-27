@@ -10,8 +10,6 @@ var p = require('../package.json');
 var version = p.version.split('.').shift();
 
 module.exports = {
-  hostname: 'dev.verpix.net',
-  host: process.env.HOST || '0.0.0.0',
-  port: process.env.PORT || 3000,
+  hostname: 'www.verpix.me',
   restApiRoot: '/api' + (version > 0 ? '/v' + version : '')
 };

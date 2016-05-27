@@ -1,6 +1,6 @@
 {
-  "memoryDB": {
-    "name": "memoryDB",
+  "db": {
+    "name": "db",
     "connector": "memory"
   },
   "email": {

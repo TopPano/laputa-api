@@ -2,6 +2,7 @@
 var assert = require('assert');
 var async = require('async');
 var passport = require('passport');
+var randomstring = require('randomstring');
 var logger = require('winston');
 var S3Uploader = require('../utils/S3Uploader');
 var S3Remover = require('../utils/S3Remover');
@@ -801,6 +802,144 @@ module.exports = function(User) {
     ],
     returns: [ { arg: 'result', type: 'string' } ],
     http: { path: '/:id/changePassword', verb: 'post' }
+  });
+
+  User.requestResetPassword = function(json, callback) {
+    var email = json.email;
+    if (!email) {
+      var error = new Error('Missing Information: Email');
+      error.status = 400;
+      return callback(error);
+    }
+    User.find({ where: { email: email } }, function(err, user) {
+      if (err) { return callback(err); }
+      if (!user || user.length === 0) {
+        var error = new Error('No user with the email was found');
+        error.status = 404;
+        return callback(error);
+      }
+      User.resetPassword({ email: email }, function(err) {
+        if (err) {
+          var error = new Error(err);
+          error.status = 401;
+          return callback(error);
+        }
+        callback(null, 'success');
+      });
+    });
+  };
+  User.remoteMethod('requestResetPassword', {
+    accepts: [
+      { arg: 'json', type: 'object', 'http': { source: 'body' } }
+    ],
+    returns: [ { arg: 'result', type: 'string' } ],
+    http: { path: '/requestResetPassword', verb: 'post' }
+  });
+
+  User.on('resetPasswordRequest', function(info) {
+    if (!info.accessToken) { return logger.error('Invalid reset password request: Access Token Not Found'); }
+    User.findById(info.accessToken.userId, {
+      include: {
+        relation: 'identities',
+        scope: {
+          fields: [ 'profile' ]
+        }
+      }
+    }, function(err, user) {
+      if (err) { return logger.error(err); }
+      if (!user) { return logger.error('User Not Found: '+info.accessToken.userId); }
+      var userObj = user.toJSON();
+      var endpoint = User.app.get('restApiRoot') + '/users/resetPassword';
+      var querystring = '?access_token=' + info.accessToken.id + '&redirect_url=www.verpix.me';
+      if (process.env.NODE_ENV === 'production') {
+        var url = 'https://' + User.app.get('hostname') + endpoint + querystring;
+      } else {
+        var url = 'http://' + User.app.get('host') + ':' + User.app.get('port') + endpoint + querystring;
+      }
+      var username = userObj.identities.length !== 0 ? userObj.identities[0].profile.displayName : userObj.username;
+      var html = 'Dear ' + username + ',<br><br>' +
+                 'We have received your request of resetting the password.<br>' +
+                 'If you made the request, please click the following link to confirm: <br><br>' +
+                 '<a href="' + url + '">' + url +'</a><br><br>' +
+                 'If you do not recognize this activity, please contact our support: service@verpix.me<br><br>' +
+                 'Cheers,<br>' +
+                 '- The team at Verpix';
+      User.app.models.Email.send({
+        to: info.email,
+        from: 'service@verpix.me',
+        subject: 'Confirm password reset',
+        html: html
+      }, function(err) {
+        if (err) { logger.error(err); }
+      });
+    });
+  });
+
+  User.handleResetPassword = function(req, res, callback) {
+    var newPassword = randomstring.generate({
+      length: 8,
+      readable: true,
+      charset: 'alphanumeric',
+      capitalization: 'lowercase'
+    });
+    User.findById(req.accessToken.userId, {
+      include: {
+        relation: 'identities',
+        scope: {
+          fields: [ 'profile' ]
+        }
+      }
+    }, function(err, user) {
+      if (err) {
+        logger.error(err);
+        res.status(500).send('Internal Error');
+        return calllback();
+      }
+      if (!user) {
+        res.status(404).send('User Not Found');
+        return callback();
+      }
+      var userObj = user.toJSON();
+      user.updateAttribute('password', newPassword, function(err) {
+        if (err) {
+          logger.error(err);
+          res.status(500).send('Internal Error');
+          return callback();
+        }
+        var username = userObj.identities.length !== 0 ? userObj.identities[0].profile.displayName : userObj.username;
+        var html = 'Dear ' + username + ',<br><br>' +
+                   'The password for your Verpix account was reseted. The following is your temporary password:<br><br>' +
+                   'Password: ' + newPassword +'<br><br>' +
+                   'Please use the temporary password to log in Verpix, and change the password in settings.<br><br>' +
+                   'Cheers,<br>' +
+                   '- The team at Verpix';
+        User.app.models.Email.send({
+          to: user.email,
+          from: 'service@verpix.me',
+          subject: 'Password reseted',
+          html: html
+        }, function(err) {
+          if (err) {
+            logger.error(err);
+            res.status(500).send('Internal Error');
+            return callback();
+          }
+          if (req.query.redirect_url) {
+            res.redirect('https://'+req.query.redirect_url);
+          } else {
+            res.send('success');
+          }
+          callback();
+        });
+      });
+    });
+  };
+  User.remoteMethod('handleResetPassword', {
+    accepts: [
+      { arg: 'req', type: 'object', 'http': { source: 'req' } },
+      { arg: 'res', type: 'object', 'http': { source: 'res' } }
+    ],
+    http: { path: '/resetPassword', verb: 'get' }
   });
 
   User.createFeedback = function(id, json, callback) {

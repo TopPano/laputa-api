@@ -5,7 +5,7 @@
   "scripts": {
     "pretest": "jshint .",
     "test": "NODE_ENV=dev DB_HOST=52.196.75.75 DB_PORT=27019 DB_USER=verpix-api DB_PASSWORD=1234 S3_BKT=verpix-img-development mocha -C -R spec spec/ --recursive --timeout 30000",
-    "dev": "NODE_ENV=dev DB_HOST=52.196.75.75 DB_PORT=27019 DB_USER=verpix-api DB_PASSWORD=1234 S3_BKT=verpix-img-development node .",
+    "dev": "NODE_ENV='dev' S3_BKT=verpix-img-development node .",
     "start": "NODE_ENV='production' pm2 start server/server.js --name verpix-api",
     "stop": "NODE_ENV='production' pm2 delete verpix-api -s &> /dev/null"
   },
@@ -29,6 +29,7 @@
     "multer": "^1.1.0",
     "passport": "^0.2.0",
     "passport-facebook-token": "^3.2.0",
+    "randomstring": "^1.1.5",
     "serve-favicon": "^2.0.1",
     "winston": "^2.2.0",
     "xoauth2": "^1.1.0"
