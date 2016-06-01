@@ -24,7 +24,7 @@ describe('REST API endpoint /post', function() {
   var user = {
     username: 'Hawk Lin',
     email: 'hawk.lin@toppano.in',
-    password: 'password'
+    password: 'verpix'
   };
 
   before(function(done) {
@@ -32,7 +32,7 @@ describe('REST API endpoint /post', function() {
     Post = app.models.post;
     File = app.models.file;
 
-    User.create(user, function(err, newUser) {
+    User.findOrCreate({where: { email: user.email }}, user, function(err, newUser) {
       if (err) { return done(err); }
       assert(newUser.sid);
       assert.equal(newUser.email, user.email);
@@ -205,6 +205,7 @@ describe('REST API endpoint /post', function() {
       }
     ];
 
+    /*
     before(function(done) {
       post.ownerId = user.sid;
       Post.create(post, function(err, newPost) {
@@ -222,6 +223,7 @@ describe('REST API endpoint /post', function() {
         });
       });
     });
+    */
 
     it('the returned post should contain a node list, if any', function(done) {
       json('get', endpoint+'/'+post.sid)
@@ -247,27 +249,22 @@ describe('REST API endpoint /post', function() {
       });
     });
 
-    it.skip('create a new node for the given post', function(done) {
-      json('post', endpoint+'/'+post.sid+'/nodes?access_token='+user.accessToken.id, 'multipart/form-data')
+    it.only('create a new node for the given post', function(done) {
+      json('post', endpoint+'/panophoto?access_token='+user.accessToken.id, 'multipart/form-data')
+      .field('caption', 'test')
       .field('width', '8192')
       .field('height', '4096')
-      .field('index', '1')
       .field('thumbLat', '30')
       .field('thumbLng', '90')
+      .field('locationName', 'Home Sweet Home')
+      .field('locationLat', '25.05511')
+      .field('locationLng', '121.61171')
       .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
       .attach('image', __dirname+'/fixtures/1.jpg.zip')
       .expect(200, function(err, res) {
         if (err) { return done(err); }
-        json('get', endpoint+'/'+post.sid+'/nodes/'+res.body.sid)
-        .expect(200, function(err, res) {
-          if (err) { return done(err); }
-          res.body.should.have.property('thumbnailUrl');
-          res.body.should.have.property('srcUrl');
-          res.body.should.have.property('srcDownloadUrl');
-          res.body.should.have.property('lat', 30);
-          res.body.should.have.property('lng', 90);
-          done();
-        });
+        console.log(JSON.stringify(res));
+        done();
       });
     });
 

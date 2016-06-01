@@ -245,8 +245,13 @@ describe('REST API endpoint /users', function() {
       email: 'girl@foo.com',
       password: 'xxxx'
     };
+    var followee2 = {
+      username: 'girl2',
+      email: 'girl2@foo.com',
+      password: 'xxxx'
+    };
     before(function(done) {
-      async.each([follower, followee], function(user, callback) {
+      async.each([follower, followee, followee2], function(user, callback) {
         createUserAndLogin(user, function(err, result) {
           if (err) { return callback(err); }
           user.sid = result.sid;
@@ -306,6 +311,50 @@ describe('REST API endpoint /users', function() {
         done();
       });
     });
+
+    it('mark as friend if both users are following each other', function(done) {
+      json('post', endpoint+'/'+follower.sid+'/follow/'+followee.sid+'?access_token='+follower.accessToken.id)
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        json('post', endpoint+'/'+followee.sid+'/follow/'+follower.sid+'?access_token='+followee.accessToken.id)
+        .expect(200, function(err, res) {
+          if (err) { return done(err); }
+          done();
+        });
+      });
+    });
+
+    it('return follower list', function(done) {
+      json('post', endpoint+'/'+follower.sid+'/follow/'+followee.sid+'?access_token='+follower.accessToken.id)
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        json('post', endpoint+'/'+followee2.sid+'/follow/'+followee.sid+'?access_token='+followee2.accessToken.id)
+        .expect(200, function(err, res) {
+          json('get', endpoint+'/'+followee.sid+'/followers?access_token='+followee.accessToken.id)
+          .expect(200, function(err, res) {
+            if (err) { return done(err); }
+//            console.log(JSON.stringify(res.body));
+            done();
+          });
+        });
+      });
+    });
+
+    it('return following list', function(done) {
+      json('post', endpoint+'/'+follower.sid+'/follow/'+followee.sid+'?access_token='+follower.accessToken.id)
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        json('post', endpoint+'/'+follower.sid+'/follow/'+followee2.sid+'?access_token='+follower.accessToken.id)
+        .expect(200, function(err, res) {
+          json('get', endpoint+'/'+follower.sid+'/following?access_token='+follower.accessToken.id)
+          .expect(200, function(err, res) {
+            if (err) { return done(err); }
+            console.log(JSON.stringify(res.body));
+            done();
+          });
+        });
+      });
+    });
   });
 
   describe('User editing', function() {
@@ -341,6 +390,110 @@ describe('REST API endpoint /users', function() {
 
     it('delete a user', function(done) {
       json('delete', endpoint+'/me?access_token='+user.accessToken.id)
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        done();
+      });
+    });
+  });
+
+  describe('User changing password', function() {
+    var user = {
+      username: 'Richard',
+      email: 'richardtest@foo.com',
+      password: 'password1'
+    };
+    var newPassword = 'password2';
+    before(function(done) {
+      createUserAndLogin(user, function(err, result) {
+        if (err) { return done(err); }
+        user.sid = result.sid;
+        user.accessToken = result.accessToken;
+        done();
+      });
+    });
+
+    it('change password', function(done) {
+      json('post', endpoint+'/me/changePassword?access_token='+user.accessToken.id)
+      .send({
+        oldPassword: user.password,
+        newPassword: newPassword
+      })
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        json('post', endpoint + '/login')
+        .send({
+          email: user.email,
+          password: newPassword
+        })
+        .expect(200, function(err, res) {
+          if (err) { return done(err); }
+          done();
+        });
+      });
+    });
+
+    it('without providing old password', function(done) {
+      json('post', endpoint+'/me/changePassword?access_token='+user.accessToken.id)
+      .send({
+        newPassword: 'new pasword'
+      })
+      .expect(400, function(err, res) {
+        if (err) { return done(err); }
+        done();
+      });
+    });
+
+    it('without providing new password', function(done) {
+      json('post', endpoint+'/me/changePassword?access_token='+user.accessToken.id)
+      .send({
+        oldPassword: newPassword
+      })
+      .expect(400, function(err, res) {
+        if (err) { return done(err); }
+        done();
+      });
+    });
+
+
+    it('change password with incorrect old password', function(done) {
+      json('post', endpoint+'/me/changePassword?access_token='+user.accessToken.id)
+      .send({
+        oldPassword: 'xxxx',
+        newPassword: 'new pasword'
+      })
+      .expect(401, function(err, res) {
+        if (err) { return done(err); }
+        done();
+      });
+    });
+  });
+
+  describe('User feedback', function() {
+    var user = {
+      username: 'Johnny',
+      email: 'johnny@foo.com',
+      password: 'xxxxx'
+    };
+    before(function(done) {
+      createUserAndLogin(user, function(err, result) {
+        if (err) { return done(err); }
+        user.sid = result.sid;
+        user.accessToken = result.accessToken;
+        done();
+      });
+    });
+
+    it('send feedback', function(done) {
+      json('post', endpoint+'/'+user.sid+'/feedback?access_token='+user.accessToken.id)
+      .send({
+        appVersion: '2.8.0',
+        device: {
+          name: 'iPhone 6',
+          os: 'iOS 8.0'
+        },
+        message: 'hihi'
+      })
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         done();

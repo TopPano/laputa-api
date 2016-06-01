@@ -133,6 +133,25 @@ describe('Posts - integration', function() {
       });
     });
 
+    it('retrun the liked user list of a given post', function(done) {
+      json('post', endpoint+'/'+post.sid+'/like?access_token='+user.accessToken.id)
+      .send({userId: user.sid})
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        json('post', endpoint+'/'+post.sid+'/like?access_token='+anotherUser.accessToken.id)
+        .send({userId: anotherUser.sid})
+        .expect(200, function(err, res) {
+          if (err) { return done(err); }
+          json('get', endpoint+'/'+post.sid+'/likes?access_token='+user.accessToken.id)
+          .expect(200, function(err, res) {
+            if (err) { return done(err); }
+            console.log(JSON.stringify(res.body));
+            done();
+          });
+        });
+      });
+    });
+
     it('ignore duplicated likes', function(done) {
       var currentCount;
       json('get', endpoint+'/'+post.sid)
