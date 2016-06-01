@@ -851,10 +851,11 @@ module.exports = function(User) {
       var userObj = user.toJSON();
       var endpoint = User.app.get('restApiRoot') + '/users/resetPassword';
       var querystring = '?access_token=' + info.accessToken.id + '&redirect_url=www.verpix.me';
+      var url;
       if (process.env.NODE_ENV === 'production') {
-        var url = 'https://' + User.app.get('hostname') + endpoint + querystring;
+        url = 'https://' + User.app.get('hostname') + endpoint + querystring;
       } else {
-        var url = 'http://' + User.app.get('host') + ':' + User.app.get('port') + endpoint + querystring;
+        url = 'http://' + User.app.get('host') + ':' + User.app.get('port') + endpoint + querystring;
       }
       var username = userObj.identities.length !== 0 ? userObj.identities[0].profile.displayName : userObj.username;
       var html = 'Dear ' + username + ',<br><br>' +
@@ -893,7 +894,7 @@ module.exports = function(User) {
       if (err) {
         logger.error(err);
         res.status(500).send('Internal Error');
-        return calllback();
+        return callback();
       }
       if (!user) {
         res.status(404).send('User Not Found');
@@ -924,8 +925,8 @@ module.exports = function(User) {
             res.status(500).send('Internal Error');
             return callback();
           }
-          if (req.query.redirect_url) {
-            res.redirect('https://'+req.query.redirect_url);
+          if (req.query['redirect_url']) {
+            res.redirect('https://'+req.query['redirect_url']);
           } else {
             res.send('success');
           }
