@@ -2,7 +2,11 @@
 var assign = require('lodash/assign');
 var moment = require('moment');
 var async = require('async');
+var P = require('bluebird');
 var logger = require('winston');
+var crypto = require('crypto');
+var S3Uploader = require('../utils/S3Uploader');
+
 var VerpixId = require('../utils/verpix-id-gen');
 var idGen = new VerpixId();
 
@@ -15,6 +19,11 @@ gearClient.jobServers.forEach(function(server) {
 module.exports = function(Post) {
 
   Post.validatesInclusionOf('mediaType', { in: [ 'panoPhoto', 'livePhoto' ] });
+
+  function genShardingKey() {
+    var keylen = 4;
+    return crypto.randomBytes(Math.ceil(keylen/2)).toString('hex');
+  }
 
   function getTimeNow() {
     return moment(new Date()).format('YYYY-MM-DD');
@@ -94,6 +103,40 @@ module.exports = function(Post) {
     return job;
   }
 
+  function uploadS3(params, callback) {
+    var uploader = new S3Uploader();
+    var shardingKey = genShardingKey();
+
+    try {
+      var fileKey = 'posts/'+params.postId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp+'/'+params.imageFilename;
+      uploader.on('success', function(data) {
+        var s3Filename = data.key || data.key;
+        var s3Url = data.Location;
+        // TODO: use real CDN download url
+        var cdnFilename = data.key || data.key;
+        var cdnUrl = data.Location;
+        callback(null, {
+          cdnFilename: cdnFilename,
+          cdnUrl: cdnUrl,
+          s3Filename: s3Filename,
+          s3Url: s3Url
+        });
+      });
+      uploader.on('error', function(err) {
+        callback(err);
+      });
+      uploader.send({
+        File: params.image,
+        key: fileKey,
+        options: {
+          ACL: 'public-read'
+        }
+      });
+    } catch (err) {
+      callback(err);
+    }
+  }
+
   Post.createPanoPhoto = function(req, callback) {
     logger.debug('in createPanoPhoto');
     try {
@@ -133,17 +176,130 @@ module.exports = function(Post) {
       var Location = Post.app.models.location;
       var mediaType = 'panoPhoto';
 
-      var postObj = {
-        mediaType: mediaType,
-        dimension: {
-          width: imgWidth,
-          height: imgHeight,
-          lat: thumbLat,
-          lng: thumbLng
-        },
-        caption: caption,
-        ownerId: req.accessToken.userId
-      };
+      new P(function(resolve) {
+        if (locationProviderId) {
+          resolve(new P(function(resolve, reject) {
+            Location.findOrCreate({
+              where: {
+                and: [
+                  { provider: locationProvider },
+                  { providerId: locationProviderId }
+                ]
+              }
+            }, {
+              provider: locationProvider,
+              providerId: locationProviderId,
+              name: locationName,
+              city: locationCity,
+              street: locationStreet,
+              zip: locationZip,
+              geo: {
+                lat: locationLat,
+                lng: locationLng
+              }
+            }, function(err, location) {
+              if (err) { reject(err); }
+              else { resolve(location); }
+            });
+          }));
+        } else if (locationName) {
+          resolve(new P(function(resolve, reject) {
+            Location.create({
+              name: locationName,
+              geo: {
+                lat: locationLat,
+                lng: locationLng
+              }
+            }, function(err, location) {
+              if (err) { reject(err); }
+              else if (!location) {
+                var error = new Error('Failed to Create Location');
+                error.status = 500;
+                reject(error);
+              }
+              else { resolve(location); }
+            });
+          }));
+        } else {
+          resolve(null);
+        }
+      })
+      .then(function(location) {
+        return new P(function(resolve, reject) {
+          var postObj = {
+            mediaType: mediaType,
+            dimension: {
+              width: imgWidth,
+              height: imgHeight,
+              lat: thumbLat,
+              lng: thumbLng
+            },
+            caption: caption,
+            ownerId: req.accessToken.userId,
+            locationId: location ? location.id : null
+          };
+          Post.create(postObj, function(err, post) {
+            if (err) { reject(err); }
+            else if (!post) {
+              var error = new Error('Failed to Create Location');
+              error.status = 500;
+              reject(error);
+            }
+            else { resolve(post); }
+          });
+        });
+      })
+      .then(function(post) {
+        return new P(function(resolve, reject) {
+          uploadS3({
+            type: 'pan',
+            quality: 'thumb',
+            postId: post.id,
+            timestamp: now,
+            imageFilename: post.id + '.jpg',
+            image: thumbBuf
+          }, function(err, result) {
+            if (err) { reject(err); }
+            else {
+              resolve({
+                post: post,
+                thumbnail: result
+              });
+            }
+          });
+        });
+      })
+      .then(function(result) {
+        // create a job for worker
+        createAsyncJob({
+          jobType: mediaType,
+          postId: result.post.sid,
+          image: {
+            width: imgWidth,
+            height: imgHeight,
+            buffer: imgBuf,
+            hasZipped: true
+          },
+          thumbnail: {
+            srcUrl: result.thumbnail.s3Url,
+            downloadUrl: result.thumbnail.cdnUrl
+          }
+        });
+        callback(null, {
+          postId: result.post.id,
+          thumbnail: result.thumbnail.cdnUrl
+        });
+      })
+      .catch(function(err) {
+        logger.error(err);
+        if (err.status && err.status >= 500) {
+          callback(new Error('Internal Error'));
+        } else {
+          callback(err);
+        }
+      });
+
+      /*
       if (locationProviderId) {
         logger.debug('creating panoPhoto with location provider ID');
         Location.findOrCreate({
@@ -246,6 +402,7 @@ module.exports = function(Post) {
           callback(null, { postId: post.sid });
         });
       }
+      */
     } catch(error) {
       return callback(error);
     }
