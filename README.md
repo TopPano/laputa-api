@@ -6,15 +6,16 @@ Install dependent npm modules.
 $ npm install
 ```
 
-Install dependent libraries:
+Install dependencies:
 
-1. [GraphicsMagick](http://www.graphicsmagick.org/) or [ImageMagick](http://www.imagemagick.org/)
+* [GraphicsMagick](http://www.graphicsmagick.org/) or [ImageMagick](http://www.imagemagick.org/)
   * In Mac OS X, you can simply use [Homebrew](http://mxcl.github.io/homebrew/) and do:
 ```
 $ brew install imagemagick
 $ brew install graphicsmagick
 ```
-2. [pm2](http://pm2.keymetrics.io/)
+
+* [pm2](http://pm2.keymetrics.io/)
 ```
 $ npm install pm2 -g
 ```
@@ -22,12 +23,12 @@ $ npm install pm2 -g
 Start the server.
 In production environment:
 ```
-$ npm start
+$ DB_URL='DB URL' DB_NAME='DB NAME' npm start
 ```
 
 In developement environment:
 ```
-$ npm run-script dev
+$ npm run dev
 ```
 
 Then you can access the server api via:
