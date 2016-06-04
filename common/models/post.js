@@ -38,7 +38,7 @@ module.exports = function(Post) {
         job = gearClient.submitJob('handlePanoPhoto', JSON.stringify({
           postId: options.postId,
           image: assign({}, options.image, { buffer: options.image.buffer.toString('base64') }),
-          thumbnail: assign({}, options.thumbnail, { buffer: options.thumbnail.buffer.toString('base64') })
+          thumbnail: options.thumbnail
         }));
         job.on('complete', function() {
           logger.debug('job completed for '+options.jobType);
@@ -127,7 +127,7 @@ module.exports = function(Post) {
       });
       uploader.send({
         File: params.image,
-        key: fileKey,
+        Key: fileKey,
         options: {
           ACL: 'public-read'
         }
