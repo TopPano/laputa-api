@@ -22,36 +22,70 @@ function json(verb, url, contentType) {
 
 describe('REST API endpoint /post', function() {
 
-  describe('Post - CRUD', function() {
+  function loadUserAndPosts(cred, callback) {
+    assert(cred.email);
+    assert(cred.password);
+    var User = app.models.user;
+    var Post = app.models.post;
     var user = {};
     var posts = [];
+    User.find({ where: { email: cred.email } }, function(err, result) {
+      if (err) { return callback(err); }
+      assert(result.length !== 0);
+      user = result[0];
+      User.login({ email: user.email, password: cred.password }, function(err, accessToken) {
+        if (err) { return callback(err); }
+        assert(accessToken.userId);
+        assert(accessToken.id);
+        user.accessToken = accessToken;
+        Post.find({ where: { ownerId: user.sid } }, function(err, result) {
+          if (err) { return callback(err); }
+          posts = result;
+          callback(null, { user: user, posts: posts });
+        });
+      });
+    });
+  }
+
+  describe.only('Post - CRUD', function() {
+    var Hawk = {};
+    var HawkPosts = [];
+    var Richard = {};
+    var RichardPosts = [];
 
     before(function(done) {
       var loader = new Loader(app, __dirname + '/fixtures');
       loader.reset(function(err) {
         if (err) { throw new Error(err); }
-        var User = app.models.user;
-        var Post = app.models.post;
-        User.find({ where: { email: 'hawk.lin@toppano.in' } }, function(err, result) {
-          if (err) { return done(err); }
-          assert(result.length !== 0);
-          user = result[0];
-          User.login({ email: user.email, password: 'verpix' }, function(err, accessToken) {
-            if (err) { return done(err); }
-            assert(accessToken.userId);
-            assert(accessToken.id);
-            user.accessToken = accessToken;
-            Post.find({ where: { ownerId: user.sid } }, function(err, result) {
-              if (err) { return done(err); }
-              posts = result;
-              done();
+        async.parallel({
+          loadHawk: function(callback) {
+            loadUserAndPosts({ email: 'hawk.lin@toppano.in', password: 'verpix' }, function(err, result) {
+              if (err) { return callback(err); }
+              Hawk = result.user;
+              HawkPosts = result.posts;
+              callback();
             });
+          },
+          loadRichard: function(callback) {
+            loadUserAndPosts({ email: 'richard.chou@toppano.in', password: 'verpix' }, function(err, result) {
+              if (err) { return callback(err); }
+              Richard = result.user;
+              RichardPosts = result.posts;
+              callback();
+            });
+          }
+        }, function(err) {
+          var Like = app.models.like;
+          Like.create({ postId: HawkPosts[0].sid, userId: Hawk.sid }, function(err) {
+            if (err) { return done(err); }
+            done();
           });
         });
       });
     });
 
     it('create a new post for panophoto', function(done) {
+      var user = Hawk;
       json('post', endpoint+'/panophoto?access_token='+user.accessToken.id, 'multipart/form-data')
       .field('caption', 'test')
       .field('width', '8192')
@@ -71,8 +105,31 @@ describe('REST API endpoint /post', function() {
       });
     });
 
-    it('return a post by providing valid post id', function(done) {
-      var post = posts[0];
+    it('return a post by id', function(done) {
+      var user = Hawk;
+      var post = HawkPosts[0];
+      json('get', endpoint+'/'+post.sid)
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        res.body.result.should.have.property('created');
+        res.body.result.should.have.property('modified');
+        res.body.result.should.have.property('mediaType');
+        res.body.result.should.have.property('media');
+        res.body.result.should.have.property('caption');
+        res.body.result.should.have.property('ownerId', user.sid);
+        res.body.result.should.have.property('owner');
+        res.body.result.should.have.property('likes');
+        res.body.result.likes.should.have.properties({
+          count: 1,
+          isLiked: false
+        });
+        done();
+      });
+    });
+
+    it('return a post by id (2)', function(done) {
+      var user = Richard;
+      var post = RichardPosts[0];
       json('get', endpoint+'/'+post.sid)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
@@ -92,8 +149,54 @@ describe('REST API endpoint /post', function() {
       });
     });
 
+    it.only('return a post by id (with access token)', function(done) {
+      var user = Hawk;
+      var post = HawkPosts[0];
+      json('get', endpoint+'/'+post.sid+'?access_token='+user.accessToken.id)
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        res.body.result.should.have.property('created');
+        res.body.result.should.have.property('modified');
+        res.body.result.should.have.property('mediaType');
+        res.body.result.should.have.property('media');
+        res.body.result.should.have.property('caption');
+        res.body.result.should.have.property('ownerId', user.sid);
+        res.body.result.should.have.property('owner');
+        res.body.result.should.have.property('likes');
+        res.body.result.likes.should.have.properties({
+          count: 1,
+          isLiked: true
+        });
+        done();
+      });
+    });
+
+    it('return a post by id (with access token) (2)', function(done) {
+      var user = Richard;
+      var post = HawkPosts[0];
+      var postOwner = Hawk;
+      json('get', endpoint+'/'+post.sid+'?access_token='+user.accessToken.id)
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        res.body.result.should.have.property('created');
+        res.body.result.should.have.property('modified');
+        res.body.result.should.have.property('mediaType');
+        res.body.result.should.have.property('media');
+        res.body.result.should.have.property('caption');
+        res.body.result.should.have.property('ownerId', postOwner.sid);
+        res.body.result.should.have.property('owner');
+        res.body.result.should.have.property('likes');
+        res.body.result.likes.should.have.properties({
+          count: 1,
+          isLiked: false
+        });
+        done();
+      });
+    });
+
     it('update post caption', function(done) {
-      var post = posts[0];
+      var user = Hawk;
+      var post = HawkPosts[0];
       var newCaption = 'It just a museum.';
       json('put', endpoint+'/'+post.sid+'?access_token='+user.accessToken.id)
       .send({
@@ -110,9 +213,19 @@ describe('REST API endpoint /post', function() {
     });
 
     it('delete a post', function(done) {
-      var post = posts[0];
+      var user = Hawk;
+      var post = HawkPosts[0];
       json('delete', endpoint+'/'+post.sid+'?access_token='+user.accessToken.id)
       .expect(200, function(err, res) {
+        done(err);
+      });
+    });
+
+    it('return 401 when delete a post by using a token that does not have the authority', function(done) {
+      var user = Richard;
+      var post = HawkPosts[1];
+      json('delete', endpoint+'/'+post.sid+'?access_token='+user.accessToken.id)
+      .expect(401, function(err, res) {
         done(err);
       });
     });

@@ -91,22 +91,6 @@ describe('Posts - integration', function() {
       });
     });
 
-    /*
-    beforeEach(function(done) {
-      json('post', endpoint+'/'+post.sid+'/unlike?access_token='+user.accessToken.id)
-      .send({userId: user.sid})
-      .expect(200, function(err, res) {
-        if (err) { return done(err); }
-        json('post', endpoint+'/'+post.sid+'/unlike?access_token='+anotherUser.accessToken.id)
-        .send({userId: anotherUser.sid})
-        .expect(200, function(err, res) {
-          if (err) { return done(err); }
-          done();
-        });
-      });
-    });
-    */
-
     it('like a post and the count should increase 1', function(done) {
       var user = Richard;
       var post = HawkPosts[0];
