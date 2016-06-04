@@ -149,7 +149,7 @@ describe('REST API endpoint /post', function() {
       });
     });
 
-    it.only('return a post by id (with access token)', function(done) {
+    it('return a post by id (with access token)', function(done) {
       var user = Hawk;
       var post = HawkPosts[0];
       json('get', endpoint+'/'+post.sid+'?access_token='+user.accessToken.id)
