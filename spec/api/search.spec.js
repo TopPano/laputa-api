@@ -1,7 +1,9 @@
 /* jshint camelcase: false */
 'use strict';
 var app = require('../../server/server');
+var Loader = require('../utils/fixtureLoader');
 var request = require('supertest');
+var moment = require('moment');
 var should = require('should');
 var assert = require('assert');
 var async = require('async');
@@ -20,139 +22,178 @@ function json(verb, url) {
 
 describe('REST API endpoint /search', function() {
 
-  before(function() {
-    User = app.models.user;
-    Post = app.models.post;
-    Follow = app.models.follow;
-    Like = app.models.like;
-  });
-
-  function createUserAndLogin(user, callback) {
-    assert(user.email);
-    assert(user.password);
-    User.create(user, function(err, newUser) {
+  function loadUserAndLogin(cred, callback) {
+    assert(cred.email);
+    assert(cred.password);
+    var User = app.models.user;
+    var user = {};
+    User.find({ where: { email: cred.email } }, function(err, result) {
       if (err) { return callback(err); }
-      assert(newUser.sid);
-      assert.equal(newUser.email, user.email);
-      User.login({email: user.email, password: user.password}, function(err, accessToken) {
+      assert(result.length !== 0);
+      user = result[0];
+      User.login({ email: user.email, password: cred.password }, function(err, accessToken) {
         if (err) { return callback(err); }
         assert(accessToken.userId);
         assert(accessToken.id);
-        callback(null, {sid: newUser.sid, accessToken: accessToken});
+        user.accessToken = accessToken;
+        callback(null, user);
       });
     });
   }
 
   describe('/search/recent', function() {
-    var me = {
-      username: 'me',
-      email: 'me@foo.com',
-      password: 'password'
-    };
-    var Michael = {
-      userData: {
-        username: 'Michael',
-        email: 'mike@foo.com',
-        password: 'xx'
-      },
-      posts: [
-        {
-          message: 'I am here!!'
-        },
-        {
-          message: 'Hello world'
-        }
-      ]
-    };
-    var Denial = {
-      userData: {
-        username: 'Denial',
-        email: 'denial@foo.com',
-        password: 'xxx'
-      },
-      posts: [
-        {
-          message: 'sleepy....'
-        }
-      ]
-    };
-    var Tim = {
-      userData: {
-        username: 'Tim',
-        email: 'tim@foo.com',
-        password: 'xxxx'
-      },
-      posts: [
-        {
-          message: 'Running along Charles River.'
-        },
-        {
-          message: 'Yeah, so Patagonia is f-ing beautiful! Not a bad view to wake up to!'
-        },
-        {
-          message: 'Evenings in Madrid'
-        }
-      ]
-    };
+    var Richard = {};
+    var allPosts = [];
+
     before(function(done) {
-      // create users
-      async.each([me, Denial.userData, Michael.userData, Tim.userData], function(user, callback) {
-        createUserAndLogin(user, function(err, result) {
-          if (err) { return callback(err); }
-          user.sid = result.sid;
-          user.accessToken = result.accessToken;
-          callback();
-        });
-      }, function(err) {
-        if (err) { return done(err); }
-        // create posts for each of the user
-        // XXX: It's a bit ugly
-        async.each([Michael, Denial, Tim], function(user, callback) {
-          async.eachSeries(user.posts, function(post, callback) {
-            post.ownerId = user.userData.sid;
-            Post.create(post, function(err, newPost) {
+      var loader = new Loader(app, __dirname + '/fixtures');
+      loader.reset(function(err) {
+        if (err) { throw new Error(err); }
+        async.parallel({
+          loadRichard: function(callback) {
+            loadUserAndLogin({ email: 'richard.chou@toppano.in', password: 'verpix' }, function(err, result) {
               if (err) { return callback(err); }
-              post.sid = newPost.sid;
+              Richard = result;
               callback();
             });
-          }, function(err) {
-            if (err) { return callback(err); }
-            callback();
-          });
+          },
+          loadAllPosts: function(callback) {
+            var Post = app.models.post;
+            Post.find({}, function(err, posts) {
+              if (err) { return callback(err); }
+              assert(posts.length === 22);
+              allPosts = posts.sort(descending);
+              callback();
+            });
+
+            function descending(a, b) {
+              if (a.sid > b.sid)
+                return -1;
+              else if (a.sid < b.sid)
+                return 1;
+              else
+                return 0;
+            }
+          }
         }, function(err) {
           if (err) { return done(err); }
-          // follow friends and like their posts
-          async.parallel({
-            meLikedMichaelPost2: function(callback) {
-              Like.create({postId: Michael.posts[1].sid, userId: me.sid}, function(err) {
-                if (err) { return callback(err); }
-                callback();
-              });
-            },
-            MichaelLikedDenialPost1: function(callback) {
-              Like.create({postId: Denial.posts[0].sid, userId: Michael.userData.sid}, function(err) {
-                if (err) { return callback(err); }
-                callback();
-              });
-            }
-          }, function(err) {
-            if (err) { return done(err); }
-            done();
-          });
+          done();
         });
       });
     });
 
-    it('search for recent posts', function(done) {
-      json('post', endpoint+'/recent')
+    it('query with default parameters', function(done) {
+      var me = Richard;
+      json('post', endpoint+'/recent?access_token='+me.accessToken.id)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
-        console.log(JSON.stringify(res.body));
-        var i;
-        for (i = 0; i < res.body.posts.length; i++) {
-          console.log(res.body.posts[i].sid+' '+res.body.posts[i].created);
-        }
+        var postsWithoutMine = allPosts.filter(function(post) { return post.ownerId !== me.sid; });
+        res.body.result.should.have.property('page');
+        res.body.result.should.have.property('feed');
+        res.body.result.page.should.have.properties({
+          hasNextPage: true,
+          count: 12
+        });
+
+        var postCount = res.body.result.page.count;
+        res.body.result.feed.should.be.an.instanceOf(Array).and.have.lengthOf(postCount);
+        res.body.result.page.start.should.equal(postsWithoutMine[0].sid);
+        res.body.result.feed[0].sid.should.equal(postsWithoutMine[0].sid);
+        res.body.result.page.end.should.equal(postsWithoutMine[ postCount - 1].sid);
+        res.body.result.feed[postCount - 1].sid.should.equal(postsWithoutMine[ postCount - 1].sid);
         done();
+      });
+    });
+
+    it('query with custom limit', function(done) {
+      var me = Richard;
+      var queryLimit = 6; // Show six post per page
+      json('post', endpoint+'/recent?access_token='+me.accessToken.id)
+      .send({ limit: queryLimit })
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        var postsWithoutMine = allPosts.filter(function(post) { return post.ownerId !== me.sid; });
+        res.body.result.should.have.property('page');
+        res.body.result.should.have.property('feed');
+        res.body.result.page.should.have.properties({
+          hasNextPage: true,
+          count: queryLimit
+        });
+
+        var postCount = res.body.result.page.count;
+        res.body.result.feed.should.be.an.instanceOf(Array).and.have.lengthOf(postCount);
+        res.body.result.page.start.should.equal(postsWithoutMine[0].sid);
+        res.body.result.feed[0].sid.should.equal(postsWithoutMine[0].sid);
+        res.body.result.page.end.should.equal(postsWithoutMine[ postCount - 1].sid);
+        res.body.result.feed[postCount - 1].sid.should.equal(postsWithoutMine[ postCount - 1].sid);
+        done();
+      });
+    });
+
+    it('query two pages', function(done) {
+      var me = Richard;
+      json('post', endpoint+'/recent?access_token='+me.accessToken.id)
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        var postsWithoutMine = allPosts.filter(function(post) { return post.ownerId !== me.sid; });
+        var postsWithoutFirstPage = postsWithoutMine.filter(function(post) { return post.sid < res.body.result.page.end; });
+        // Query the second page
+        json('post', endpoint+'/recent?access_token='+me.accessToken.id)
+        .send({
+          where: {
+            sid: { lt: res.body.result.page.end }
+          }
+        })
+        .expect(200, function(err, res) {
+          var secondPageCount = postsWithoutFirstPage.length >= 12 ? 12 : postsWithoutFirstPage.length;
+          res.body.result.should.have.property('page');
+          res.body.result.should.have.property('feed');
+          res.body.result.page.should.have.properties({
+            hasNextPage: postsWithoutFirstPage.length > 12 ? true : false,
+            count: secondPageCount
+          });
+          res.body.result.feed.should.be.an.instanceOf(Array).and.have.lengthOf(secondPageCount);
+          res.body.result.page.start.should.equal(postsWithoutFirstPage[0].sid);
+          res.body.result.feed[0].sid.should.equal(postsWithoutFirstPage[0].sid);
+          res.body.result.page.end.should.equal(postsWithoutFirstPage[ secondPageCount - 1].sid);
+          res.body.result.feed[secondPageCount - 1].sid.should.equal(postsWithoutFirstPage[ secondPageCount - 1].sid);
+          done();
+        });
+      });
+    });
+
+    it('query two pages with custom limit', function(done) {
+      var me = Richard;
+      var queryLimit = 6;
+      json('post', endpoint+'/recent?access_token='+me.accessToken.id)
+      .send({ limit: queryLimit })
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        var postsWithoutMine = allPosts.filter(function(post) { return post.ownerId !== me.sid; });
+        var postsWithoutFirstPage = postsWithoutMine.filter(function(post) { return post.sid < res.body.result.page.end; });
+        // Query the second page
+        json('post', endpoint+'/recent?access_token='+me.accessToken.id)
+        .send({
+          where: {
+            sid: { lt: res.body.result.page.end }
+          },
+          limit: queryLimit
+        })
+        .expect(200, function(err, res) {
+          var secondPageCount = postsWithoutFirstPage.length >= queryLimit ? queryLimit : postsWithoutFirstPage.length;
+          res.body.result.should.have.property('page');
+          res.body.result.should.have.property('feed');
+          res.body.result.page.should.have.properties({
+            hasNextPage: postsWithoutFirstPage.length > queryLimit ? true : false,
+            count: secondPageCount
+          });
+          res.body.result.feed.should.be.an.instanceOf(Array).and.have.lengthOf(secondPageCount);
+          res.body.result.page.start.should.equal(postsWithoutFirstPage[0].sid);
+          res.body.result.feed[0].sid.should.equal(postsWithoutFirstPage[0].sid);
+          res.body.result.page.end.should.equal(postsWithoutFirstPage[ secondPageCount - 1].sid);
+          res.body.result.feed[secondPageCount - 1].sid.should.equal(postsWithoutFirstPage[ secondPageCount - 1].sid);
+          done();
+        });
       });
     });
   });

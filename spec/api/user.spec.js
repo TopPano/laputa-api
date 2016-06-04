@@ -1,6 +1,7 @@
 /* jshint camelcase: false */
 'use strict';
 var app = require('../../server/server');
+var Loader = require('../utils/fixtureLoader');
 var request = require('supertest');
 var should = require('should');
 var assert = require('assert');
@@ -21,10 +22,30 @@ function json(verb, url) {
 
 describe('REST API endpoint /users', function() {
 
-  before(function() {
-    User = app.models.user;
-    Post = app.models.post;
-  });
+  function loadUserAndPosts(cred, callback) {
+    assert(cred.email);
+    assert(cred.password);
+    var User = app.models.user;
+    var Post = app.models.post;
+    var user = {};
+    var posts = [];
+    User.find({ where: { email: cred.email } }, function(err, result) {
+      if (err) { return callback(err); }
+      assert(result.length !== 0);
+      user = result[0];
+      User.login({ email: user.email, password: cred.password }, function(err, accessToken) {
+        if (err) { return callback(err); }
+        assert(accessToken.userId);
+        assert(accessToken.id);
+        user.accessToken = accessToken;
+        Post.find({ where: { ownerId: user.sid } }, function(err, result) {
+          if (err) { return callback(err); }
+          posts = result;
+          callback(null, { user: user, posts: posts });
+        });
+      });
+    });
+  }
 
   function createUserAndLogin(user, callback) {
     assert(user.email);
@@ -41,6 +62,11 @@ describe('REST API endpoint /users', function() {
       });
     });
   }
+
+  before(function() {
+    User = app.models.user;
+    Post = app.models.post;
+  });
 
   describe('User creating', function() {
     var user = {
@@ -88,9 +114,9 @@ describe('REST API endpoint /users', function() {
 
   describe('User login/out', function() {
     var user = {
-      username: 'Richard',
-      email: 'richard@foo.com',
-      password: 'richard'
+      username: 'FooFoo',
+      email: 'foo@foo.com',
+      password: 'foo'
     };
     before(function(done) {
       User.create({username: user.username, email: user.email, password: user.password}, function(err, newUser) {
@@ -127,30 +153,30 @@ describe('REST API endpoint /users', function() {
   });
 
   describe('User accessing', function() {
-    var user = {
-      username: 'Angely',
-      email: 'a@b.com',
-      password: 'angely'
-    };
-    var posts = [
-      {
-        message: 'I came, I saw, I conquered.'
-      },
-      {
-        message: 'Nice!'
-      }
-    ];
+    var Hawk = {};
+    var Eric = {};
+    var HawkPosts = [];
+
     before(function(done) {
-      createUserAndLogin(user, function(err, result) {
-        if (err) { return done(err); }
-        user.sid = result.sid;
-        user.accessToken = result.accessToken;
-        async.each(posts, function(post, callback) {
-          post.ownerId = user.sid;
-          Post.create(post, function(err) {
-            if (err) { return callback(err); }
-            callback();
-          });
+      var loader = new Loader(app, __dirname + '/fixtures');
+      loader.reset(function(err) {
+        if (err) { throw new Error(err); }
+        async.parallel({
+          loadHawk: function(callback) {
+            loadUserAndPosts({ email: 'hawk.lin@toppano.in', password: 'verpix' }, function(err, result) {
+              if (err) { return callback(err); }
+              Hawk = result.user;
+              HawkPosts = result.posts;
+              callback();
+            });
+          },
+          loadEric: function(callback) {
+            loadUserAndPosts({ email: 'sunright0414@gmail.com', password: 'verpix' }, function(err, result) {
+              if (err) { return callback(err); }
+              Eric = result.user;
+              callback();
+            });
+          }
         }, function(err) {
           if (err) { return done(err); }
           done();
@@ -159,6 +185,7 @@ describe('REST API endpoint /users', function() {
     });
 
     it('return a user by providing valid user id and valid access token', function(done) {
+      var user = Hawk;
       json('get', endpoint+'/'+user.sid+'?access_token='+user.accessToken.id)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
@@ -168,6 +195,7 @@ describe('REST API endpoint /users', function() {
     });
 
     it('return a user by providing id param as a literal and a valid access token', function(done) {
+      var user = Hawk;
       json('get', endpoint+'/me?access_token='+user.accessToken.id)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
@@ -177,6 +205,7 @@ describe('REST API endpoint /users', function() {
     });
 
     it('not return a user by providing mismatching userId and token', function(done) {
+      var user = Hawk;
       json('get', endpoint+'/1234?access_token='+user.accessToken.id)
       .expect(401, function(err, res) {
         if (err) { return done(err); }
@@ -185,6 +214,8 @@ describe('REST API endpoint /users', function() {
     });
 
     it('return a list of posts', function(done) {
+      var user = Hawk;
+      var posts = HawkPosts;
       json('get', endpoint+'/me/posts?access_token='+user.accessToken.id)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
@@ -195,6 +226,7 @@ describe('REST API endpoint /users', function() {
     });
 
     it('upload user profile photo', function(done) {
+      var user = Hawk;
       var image = fs.readFileSync(__dirname+'/fixtures/user_profile_photo.jpeg').toString('base64');
       json('post', endpoint+'/'+user.sid+'/photo?access_token='+user.accessToken.id)
       .send({
@@ -208,6 +240,7 @@ describe('REST API endpoint /users', function() {
     });
 
     it('change user profile photo', function(done) {
+      var user = Eric;
       var image = fs.readFileSync(__dirname+'/fixtures/user_profile_photo.jpeg').toString('base64');
       json('post', endpoint+'/'+user.sid+'/photo?access_token='+user.accessToken.id)
       .send({
@@ -216,19 +249,11 @@ describe('REST API endpoint /users', function() {
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         res.body.should.have.property('status', 'success');
-        json('post', endpoint+'/'+user.sid+'/photo?access_token='+user.accessToken.id)
-        .send({
-          image: image
-        })
+        json('get', endpoint+'/'+user.sid+'/profile?access_token='+user.accessToken.id)
         .expect(200, function(err, res) {
-          if (err) { return done(err); }
-          res.body.should.have.property('status', 'success');
-          json('get', endpoint+'/'+user.sid+'/profile?access_token='+user.accessToken.id)
-          .expect(200, function(err, res) {
-            res.body.profile.should.have.property('profilePhotoUrl');
-            res.body.profile.profilePhotoUrl.should.match(/profile_2.jpg$/);
-            done();
-          });
+          res.body.profile.should.have.property('profilePhotoUrl');
+          res.body.profile.profilePhotoUrl.should.match(/profile_2.jpg$/);
+          done();
         });
       });
     });
@@ -333,7 +358,7 @@ describe('REST API endpoint /users', function() {
           json('get', endpoint+'/'+followee.sid+'/followers?access_token='+followee.accessToken.id)
           .expect(200, function(err, res) {
             if (err) { return done(err); }
-//            console.log(JSON.stringify(res.body));
+            res.body.result.should.containDeep([ { followerId: follower.sid }, { followerId: followee2.sid } ]);
             done();
           });
         });
@@ -349,7 +374,7 @@ describe('REST API endpoint /users', function() {
           json('get', endpoint+'/'+follower.sid+'/following?access_token='+follower.accessToken.id)
           .expect(200, function(err, res) {
             if (err) { return done(err); }
-            console.log(JSON.stringify(res.body));
+            res.body.result.should.containDeep([ { followeeId: followee.sid }, { followeeId: followee2.sid } ]);
             done();
           });
         });
@@ -399,8 +424,8 @@ describe('REST API endpoint /users', function() {
 
   describe('User changing password', function() {
     var user = {
-      username: 'Richard',
-      email: 'richardtest@foo.com',
+      username: 'Ben',
+      email: 'ben@foo.com',
       password: 'password1'
     };
     var newPassword = 'password2';

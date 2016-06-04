@@ -13,7 +13,7 @@
   };
 
   Loader.normalize = function(name, array, options) {
-    var options = options || {};
+    if (!options) { options = {}; }
     var idAttribute = options.idAttribute || '_id';
     var obj = {};
     var schema = {};
@@ -24,7 +24,7 @@
       delete normalizedObj.entities[name][id][idAttribute];
     });
     return normalizedObj;
-  }
+  };
 
   Loader.prototype = {
     load: function(callback) {
@@ -42,7 +42,7 @@
           User.create(users.entities.users[userId], function(err, newUser) {
             if (err) { return callback(err); }
             if (!newUser) { return callback(new Error('Failed to create user: '+userId)); }
-            async.each(posts.result.posts, function(postId, callback) {
+            async.eachSeries(posts.result.posts, function(postId, callback) {
               if (posts.entities.posts[postId].ownerId === userId) {
                 posts.entities.posts[postId].ownerId = newUser.id;
                 Post.create(posts.entities.posts[postId], function(err) {
@@ -67,7 +67,6 @@
     },
 
     clean: function(callback) {
-      console.log('cleaning');
       try {
         var User = this.app.models.user;
         var Post = this.app.models.post;
@@ -97,5 +96,5 @@
       };
       this.clean(handleCleanCB.bind(this));
     }
-  }
+  };
 })();
