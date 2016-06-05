@@ -489,7 +489,25 @@ describe('Users - integration', function() {
       });
     });
 
-    it('query posts from other user', function(done) {
+    it('return 401 if query user posts without authorization', function(done) {
+      var me = Richard;
+      json('post', endpoint+'/'+me.sid+'/profile/query')
+      .expect(401, function(err, res) {
+        if (err) { return done(err); }
+        done();
+      });
+    });
+
+    it('return 401 if query user posts without authorization (2)', function(done) {
+      var me = Richard;
+      json('post', endpoint+'/'+me.sid+'/profile/query?access_token=INVALID_ACCESS_TOKEN')
+      .expect(401, function(err, res) {
+        if (err) { return done(err); }
+        done();
+      });
+    });
+
+    it.only('query posts from other user', function(done) {
       var me = Richard;
       json('post', endpoint+'/'+Hawk.sid+'/profile/query?access_token='+me.accessToken.id)
       .expect(200, function(err, res) {
