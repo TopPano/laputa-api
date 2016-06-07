@@ -337,19 +337,7 @@ describe('REST API endpoint /users', function() {
       });
     });
 
-    it('mark as friend if both users are following each other', function(done) {
-      json('post', endpoint+'/'+follower.sid+'/follow/'+followee.sid+'?access_token='+follower.accessToken.id)
-      .expect(200, function(err, res) {
-        if (err) { return done(err); }
-        json('post', endpoint+'/'+followee.sid+'/follow/'+follower.sid+'?access_token='+followee.accessToken.id)
-        .expect(200, function(err, res) {
-          if (err) { return done(err); }
-          done();
-        });
-      });
-    });
-
-    it('return follower list', function(done) {
+    it('get follower list of a given user', function(done) {
       json('post', endpoint+'/'+follower.sid+'/follow/'+followee.sid+'?access_token='+follower.accessToken.id)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
@@ -365,7 +353,7 @@ describe('REST API endpoint /users', function() {
       });
     });
 
-    it('return following list', function(done) {
+    it('get following list of a given user', function(done) {
       json('post', endpoint+'/'+follower.sid+'/follow/'+followee.sid+'?access_token='+follower.accessToken.id)
       .expect(200, function(err, res) {
         if (err) { return done(err); }

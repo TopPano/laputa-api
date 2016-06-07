@@ -40,7 +40,7 @@
       "model": "follow",
       "foreignKey": "followeeId"
     },
-    "following": {
+    "followings": {
       "type": "hasMany",
       "model": "follow",
       "foreignKey": "followerId"
@@ -73,7 +73,7 @@
     },
     {
       "principalType": "ROLE",
-      "principalId": "$authenticated",
+      "principalId": "$owner",
       "permission": "ALLOW",
       "property": "query"
     },

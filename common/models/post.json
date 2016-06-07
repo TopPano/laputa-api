@@ -32,7 +32,6 @@
     },
     "media": "object",
     "caption": "string",
-    "likes": "object",
     "created": "date",
     "modified": "date"
   },
@@ -47,6 +46,12 @@
       "type": "belongsTo",
       "model": "user",
       "foreignKey": "ownerId"
+    },
+    "_likes_": {
+      "__comments": "decorating the name in order to overriding default remote method for path '/:id/likes'",
+      "type": "hasMany",
+      "model": "like",
+      "foreignKey": "postId"
     }
   },
   "acls": [

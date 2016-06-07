@@ -10,7 +10,7 @@ var async = require('async');
 
 var apiVersion = require('../../package.json').version.split('.').shift();
 var endpointRoot = '/api' + (apiVersion > 0 ? '/v' + apiVersion : '');
-var endpoint = endpointRoot + '/search';
+var endpoint = endpointRoot + '/explore';
 var User, Post, Follow, Like;
 
 function json(verb, url) {
@@ -20,7 +20,7 @@ function json(verb, url) {
     .expect('Content-Type', /json/);
 }
 
-describe('REST API endpoint /search', function() {
+describe('REST API endpoint /explore', function() {
 
   function loadUserAndLogin(cred, callback) {
     assert(cred.email);
@@ -41,7 +41,7 @@ describe('REST API endpoint /search', function() {
     });
   }
 
-  describe('/search/recent', function() {
+  describe('/explore/recent', function() {
     var Richard = {};
     var allPosts = [];
 

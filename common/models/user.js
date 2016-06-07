@@ -4,10 +4,22 @@ var async = require('async');
 var passport = require('passport');
 var randomstring = require('randomstring');
 var logger = require('winston');
+
 var S3Uploader = require('../utils/S3Uploader');
 var S3Remover = require('../utils/S3Remover');
+var utils = require('../utils/utils');
+
+var config = require('../../server/api.json');
 
 module.exports = function(User) {
+
+  // disable default remote methods
+  User.disableRemoteMethod('__get__followers', false);
+  User.disableRemoteMethod('__create__followers', false);
+  User.disableRemoteMethod('__delete__followers', false);
+  User.disableRemoteMethod('__get__following', false);
+  User.disableRemoteMethod('__create__following', false);
+  User.disableRemoteMethod('__delete__following', false);
 
   function descending(a,b) {
     if (a.sid > b.sid)
@@ -58,11 +70,8 @@ module.exports = function(User) {
 
   User.query = function(id, req, json, callback) {
     logger.debug('in query');
-    var Post = User.app.models.post;
-    var Follow = User.app.models.follow;
     var where = json.where || undefined;
-    var PAGE_SIZE = 12;
-    var limit = PAGE_SIZE; // default limit
+    var limit = config.constants.query.PAGE_SIZE; // default limit
 
     if (json.limit) {
       if (typeof json.limit === 'string') {
@@ -72,142 +81,107 @@ module.exports = function(User) {
         limit = json.limit;
       }
     }
-    // get the following user list
-    Follow.find({where: {followerId: id}}, function(err, followings) {
+
+    var query = {
+      where: {
+        followerId: id
+      },
+      include: {
+        relation: 'following',
+        scope: {
+          include: {
+            relation: 'posts',
+            scope: {
+              where: {
+                status: 'completed'
+              },
+              order: 'sid DESC',
+              limit: limit + 1,
+              include: [
+                {
+                  relation: 'owner',
+                  scope: {
+                    fields: [ 'username', 'profilePhotoUrl' ],
+                    include: {
+                      relation: 'identities',
+                      scope: {
+                        fields: [ 'provider', 'profile' ]
+                      }
+                    }
+                  }
+                },
+                {
+                  relation: '_likes_',
+                  scope: {
+                    fields: [ 'userId' ]
+                  }
+                },
+                {
+                  relation: 'location',
+                  scope: {
+                    fields: [ 'name', 'geo', 'city', 'street', 'zip' ]
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    };
+    // TODO: should have a more comprehensive parser for parsing the where query
+    if (where && (typeof where === 'object')) {
+      try {
+        if ((where.sid.hasOwnProperty('lt') && (typeof where.sid.lt === 'string')) ||
+            (where.sid.hasOwnProperty('gt') && (typeof where.sid.gt === 'string')))
+        {
+          // update the where clause for the 'posts' inclusion of the query
+          query.include.scope.include.scope.where.sid = where.sid;
+        } else {
+          var error = new Error('Invalid query operator');
+          error.status = 400;
+          return callback(error);
+        }
+      } catch (e) {
+        var error = new Error('Bad request');
+        error.status = 400;
+        return callback(error);
+      }
+    }
+    var Follow = User.app.models.follow;
+    Follow.find(query, function(err, followingList) {
       if (err) {
         logger.error(err);
         return callback(err);
       }
-      var result = [];
-      var query = {
-        where: {
-          status: 'completed'
-        },
-        limit: limit + 1 // to see if we have next page
-      };
-      // TODO: should have a more comprehensive parser for parsing the where query
-      if (where && (typeof where === 'object')) {
-        try {
-          if ((where.sid.hasOwnProperty('lt') && (typeof where.sid.lt === 'string')) ||
-              (where.sid.hasOwnProperty('gt') && (typeof where.sid.gt === 'string')))
-          {
-            query.where.sid = where.sid;
-          } else {
-            var error = new Error('Invalid query operator');
-            error.status = 400;
-            return callback(error);
-          }
-        } catch (e) {
-          var error = new Error('Bad request');
-          error.status = 400;
-          return callback(error);
-        }
-      }
-      // get the posts for each of the following user
-      async.each(followings, function(following, callback) {
-        query.where.ownerId = following.followeeId;
-        var postQuery = {
-          where: query.where,
-          order: 'sid DESC',
-          limit: query.limit,
-          include: {
-            relation: 'location',
-            scope: {
-              fields: [ 'name', 'geo', 'city', 'street', 'zip' ]
-            }
-          }
-        };
-        Post.find(postQuery, function(err, posts) {
-          if (err) { return callback(err); }
-          result = result.concat(posts);
-          callback();
-        });
-      }, function(err) {
-        if (err) { return callback(err); }
-
-        result.sort(descending);
-
-        var output = { page: {}, feed: [] }, i;
-        if (result.length > limit) {
-          output.page.hasNextPage = true;
-          output.page.count = limit;
-          output.page.start = result[0].sid;
-          output.page.end = result[limit - 1].sid;
-          output.feed = result.slice(0, limit);
-        } else if (0 < result.length && result.length <= limit) {
-          output.page.hasNextPage = false;
-          output.page.count = result.length;
-          output.page.start = result[0].sid;
-          output.page.end = result[result.length - 1].sid;
-          output.feed = result.slice(0, result.length);
-        } else {
-          output.page.hasNextPage = false;
-          output.page.count = 0;
-          output.page.start = null;
-          output.page.end = null;
-        }
-        var Like = Post.app.models.like;
-        async.each(output.feed, function(post, callback) {
-          async.parallel({
-            likeCount: function(callback) {
-              Like.find({where: {postId: post.sid}}, function(err, list) {
-                if (err) { return callback(err); }
-                callback(null, list.length);
-              });
-            },
-            isLiked: function(callback) {
-              if (!req.accessToken) {
-                var error = new Error('Bad Request: missing access token');
-                error.status = 400;
-                return callback(error);
-              }
-              User.findById(req.accessToken.userId, function(err, profile) {
-                if (err) { return callback(err); }
-                if (!profile) { return callback(new Error('No user with this access token was found.')); }
-                Like.find({where: {postId: post.sid, userId: req.accessToken.userId}}, function(err, list) {
-                  if (err) { return callback(err); }
-                  if (list.length !== 0) { callback(null, true); }
-                  else { callback(null, false); }
-                });
-              });
-            },
-            ownerInfo: function(callback) {
-              User.findById(post.ownerId, {
-                fields: [ 'sid', 'username', 'profilePhotoUrl' ],
-                include: {
-                  relation: 'identities',
-                  scope: {
-                    fields: [ 'provider', 'profile' ]
-                  }
-                }
-              }, function(err, user) {
-                if (err) { return callback(err); }
-                if (!user) {
-                  var error = new Error('Internal Error');
-                  error.status = 500;
-                  return callback(error);
-                }
-                callback(null, user);
-              });
-            }
-          }, function(err, results) {
-            if (err) { return callback(err); }
-            post.likes = {
-              count: results.likeCount,
-              isLiked: results.isLiked
-            };
-            post.ownerInfo = results.ownerInfo;
-            callback();
-          });
-        }, function(err) {
-          if (err) {
-            logger.error(err);
-            return callback(new Error('Internal Error'));
-          }
-          logger.debug('query result returned');
-          callback(null, output);
-        });
+      var output = { page: {}, feed: [] }, i;
+      followingList.forEach(function(item) {
+        var obj = item.toJSON();
+        output.feed = output.feed.concat(obj.following.posts);
       });
+      output.feed.sort(descending);
+      if (output.feed.length > limit) {
+        output.page.hasNextPage = true;
+        output.page.count = limit;
+        output.page.start = output.feed[0].sid;
+        output.page.end = output.feed[limit - 1].sid;
+        output.feed = output.feed.slice(0, limit);
+      } else if (0 < output.feed.length && output.feed.length <= limit) {
+        output.page.hasNextPage = false;
+        output.page.count = output.feed.length;
+        output.page.start = output.feed[0].sid;
+        output.page.end = output.feed[output.feed.length - 1].sid;
+        output.feed = output.feed.slice(0, output.feed.length);
+      } else {
+        output.page.hasNextPage = false;
+        output.page.count = 0;
+        output.page.start = null;
+        output.page.end = null;
+      }
+      for (i = 0; i < output.feed.length; i++) {
+        output.feed[i].likes = utils.formatLikeList(output.feed[i]['_likes_'], req.accessToken.userId);
+        delete output.feed[i]['_likes_'];
+      }
+      callback(null, output);
     });
   };
   User.remoteMethod('query', {
@@ -312,14 +286,6 @@ module.exports = function(User) {
     http: { path: '/:followerId/unfollow/:followeeId', verb: 'post' }
   });
 
-  // disable default remote methods
-  User.disableRemoteMethod('__get__followers', false);
-  User.disableRemoteMethod('__create__followers', false);
-  User.disableRemoteMethod('__delete__followers', false);
-  User.disableRemoteMethod('__get__following', false);
-  User.disableRemoteMethod('__create__following', false);
-  User.disableRemoteMethod('__delete__following', false);
-
   User.listFollowers = function(id, req, callback) {
     var Follow = User.app.models.follow;
     Follow.find({
@@ -329,35 +295,38 @@ module.exports = function(User) {
         relation: 'follower',
         scope: {
           fields: [ 'username', 'profilePhotoUrl' ],
-          include: {
-            relation: 'identities',
-            scope: {
-              fields: [ 'provider', 'profile' ]
+          include: [
+            {
+              relation: 'followers',
+              scope: {
+                where: {
+                  followerId: req.accessToken.userId
+                }
+              }
+            },
+            {
+              relation: 'identities',
+              scope: {
+                fields: [ 'provider', 'profile' ]
+              }
             }
-          }
+          ]
         }
       }
     }, function(err, followers) {
       if (err) { return callback(err); }
-      async.each(followers, function(user, callback) {
-        Follow.find({
-          where: {
-            followeeId: user.followerId,
-            followerId: req.accessToken.userId
-          }
-        }, function(err, result) {
-          if (err) { return callback(err); }
-          if (result.length === 0) {
-            user.isFriend = false;
-          } else {
-            user.isFriend = true;
-          }
-          callback();
-        });
-      }, function(err) {
-        if (err) { return callback(err); }
-        callback(null, followers);
+      var output = [];
+      followers.forEach(function(follower) {
+        var followerObj = follower.toJSON();
+        if (followerObj.follower.followers.length !== 0) {
+          followerObj.isFollowing = true;
+        } else {
+          followerObj.isFollowing = false;
+        }
+        delete followerObj.follower.followers;
+        output.push(followerObj);
       });
+      callback(null, output);
     });
   };
   User.remoteMethod('listFollowers', {
@@ -378,35 +347,38 @@ module.exports = function(User) {
         relation: 'following',
         scope: {
           fields: [ 'username', 'profilePhotoUrl' ],
-          include: {
-            relation: 'identities',
-            scope: {
-              fields: [ 'provider', 'profile' ]
+          include: [
+            {
+              relation: 'followers',
+              scope: {
+                where: {
+                  followerId: req.accessToken.userId
+                }
+              }
+            },
+            {
+              relation: 'identities',
+              scope: {
+                fields: [ 'provider', 'profile' ]
+              }
             }
-          }
+          ]
         }
       }
     }, function(err, following) {
       if (err) { return callback(err); }
-      async.each(following, function(user, callback) {
-        Follow.find({
-          where: {
-            followeeId: user.followeeId,
-            followerId: req.accessToken.userId
-          }
-        }, function(err, result) {
-          if (err) { return callback(err); }
-          if (result.length === 0) {
-            user.isFriend = false;
-          } else {
-            user.isFriend = true;
-          }
-          callback();
-        });
-      }, function(err) {
-        if (err) { return callback(err); }
-        callback(null, following);
+      var output = [];
+      following.forEach(function(item) {
+        var followingObj = item.toJSON();
+        if (followingObj.following.followers.length !== 0) {
+          followingObj.isFollowing = true;
+        } else {
+          followingObj.isFollowing = false;
+        }
+        delete followingObj.following.followers;
+        output.push(followingObj);
       });
+      callback(null, output);
     });
   };
   User.remoteMethod('listFollowing', {
@@ -420,7 +392,6 @@ module.exports = function(User) {
 
   User.uploadProfilePhoto = function(id, json, callback) {
     var uploader = new S3Uploader();
-
     try {
       var image = json.image ? new Buffer(json.image, 'base64') : undefined;
       if (!image) {
@@ -512,103 +483,50 @@ module.exports = function(User) {
   });
 
   User.getProfile = function(id, req, callback) {
-    var Follow = User.app.models.follow;
-    var Post = User.app.models.post;
-    var UserIdentity = User.app.models.userIdentity;
-    async.parallel({
-      basicProfile: function(callback) {
-        User.findById(id, function(err, profile) {
-          if (err) { return callback(err); }
-          if (!profile) {
-            var error = new Error('User Not Found');
-            error.status = 404;
-            return callback(error);
+    User.findById(id, {
+      fields: [ 'sid', 'username', 'profilePhotoUrl', 'autobiography' ],
+      include: [
+        {
+          relation: 'followers'
+        },
+        {
+          relation: 'followings'
+        },
+        {
+          relation: 'identities',
+          scope: {
+            fields: [ 'provider', 'profile' ]
           }
-          if (profile.username && profile.username.split('.')[0] === 'facebook-token') {
-            UserIdentity.find({ where: {userId: profile.sid }}, function(err, userIdentity) {
-              if (err) { return callback(err); }
-              if (userIdentity.length === 0) {
-                var error = new Error('User Identity Not Found');
-                error.status = 404;
-                return callback(error);
-              }
-              var username;
-              if (!!userIdentity[0].profile.displayName) {
-                username = userIdentity[0].profile.displayName;
-              } else {
-                username = userIdentity[0].profile.name.givenName + ' ' + userIdentity[0].profile.name.familyName;
-              }
-              callback(null, {
-                username: username,
-                profilePhotoUrl: profile.profilePhotoUrl,
-                autobiography: profile.autobiography
-              });
-            });
-          } else {
-            callback(null, profile);
+        },
+        {
+          relation: 'posts',
+          scope: {
+            fields: [ 'sid' ]
           }
-        });
-      },
-      followerNumber: function(callback) {
-        Follow.find({where: {followeeId: id}}, function(err, list) {
-          if (err) { return callback(err); }
-          callback(null, list.length);
-        });
-      },
-      followingNumber: function(callback) {
-        Follow.find({where: {followerId: id}}, function(err, list) {
-          if (err) { return callback(err); }
-          callback(null, list.length);
-        });
-      },
-      postNumber: function(callback) {
-        Post.find({where: {ownerId: id}}, function(err, list) {
-          if (err) { return callback(err); }
-          callback(null, list.length);
-        });
-      },
-      isFollowing: function(callback) {
-        if (!req.accessToken) {
-          var error = new Error('Bad Request: missing access token');
-          error.status = 401;
-          return callback(error);
         }
-        // check if the access token is valid
-        User.findById(req.accessToken.userId, function(err, profile) {
-          if (err) { return callback(err); }
-          if (!profile) { return callback(new Error('No user with this access token was found.')); }
-          // check if we are getting someone else's profile
-          assert(profile.sid);
-          if (id !== profile.sid) {
-            // we are getting someone's profile data, check if we have followed him/her or not
-            Follow.find({where: {followerId: profile.sid, followeeId: id}}, function(err, list) {
-              if (err) { return callback(err); }
-              if (list.length !== 0) { return callback(null, true); }
-              else { return callback(null, false); }
-            });
-          } else {
-            // we are checking our own profile data
-            callback(null, false);
-          }
-        });
-      }
-    }, function(err, results) {
+      ]
+    }, function(err, user) {
       if (err) {
-        if (err.status && err.status >= 400) {
-          return callback(err);
-        }
         logger.error(err);
         return callback(new Error('Internal Error'));
       }
+      if (!user) {
+        var error = new Error('User Not Found');
+        error.status = 404;
+        return callback(error);
+      }
+      var userObj = user.toJSON();
       var output = {
-        sid: id,
-        username: results.basicProfile.username,
-        profilePhotoUrl: results.basicProfile.profilePhotoUrl,
-        autobiography: results.basicProfile.autobiography,
-        followers: results.followerNumber,
-        following: results.followingNumber,
-        posts: results.postNumber,
-        isFollowing: results.isFollowing
+        sid: userObj.sid,
+        username: userObj.username,
+        profilePhotoUrl: userObj.profilePhotoUrl,
+        autobiography: userObj.autobiography,
+        followers: userObj.followers.length,
+        following: userObj.followings.length,
+        posts: userObj.posts.length,
+        isFollowing: Boolean(userObj.followers.find(function(follower) {
+          return follower.followerId === req.accessToken.userId;
+        }))
       };
       callback(null, output);
     });
@@ -624,11 +542,8 @@ module.exports = function(User) {
 
   User.profileQuery = function(id, req, json, callback) {
     logger.debug('in profile query');
-    var Post = User.app.models.post;
-    var Follow = User.app.models.follow;
     var where = json.where || undefined;
-    var PAGE_SIZE = 12;
-    var limit = PAGE_SIZE; // default limit
+    var limit = config.constants.query.PAGE_SIZE; // default limit
 
     if (json.limit) {
       if (typeof json.limit === 'string') {
@@ -638,32 +553,52 @@ module.exports = function(User) {
         limit = json.limit;
       }
     }
-    var result = [];
     var query = {
       where: {
+        ownerId: id,
         status: 'completed'
       },
       order: 'sid DESC',
       limit: limit + 1, // to see if we have next page
-      include: {
-        relation: 'location',
-        scope: {
-          fields: [ 'name', 'geo', 'city', 'street', 'zip' ]
+      include: [
+        {
+          relation: 'owner',
+          scope: {
+            fields: [ 'username', 'profilePhotoUrl' ],
+            include: {
+              relation: 'identities',
+              scope: {
+                fields: [ 'provider', 'profile' ]
+              }
+            }
+          }
+        },
+        {
+          relation: '_likes_',
+          scope: {
+            fields: [ 'userId' ]
+          }
+        },
+        {
+          relation: 'location',
+          scope: {
+            fields: [ 'name', 'geo', 'city', 'street', 'zip' ]
+          }
         }
-      }
+      ]
     };
     // TODO: should have a more comprehensive parser for parsing the where query
     if (where && (typeof where === 'object')) {
       try {
         if ((where.sid.hasOwnProperty('lt') && (typeof where.sid.lt === 'string')) ||
             (where.sid.hasOwnProperty('gt') && (typeof where.sid.gt === 'string')))
-          {
-            query.where.sid = where.sid;
-          } else {
-            var error = new Error('Invalid query operator');
-            error.status = 400;
-            return callback(error);
-          }
+        {
+          query.where.sid = where.sid;
+        } else {
+          var error = new Error('Invalid query operator');
+          error.status = 400;
+          return callback(error);
+        }
       } catch (e) {
         var error = new Error('Bad request');
         error.status = 400;
@@ -671,7 +606,7 @@ module.exports = function(User) {
       }
     }
 
-    query.where.ownerId = id;
+    var Post = User.app.models.post;
     Post.find(query, function(err, posts) {
       if (err) { return callback(err); }
       posts.sort(descending);
@@ -694,67 +629,13 @@ module.exports = function(User) {
         output.page.start = null;
         output.page.end = null;
       }
-      var Like = Post.app.models.like;
-      async.each(output.feed, function(post, callback) {
-        async.parallel({
-          likeCount: function(callback) {
-            Like.find({where: {postId: post.sid}}, function(err, list) {
-              if (err) { return callback(err); }
-              callback(null, list.length);
-            });
-          },
-          isLiked: function(callback) {
-            if (!req.accessToken) {
-              var error = new Error('Bad Request: missing access token');
-              error.status = 400;
-              return callback(error);
-            }
-            User.findById(req.accessToken.userId, function(err, profile) {
-              if (err) { return callback(err); }
-              if (!profile) { return callback(new Error('No user with this access token was found.')); }
-              Like.find({where: {postId: post.sid, userId: req.accessToken.userId}}, function(err, list) {
-                if (err) { return callback(err); }
-                if (list.length !== 0) { callback(null, true); }
-                else { callback(null, false); }
-              });
-            });
-          },
-          ownerInfo: function(callback) {
-            User.findById(post.ownerId, {
-              fields: [ 'sid', 'username', 'profilePhotoUrl' ],
-              include: {
-                relation: 'identities',
-                scope: {
-                  fields: [ 'provider', 'profile' ]
-                }
-              }
-            }, function(err, user) {
-              if (err) { return callback(err); }
-              if (!user) {
-                var error = new Error('Internal Error');
-                error.status = 500;
-                return callback(error);
-              }
-              callback(null, user);
-            });
-          }
-        }, function(err, results) {
-          if (err) { return callback(err); }
-          post.likes = {
-            count: results.likeCount,
-            isLiked: results.isLiked
-          };
-          post.ownerInfo = results.ownerInfo;
-          callback();
-        });
-      }, function(err) {
-        if (err) {
-          logger.error(err);
-          return callback(new Error('Internal Error'));
-        }
-        logger.debug('profile query returned');
-        callback(null, output);
-      });
+      for (i = 0; i < output.feed.length; i++) {
+        var postObj = output.feed[i].toJSON();
+        postObj.likes = utils.formatLikeList(postObj['_likes_'], req.accessToken.userId);
+        delete postObj['_likes_'];
+        output.feed[i] = postObj;
+      }
+      callback(null, output);
     });
   };
   User.remoteMethod('profileQuery', {

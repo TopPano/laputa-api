@@ -1,0 +1,7 @@
+{
+  "constants": {
+    "query": {
+      "PAGE_SIZE": 12
+    }
+  }
+}

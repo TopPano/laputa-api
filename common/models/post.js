@@ -5,9 +5,11 @@ var async = require('async');
 var P = require('bluebird');
 var logger = require('winston');
 var crypto = require('crypto');
-var S3Uploader = require('../utils/S3Uploader');
 
+var S3Uploader = require('../utils/S3Uploader');
+var utils = require('../utils/utils');
 var VerpixId = require('../utils/verpix-id-gen');
+
 var idGen = new VerpixId();
 
 var gearClient = require('gearmanode').client();
@@ -15,15 +17,9 @@ gearClient.jobServers.forEach(function(server) {
   server.setOption('exceptions', function() {});
 });
 
-
 module.exports = function(Post) {
 
   Post.validatesInclusionOf('mediaType', { in: [ 'panoPhoto', 'livePhoto' ] });
-
-  function genShardingKey() {
-    var keylen = 4;
-    return crypto.randomBytes(Math.ceil(keylen/2)).toString('hex');
-  }
 
   function getTimeNow() {
     return moment(new Date()).format('YYYY-MM-DD');
@@ -134,6 +130,11 @@ module.exports = function(Post) {
       });
     } catch (err) {
       callback(err);
+    }
+
+    function genShardingKey() {
+      var keylen = 4;
+      return crypto.randomBytes(Math.ceil(keylen/2)).toString('hex');
     }
   }
 
@@ -298,111 +299,6 @@ module.exports = function(Post) {
           callback(err);
         }
       });
-
-      /*
-      if (locationProviderId) {
-        logger.debug('creating panoPhoto with location provider ID');
-        Location.findOrCreate({
-          where: {
-            and: [
-              { provider: locationProvider },
-              { providerId: locationProviderId }
-            ]
-          }
-        }, {
-          provider: locationProvider,
-          providerId: locationProviderId,
-          name: locationName,
-          city: locationCity,
-          street: locationStreet,
-          zip: locationZip,
-          geo: {
-            lat: locationLat,
-            lng: locationLng
-          }
-        }, function(err, location) {
-          if (err) { return callback(err); }
-          if (!location) {
-            var error = new Error('Failed to Create Location');
-            error.status = 500;
-            return callback(error);
-          }
-          logger.debug('location created');
-          postObj.locationId = location.id;
-          Post.create(postObj, function(err, post) {
-            if (err) { return callback(err); }
-            // create a job for worker
-            createAsyncJob({
-              jobType: mediaType,
-              postId: post.sid,
-              image: {
-                width: imgWidth,
-                height: imgHeight,
-                buffer: imgBuf,
-                hasZipped: true
-              },
-              thumbnail: { buffer: thumbBuf }
-            });
-            logger.debug('post created');
-            callback(null, { postId: post.sid });
-          });
-        });
-      } else if (locationName) {
-        logger.debug('creating panoPhoto with only location name');
-        Location.create({
-          name: locationName,
-          geo: {
-            lat: locationLat,
-            lng: locationLng
-          }
-        }, function(err, location) {
-          if (err) { return callback(err); }
-          if (!location) {
-            var error = new Error('Failed to Create Location');
-            error.status = 500;
-            return callback(error);
-          }
-          logger.debug('location created');
-          postObj.locationId = location.id;
-          Post.create(postObj, function(err, post) {
-            if (err) { return callback(err); }
-            // create a job for worker
-            createAsyncJob({
-              jobType: mediaType,
-              postId: post.sid,
-              image: {
-                width: imgWidth,
-                height: imgHeight,
-                buffer: imgBuf,
-                hasZipped: true
-              },
-              thumbnail: { buffer: thumbBuf }
-            });
-            logger.debug('post created');
-            callback(null, { postId: post.sid });
-          });
-        });
-      } else {
-        logger.debug('create panoPhoto without location');
-        Post.create(postObj, function(err, post) {
-          if (err) { return callback(err); }
-          // create a job for worker
-          createAsyncJob({
-            jobType: mediaType,
-            postId: post.sid,
-            image: {
-              width: imgWidth,
-              height: imgHeight,
-              buffer: imgBuf,
-              hasZipped: true
-            },
-            thumbnail: { buffer: thumbBuf }
-          });
-          logger.debug('post created');
-          callback(null, { postId: post.sid });
-        });
-      }
-      */
     } catch(error) {
       return callback(error);
     }
@@ -413,19 +309,6 @@ module.exports = function(Post) {
     ],
     returns: [ { arg: 'result', type: 'objct' } ],
     http: { path: '/panophoto', verb: 'post' }
-  });
-
-  Post.beforeRemote('deleteById', function(ctx, unused, next) {
-    Post.findById(ctx.req.params.id, function(err, post) {
-      if (err) { return next(err); }
-      if (!post) {
-        var error = new Error('Post Not Found');
-        error.status = 404;
-        return next(error);
-      }
-      createAsyncJob({ jobType: 'deletePanoPhoto', post: post });
-      next();
-    });
   });
 
   Post.observe('before save', function(ctx, next) {
@@ -445,6 +328,19 @@ module.exports = function(Post) {
     }
   });
 
+  Post.beforeRemote('deleteById', function(ctx, unused, next) {
+    Post.findById(ctx.req.params.id, function(err, post) {
+      if (err) { return next(err); }
+      if (!post) {
+        var error = new Error('Post Not Found');
+        error.status = 404;
+        return next(error);
+      }
+      createAsyncJob({ jobType: 'deletePanoPhoto', post: post });
+      next();
+    });
+  });
+
   Post.findPostById = function(id, req, callback) {
     logger.debug('in findPostById');
     Post.findById(id, {
@@ -462,6 +358,12 @@ module.exports = function(Post) {
           }
         },
         {
+          relation: '_likes_',
+          scope: {
+            fields: [ 'userId' ]
+          }
+        },
+        {
           relation: 'location',
           scope: {
             fields: [ 'name', 'geo', 'city', 'street', 'zip' ]
@@ -475,40 +377,10 @@ module.exports = function(Post) {
         error.status = 404;
         return callback(error);
       }
-      logger.debug('post found');
-      var Like = Post.app.models.like;
-      var User = Post.app.models.user;
-      async.parallel({
-        likeCount: function(callback) {
-          Like.find({ where: { postId: post.sid } }, function(err, list) {
-            if (err) { return callback(err); }
-            callback(null, list.length);
-          });
-        },
-        isLiked: function(callback) {
-          if (req.accessToken) {
-            User.findById(req.accessToken.userId, function(err, profile) {
-              if (err) { return callback(err); }
-              if (!profile) { return callback(new Error('No user with this access token was found.')); }
-              Like.find({ where: { postId: post.sid, userId: req.accessToken.userId } }, function(err, list) {
-                if (err) { return callback(err); }
-                if (list.length !== 0) { callback(null, true); }
-                else { callback(null, false); }
-              });
-            });
-          } else {
-            callback(null, false);
-          }
-        }
-      }, function(err, results) {
-        if (err) { return callback(err); }
-        post.likes = {
-          count: results.likeCount,
-          isLiked: results.isLiked
-        };
-        logger.debug('post returned');
-        callback(null, post);
-      });
+      var postObj = post.toJSON();
+      postObj.likes = utils.formatLikeList(postObj['_likes_'], req.accessToken ? req.accessToken.userId : null);
+      delete postObj['_likes_'];
+      callback(null, postObj);
     });
   };
   Post.remoteMethod('findPostById', {
@@ -617,7 +489,6 @@ module.exports = function(Post) {
               relation: 'followers',
               scope: {
                 where: { followerId: req.accessToken.userId },
-                fields: [ 'followeeId', 'followerId', 'followAt' ]
               }
             },
             {
