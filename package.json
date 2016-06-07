@@ -13,6 +13,7 @@
     "async": "1.5.0",
     "aws-sdk": "2.2.30",
     "bcrypt": "0.8.5",
+    "bluebird": "^3.4.0",
     "body-parser": "1.15.0",
     "compression": "1.0.3",
     "cors": "2.5.2",
