@@ -288,7 +288,7 @@ module.exports = function(Post) {
         });
         callback(null, {
           postId: result.post.id,
-          thumbnail: result.thumbnail.cdnUrl
+          thumbnailUrl: result.thumbnail.cdnUrl
         });
       })
       .catch(function(err) {
