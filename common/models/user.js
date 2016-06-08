@@ -530,7 +530,7 @@ module.exports = function(User) {
       var userObj = user.toJSON();
       var output = {
         sid: userObj.sid,
-        username: userObj.username,
+        username: userObj.username.split('.')[0] === 'facebook-token' ? userObj.identities[0].profile.name.familyName : userObj.username,
         profilePhotoUrl: userObj.profilePhotoUrl,
         autobiography: userObj.autobiography,
         followers: userObj.followers.length,
