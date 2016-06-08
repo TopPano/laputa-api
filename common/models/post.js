@@ -508,9 +508,9 @@ module.exports = function(Post) {
       var output = [];
       likes.forEach(function(like) {
         var likeObj = like.toJSON();
-        likeObj.user.isFollowing = false;
+        likeObj.isFollowing = false;
         if (likeObj.user.followers.length !== 0) {
-          likeObj.user.isFollowing = true;
+          likeObj.isFollowing = true;
         }
         delete likeObj.user.followers;
         output.push(likeObj);

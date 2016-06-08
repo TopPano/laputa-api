@@ -167,11 +167,11 @@ describe('Posts - integration', function() {
             res.body.result.should.containDeep([
               {
                 userId: user1.sid,
-                user: { isFollowing: false }
+                isFollowing: false
               },
               {
                 userId: user2.sid,
-                user: { isFollowing: true }
+                isFollowing: true
               }
             ]);
             done();
