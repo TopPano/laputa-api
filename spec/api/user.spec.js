@@ -368,6 +368,15 @@ describe('REST API endpoint /users', function() {
         });
       });
     });
+
+    it('get following list of a given user (2)', function(done) {
+      json('get', endpoint+'/'+followee.sid+'/following?access_token='+follower.accessToken.id)
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        res.body.result.should.be.an.instanceof(Array).and.have.lengthOf(0);
+        done();
+      });
+    });
   });
 
   describe('User editing', function() {

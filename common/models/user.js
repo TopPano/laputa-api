@@ -153,7 +153,18 @@ module.exports = function(User) {
         logger.error(err);
         return callback(err);
       }
-      var output = { page: {}, feed: [] }, i;
+      var output = {
+        page: {
+          hasNextPage: false,
+          count: 0,
+          start: null,
+          end: null
+        },
+        feed: []
+      };
+      if (!followingList) {
+        return callback(null, output);
+      }
       followingList.forEach(function(item) {
         var obj = item.toJSON();
         output.feed = output.feed.concat(obj.following.posts);
@@ -171,13 +182,8 @@ module.exports = function(User) {
         output.page.start = output.feed[0].sid;
         output.page.end = output.feed[output.feed.length - 1].sid;
         output.feed = output.feed.slice(0, output.feed.length);
-      } else {
-        output.page.hasNextPage = false;
-        output.page.count = 0;
-        output.page.start = null;
-        output.page.end = null;
       }
-      for (i = 0; i < output.feed.length; i++) {
+      for (var i = 0; i < output.feed.length; i++) {
         output.feed[i].likes = utils.formatLikeList(output.feed[i]['_likes_'], req.accessToken.userId);
         delete output.feed[i]['_likes_'];
       }
@@ -316,6 +322,9 @@ module.exports = function(User) {
     }, function(err, followers) {
       if (err) { return callback(err); }
       var output = [];
+      if (!followers) {
+        return callback(null, output);
+      }
       followers.forEach(function(follower) {
         var followerObj = follower.toJSON();
         if (followerObj.follower.followers.length !== 0) {
@@ -368,6 +377,9 @@ module.exports = function(User) {
     }, function(err, following) {
       if (err) { return callback(err); }
       var output = [];
+      if (!following) {
+        return callback(null, output);
+      }
       following.forEach(function(item) {
         var followingObj = item.toJSON();
         if (followingObj.following.followers.length !== 0) {
@@ -609,8 +621,19 @@ module.exports = function(User) {
     var Post = User.app.models.post;
     Post.find(query, function(err, posts) {
       if (err) { return callback(err); }
+      var output = {
+        page: {
+          hasNextPage: false,
+          count: 0,
+          start: null,
+          end: null
+        },
+        feed: []
+      };
+      if (!posts) {
+        return callback(null, output);
+      }
       posts.sort(descending);
-      var output = { page: {}, feed: [] }, i;
       if (posts.length > limit) {
         output.page.hasNextPage = true;
         output.page.count = limit;
@@ -623,13 +646,8 @@ module.exports = function(User) {
         output.page.start = posts[0].sid;
         output.page.end = posts[posts.length - 1].sid;
         output.feed = posts.slice(0, posts.length);
-      } else {
-        output.page.hasNextPage = false;
-        output.page.count = 0;
-        output.page.start = null;
-        output.page.end = null;
       }
-      for (i = 0; i < output.feed.length; i++) {
+      for (var i = 0; i < output.feed.length; i++) {
         var postObj = output.feed[i].toJSON();
         postObj.likes = utils.formatLikeList(postObj['_likes_'], req.accessToken.userId);
         delete postObj['_likes_'];
