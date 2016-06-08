@@ -505,7 +505,17 @@ module.exports = function(Post) {
         logger.error(err);
         return callback(err);
       }
-      callback(null, likes);
+      var output = [];
+      likes.forEach(function(like) {
+        var likeObj = like.toJSON();
+        likeObj.user.isFollowing = false;
+        if (likeObj.user.followers.length !== 0) {
+          likeObj.user.isFollowing = true;
+        }
+        delete likeObj.user.followers;
+        output.push(likeObj);
+      });
+      callback(null, output);
     });
   };
   Post.remoteMethod('getLikeList', {
