@@ -87,11 +87,30 @@ describe('REST API endpoint /post', function() {
     it('create a new post for panophoto', function(done) {
       var user = Hawk;
       json('post', endpoint+'/panophoto?access_token='+user.accessToken.id, 'multipart/form-data')
-      .field('caption', 'test')
+      .field('caption', 'test for panophoto')
       .field('width', '8192')
       .field('height', '4096')
       .field('thumbLat', '30')
       .field('thumbLng', '90')
+      .field('locationName', 'Home Sweet Home')
+      .field('locationLat', '25.05511')
+      .field('locationLng', '121.61171')
+      .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
+      .attach('image', __dirname+'/fixtures/1.jpg.zip')
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        res.body.result.should.have.property('postId');
+        res.body.result.should.have.property('thumbnail');
+        done();
+      });
+    });
+
+    it('create a new post for livephoto', function(done) {
+      var user = Hawk;
+      json('post', endpoint+'/livephoto?access_token='+user.accessToken.id, 'multipart/form-data')
+      .field('caption', 'test for livephoto')
+      .field('width', '8192')
+      .field('height', '4096')
       .field('locationName', 'Home Sweet Home')
       .field('locationLat', '25.05511')
       .field('locationLng', '121.61171')

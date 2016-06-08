@@ -17,9 +17,12 @@ gearClient.jobServers.forEach(function(server) {
   server.setOption('exceptions', function() {});
 });
 
+var MEDIA_PANO_PHOTO = 'panoPhoto';
+var MEDIA_LIVE_PHOTO = 'livePhoto';
+
 module.exports = function(Post) {
 
-  Post.validatesInclusionOf('mediaType', { in: [ 'panoPhoto', 'livePhoto' ] });
+  Post.validatesInclusionOf('mediaType', { in: [ MEDIA_PANO_PHOTO, MEDIA_LIVE_PHOTO ] });
 
   function getTimeNow() {
     return moment(new Date()).format('YYYY-MM-DD');
@@ -28,6 +31,8 @@ module.exports = function(Post) {
   function createAsyncJob(options) {
     logger.debug('in createAsyncJob');
     var job;
+    var post = {};
+    var list = [];
     switch (options.jobType) {
       case 'panoPhoto': {
         logger.debug('creating async job: '+options.jobType);
@@ -60,9 +65,36 @@ module.exports = function(Post) {
         });
         break;
       }
+      case 'livePhoto': {
+        logger.debug('creating async job: '+options.jobType);
+        job = gearClient.submitJob('handleLivePhoto', JSON.stringify({
+          postId: options.postId,
+          image: assign({}, options.image, { buffer: options.image.buffer.toString('base64') }),
+          thumbnail: options.thumbnail
+        }));
+        job.on('complete', function() {
+          logger.debug('job completed for '+options.jobType);
+          var response = JSON.parse(job.response);
+          Post.updateAll({ sid: response.postId }, {
+            status: 'completed',
+            thumbnail: {
+              srcUrl: response.thumbUrl,
+              downloadUrl: response.thumbDownloadUrl
+            },
+            media: {
+              srcUrl: response.srcUrl,
+              srcDownloadUrl: response.srcDownloadUrl
+            }
+          }, function(err) {
+            if (err) { logger.error(err); }
+            logger.debug('updated post successfully');
+          });
+        });
+        break;
+      }
       case 'deletePanoPhoto': {
-        var post = options.post;
-        var list = [];
+        post = options.post;
+        list = [];
         list.push(post.thumbnail.srcUrl);
         list.push(post.thumbnail.downloadUrl);
         list.push(post.media.srcUrl);
@@ -71,6 +103,18 @@ module.exports = function(Post) {
         list.push(post.media.srcMobileUrl);
         list.push(post.media.srcMobileDownloadUrl);
         list = list.concat(post.media.srcMobileTiledImages.map(function(image) { return image.srcUrl; }));
+        job = gearClient.submitJob('deletePostImages', JSON.stringify({
+          imageList: list
+        }));
+        break;
+      }
+      case 'deleteLivePhoto': {
+        post = options.post;
+        list = [];
+        list.push(post.thumbnail.srcUrl);
+        list.push(post.thumbnail.downloadUrl);
+        list.push(post.media.srcUrl);
+        list.push(post.media.srcDownloadUrl);
         job = gearClient.submitJob('deletePostImages', JSON.stringify({
           imageList: list
         }));
@@ -138,19 +182,17 @@ module.exports = function(Post) {
     }
   }
 
-  Post.createPanoPhoto = function(req, callback) {
-    logger.debug('in createPanoPhoto');
+  function createPost(mediaType, req, callback) {
     try {
       var caption = req.body.caption;
       var imgBuf = req.files.image[0].buffer;
       var imgType = req.files.image[0].mimetype;
       var imgWidth = req.body.width;
       var imgHeight = req.body.height;
-      var imgIndex = req.body.index;
       var thumbBuf = req.files.thumbnail[0].buffer;
       var thumbType = req.files.thumbnail[0].mimetype;
-      var thumbLat = req.body.thumbLat;
-      var thumbLng = req.body.thumbLng;
+      var thumbLat = req.body.thumbLat || null;
+      var thumbLng = req.body.thumbLng || null;
       var locationProvider = req.body.locationProvider || 'facebook';
       var locationProviderId = req.body.locationProviderId || null;
       var locationName = req.body.locationName || null;
@@ -161,7 +203,8 @@ module.exports = function(Post) {
       var locationLng = req.body.locationLng || null;
       var now = getTimeNow();
 
-      if (!thumbBuf || !thumbType || !thumbLat || !thumbLng) {
+      if ((mediaType === MEDIA_PANO_PHOTO && (!thumbBuf || !thumbType || !thumbLat || !thumbLng)) ||
+          (mediaType === MEDIA_LIVE_PHOTO && (!thumbBuf || !thumbType))) {
         return callback(new Error('Missing properties'));
       }
       if (!imgBuf || !imgType || !imgWidth || !imgHeight) {
@@ -175,8 +218,6 @@ module.exports = function(Post) {
       }
 
       var Location = Post.app.models.location;
-      var mediaType = 'panoPhoto';
-
       new P(function(resolve) {
         if (locationProviderId) {
           resolve(new P(function(resolve, reject) {
@@ -227,14 +268,23 @@ module.exports = function(Post) {
       })
       .then(function(location) {
         return new P(function(resolve, reject) {
-          var postObj = {
-            mediaType: mediaType,
-            dimension: {
+          var dimension = {};
+          if (mediaType === MEDIA_PANO_PHOTO) {
+            dimension = {
               width: imgWidth,
               height: imgHeight,
               lat: thumbLat,
               lng: thumbLng
-            },
+            };
+          } else if (mediaType === MEDIA_LIVE_PHOTO) {
+            dimension = {
+              width: imgWidth,
+              height: imgHeight
+            };
+          }
+          var postObj = {
+            mediaType: mediaType,
+            dimension: dimension,
             caption: caption,
             ownerId: req.accessToken.userId,
             locationId: location ? location.id : null
@@ -251,9 +301,15 @@ module.exports = function(Post) {
         });
       })
       .then(function(post) {
+        var type;
+        if (mediaType === MEDIA_PANO_PHOTO) {
+          type = 'pan';
+        } else if (mediaType === MEDIA_LIVE_PHOTO) {
+          type = 'live';
+        }
         return new P(function(resolve, reject) {
           uploadS3({
-            type: 'pan',
+            type: type,
             quality: 'thumb',
             postId: post.id,
             timestamp: now,
@@ -302,6 +358,11 @@ module.exports = function(Post) {
     } catch(error) {
       return callback(error);
     }
+  }
+
+  Post.createPanoPhoto = function(req, callback) {
+    logger.debug('in createPanoPhoto');
+    createPost(MEDIA_PANO_PHOTO, req, callback)
   };
   Post.remoteMethod('createPanoPhoto', {
     accepts: [
@@ -309,6 +370,18 @@ module.exports = function(Post) {
     ],
     returns: [ { arg: 'result', type: 'objct' } ],
     http: { path: '/panophoto', verb: 'post' }
+  });
+
+  Post.createLivePhoto = function(req, callback) {
+    logger.debug('in createLivePhoto');
+    createPost(MEDIA_LIVE_PHOTO, req, callback)
+  };
+  Post.remoteMethod('createLivePhoto', {
+    accepts: [
+      { arg: 'req', type: 'object', 'http': { source: 'req' } }
+    ],
+    returns: [ { arg: 'result', type: 'objct' } ],
+    http: { path: '/livephoto', verb: 'post' }
   });
 
   Post.observe('before save', function(ctx, next) {
@@ -336,7 +409,16 @@ module.exports = function(Post) {
         error.status = 404;
         return next(error);
       }
-      createAsyncJob({ jobType: 'deletePanoPhoto', post: post });
+      switch (post.mediaType) {
+        case 'panoPhoto':
+          createAsyncJob({ jobType: 'deletePanoPhoto', post: post });
+          break;
+        case 'livePhoto':
+          createAsyncJob({ jobType: 'deleteLivePhoto', post: post });
+          break;
+        default:
+          break;
+      }
       next();
     });
   });
