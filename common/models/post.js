@@ -388,7 +388,7 @@ module.exports = function(Post) {
       { arg: 'id', type: 'string', require: true },
       { arg: 'req', type: 'object', 'http': { source: 'req' } }
     ],
-    returns: [ { arg: 'result', type: 'objct' } ],
+    returns: [ { arg: 'result', type: 'object' } ],
     http: { path: '/:id', verb: 'get' }
   });
 
