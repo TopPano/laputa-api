@@ -517,6 +517,7 @@ module.exports = function(User) {
         {
           relation: 'posts',
           scope: {
+            where: { status: 'completed' },
             fields: [ 'sid' ]
           }
         }
