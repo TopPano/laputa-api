@@ -362,7 +362,7 @@ module.exports = function(Post) {
 
   Post.createPanoPhoto = function(req, callback) {
     logger.debug('in createPanoPhoto');
-    createPost(MEDIA_PANO_PHOTO, req, callback)
+    createPost(MEDIA_PANO_PHOTO, req, callback);
   };
   Post.remoteMethod('createPanoPhoto', {
     accepts: [
@@ -374,7 +374,7 @@ module.exports = function(Post) {
 
   Post.createLivePhoto = function(req, callback) {
     logger.debug('in createLivePhoto');
-    createPost(MEDIA_LIVE_PHOTO, req, callback)
+    createPost(MEDIA_LIVE_PHOTO, req, callback);
   };
   Post.remoteMethod('createLivePhoto', {
     accepts: [
