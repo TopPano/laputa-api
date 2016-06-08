@@ -167,7 +167,9 @@ module.exports = function(User) {
       }
       followingList.forEach(function(item) {
         var obj = item.toJSON();
-        output.feed = output.feed.concat(obj.following.posts);
+        if (obj.following) {
+          output.feed = output.feed.concat(obj.following.posts);
+        }
       });
       output.feed.sort(descending);
       if (output.feed.length > limit) {
@@ -327,12 +329,13 @@ module.exports = function(User) {
       }
       followers.forEach(function(follower) {
         var followerObj = follower.toJSON();
-        if (followerObj.follower.followers.length !== 0) {
-          followerObj.isFollowing = true;
-        } else {
-          followerObj.isFollowing = false;
+        followerObj.isFollowing = false;
+        if (followerObj.follower && followingObj.follower.followers) {
+          if (followerObj.follower.followers.length !== 0) {
+            followerObj.isFollowing = true;
+          }
+          delete followerObj.follower.followers;
         }
-        delete followerObj.follower.followers;
         output.push(followerObj);
       });
       callback(null, output);
@@ -382,12 +385,13 @@ module.exports = function(User) {
       }
       following.forEach(function(item) {
         var followingObj = item.toJSON();
-        if (followingObj.following.followers.length !== 0) {
-          followingObj.isFollowing = true;
-        } else {
-          followingObj.isFollowing = false;
+        followingObj.isFollowing = false;
+        if (followingObj.following && followingObj.following.followers) {
+          if (followingObj.following.followers.length !== 0) {
+            followingObj.isFollowing = true;
+          }
+          delete followingObj.following.followers;
         }
-        delete followingObj.following.followers;
         output.push(followingObj);
       });
       callback(null, output);
