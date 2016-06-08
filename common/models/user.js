@@ -330,7 +330,7 @@ module.exports = function(User) {
       followers.forEach(function(follower) {
         var followerObj = follower.toJSON();
         followerObj.isFollowing = false;
-        if (followerObj.follower && followingObj.follower.followers) {
+        if (followerObj.follower && followerObj.follower.followers) {
           if (followerObj.follower.followers.length !== 0) {
             followerObj.isFollowing = true;
           }
