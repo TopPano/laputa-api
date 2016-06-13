@@ -495,6 +495,7 @@ describe('Users - integration', function() {
     var Richard = {};
     var Hawk = {};
     var Paco = {};
+    var PacoFB = {};
     var RichardPosts = [];
     var HawkPosts = [];
     var PacoPosts = [];
@@ -526,6 +527,18 @@ describe('Users - integration', function() {
               Paco = result.user;
               PacoPosts = result.posts;
               callback();
+            });
+          },
+          loadPacoFB: function(callback) {
+            loadUserAndPosts({ email: 'youhavebigbird@hotmail.com', password: 'verpix' }, function(err, result) {
+              if (err) { return callback(err); }
+              PacoFB = result.user.toJSON();
+              var UserIdentity = app.models.userIdentity;
+              UserIdentity.find({ where: { userId: result.user.sid } }, function(err, identities) {
+                if (err) { return callback(err); }
+                PacoFB['identities'] = identities;
+                callback();
+              });
             });
           }
         }, function(err) {
@@ -602,9 +615,29 @@ describe('Users - integration', function() {
           sid: me.sid,
           username: me.username,
           profilePhotoUrl: me.profilePhotoUrl,
+          autobiography: null,
           followers: 1,
           following: 2,
           posts: 6,
+          isFollowing: false
+        });
+        done();
+      });
+    });
+
+    it('get user own profile (FB registered user)', function(done) {
+      var me = PacoFB;
+      json('get', endpoint+'/'+me.sid+'/profile?access_token='+me.accessToken.id)
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        res.body.profile.should.have.properties({
+          sid: me.sid,
+          username: me.identities[0].profile.displayName,
+          profilePhotoUrl: me.profilePhotoUrl,
+          autobiography: null,
+          followers: 0,
+          following: 0,
+          posts: 0,
           isFollowing: false
         });
         done();
@@ -619,6 +652,8 @@ describe('Users - integration', function() {
         res.body.profile.should.have.properties({
           sid: Hawk.sid,
           username: Hawk.username,
+          profilePhotoUrl: Hawk.profilePhotoUrl,
+          autobiography: null,
           followers: 2,
           following: 1,
           posts: 8,

@@ -30,11 +30,13 @@
     load: function(callback) {
       try {
         var User = this.app.models.user;
+        var UserIdentity = this.app.models.userIdentity;
         var Post = this.app.models.post;
         var users = Loader.normalize('users', JSON.parse(fs.readFileSync(this.fixturePath + 'user.json', 'utf8')));
+        var userIdentities = Loader.normalize('userIdentities', JSON.parse(fs.readFileSync(this.fixturePath + 'userIdentity.json', 'utf8')), { idAttribute: 'userId' });
         var posts = Loader.normalize('posts', JSON.parse(fs.readFileSync(this.fixturePath + 'post.json', 'utf8')));
 
-        if (!users || !posts) {
+        if (!users || !posts || !userIdentities) {
           throw new Error('Invalid fixture data');
         }
 
@@ -42,15 +44,33 @@
           User.create(users.entities.users[userId], function(err, newUser) {
             if (err) { return callback(err); }
             if (!newUser) { return callback(new Error('Failed to create user: '+userId)); }
-            async.eachSeries(posts.result.posts, function(postId, callback) {
-              if (posts.entities.posts[postId].ownerId === userId) {
-                posts.entities.posts[postId].ownerId = newUser.id;
-                Post.create(posts.entities.posts[postId], function(err) {
+            async.parallel({
+              createIdentity: function(callback) {
+                if (userIdentities.entities.userIdentities[userId]) {
+                  userIdentities.entities.userIdentities[userId]['userId'] = newUser.sid;
+                  UserIdentity.create(userIdentities.entities.userIdentities[userId], function(err) {
+                    if (err) { return callback(err); }
+                    callback();
+                  });
+                } else {
+                  callback();
+                }
+              },
+              createPosts: function(callback) {
+                async.eachSeries(posts.result.posts, function(postId, callback) {
+                  if (posts.entities.posts[postId].ownerId === userId) {
+                    posts.entities.posts[postId].ownerId = newUser.id;
+                    Post.create(posts.entities.posts[postId], function(err) {
+                      if (err) { return callback(err); }
+                      callback();
+                    });
+                  } else {
+                    callback();
+                  }
+                }, function(err) {
                   if (err) { return callback(err); }
                   callback();
                 });
-              } else {
-                callback();
               }
             }, function(err) {
               if (err) { return callback(err); }
