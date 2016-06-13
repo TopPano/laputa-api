@@ -57,6 +57,7 @@ describe('Posts - integration', function() {
 
     before(function(done) {
       var loader = new Loader(app, __dirname + '/fixtures');
+      var Follow = app.models.follow;
       loader.reset(function(err) {
         if (err) { throw new Error(err); }
         async.parallel({
@@ -86,7 +87,11 @@ describe('Posts - integration', function() {
           }
         }, function(err) {
           if (err) { return done(err); }
-          done();
+          // Hawk follows Paco
+          Follow.create({followerId: Hawk.sid, followeeId: Paco.sid, followAt: new Date()}, function(err) {
+            if (err) { return done(err); }
+            done();
+          });
         });
       });
     });
@@ -159,7 +164,16 @@ describe('Posts - integration', function() {
           json('get', endpoint+'/'+post.sid+'/likes?access_token='+postOwner.accessToken.id)
           .expect(200, function(err, res) {
             if (err) { return done(err); }
-            res.body.result.should.containDeep([ { userId: user1.sid }, { userId: user2.sid } ]);
+            res.body.result.should.containDeep([
+              {
+                userId: user1.sid,
+                isFollowing: false
+              },
+              {
+                userId: user2.sid,
+                isFollowing: true
+              }
+            ]);
             done();
           });
         });

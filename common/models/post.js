@@ -344,7 +344,7 @@ module.exports = function(Post) {
         });
         callback(null, {
           postId: result.post.id,
-          thumbnail: result.thumbnail.cdnUrl
+          thumbnailUrl: result.thumbnail.cdnUrl
         });
       })
       .catch(function(err) {
@@ -470,7 +470,7 @@ module.exports = function(Post) {
       { arg: 'id', type: 'string', require: true },
       { arg: 'req', type: 'object', 'http': { source: 'req' } }
     ],
-    returns: [ { arg: 'result', type: 'objct' } ],
+    returns: [ { arg: 'result', type: 'object' } ],
     http: { path: '/:id', verb: 'get' }
   });
 
@@ -587,7 +587,17 @@ module.exports = function(Post) {
         logger.error(err);
         return callback(err);
       }
-      callback(null, likes);
+      var output = [];
+      likes.forEach(function(like) {
+        var likeObj = like.toJSON();
+        likeObj.isFollowing = false;
+        if (likeObj.user.followers.length !== 0) {
+          likeObj.isFollowing = true;
+        }
+        delete likeObj.user.followers;
+        output.push(likeObj);
+      });
+      callback(null, output);
     });
   };
   Post.remoteMethod('getLikeList', {

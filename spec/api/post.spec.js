@@ -100,7 +100,7 @@ describe('REST API endpoint /post', function() {
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         res.body.result.should.have.property('postId');
-        res.body.result.should.have.property('thumbnail');
+        res.body.result.should.have.property('thumbnailUrl');
         done();
       });
     });

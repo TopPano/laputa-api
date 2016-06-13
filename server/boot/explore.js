@@ -7,7 +7,7 @@ module.exports = function (server) {
   var router = server.loopback.Router();
   var Post = server.models.post;
 
-  router.post('/api/explore/recent', function(req, res) {
+  function recent(req, res) {
     logger.debug('in /api/explore/recent');
     var where = req.body.where || undefined;
     var userId = req.accessToken.userId || undefined;
@@ -75,7 +75,18 @@ module.exports = function (server) {
     }
     Post.find(query, function(err, posts) {
       if (err) { return res.status(500).send('Internal Error'); }
-      var output = { page: {}, feed: [] }, i;
+      var output = {
+        page: {
+          hasNextPage: false,
+          count: 0,
+          start: null,
+          end: null
+        },
+        feed: []
+      };
+      if (!posts) {
+        return res.send({result: output});
+      }
       if (posts.length > limit) {
         output.page.hasNextPage = true;
         output.page.count = limit;
@@ -88,13 +99,8 @@ module.exports = function (server) {
         output.page.start = posts[0].sid;
         output.page.end = posts[posts.length - 1].sid;
         output.feed = posts.slice(0, posts.length);
-      } else {
-        output.page.hasNextPage = false;
-        output.page.count = 0;
-        output.page.start = null;
-        output.page.end = null;
       }
-      for (i = 0; i < output.feed.length; i++) {
+      for (var i = 0; i < output.feed.length; i++) {
         var postObj = output.feed[i].toJSON();
         postObj.likes = utils.formatLikeList(postObj['_likes_'], userId);
         delete postObj['_likes_'];
@@ -102,6 +108,16 @@ module.exports = function (server) {
       }
       res.send({result: output});
     });
+  }
+
+  router.post('/api/explore/recent', function(req, res) {
+    recent(req, res);
   });
+
+  // Deprecated
+  router.post('/api/search/recent', function(req, res) {
+    recent(req, res);
+  });
+
   server.use(router);
 };
