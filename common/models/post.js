@@ -20,6 +20,12 @@ gearClient.jobServers.forEach(function(server) {
 module.exports = function(Post) {
 
   // disable default remote methods
+  // XXX: The way I override the default remtoe method (define a 'findPostById' method to replace default
+  //      'findById' method by registering the same path '/:id') has unexpected behavior. Another way
+  //      to override is to disable the orignial one and then define our own.
+  //      One of the reason I do not override the 'findById' method directly is that there are other APIs or
+  //      methods will still call it. Also, all I want is to override the REST API (ie., GET /posts/:id).
+  //      see mamartins' comments in 'https://github.com/strongloop/loopback/issues/443' for more information.
   Post.disableRemoteMethod('findById', true);
 
   Post.validatesInclusionOf('mediaType', { in: [ 'panoPhoto', 'livePhoto' ] });
