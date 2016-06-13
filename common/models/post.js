@@ -19,6 +19,9 @@ gearClient.jobServers.forEach(function(server) {
 
 module.exports = function(Post) {
 
+  // disable default remote methods
+  Post.disableRemoteMethod('findById', true);
+
   Post.validatesInclusionOf('mediaType', { in: [ 'panoPhoto', 'livePhoto' ] });
 
   function getTimeNow() {
