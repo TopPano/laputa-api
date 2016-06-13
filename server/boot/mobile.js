@@ -1,4 +1,4 @@
-var CURRENT_VERSON = '1.1.0';
+var CURRENT_VERSON = '2.0.0';
 module.exports = function(server) {
   var router = server.loopback.Router();
   router.get('/api/mobile/ios/version', function(req, res) {
