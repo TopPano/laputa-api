@@ -628,6 +628,24 @@ describe('Users - integration', function() {
       });
     });
 
+    it('return 401 if get profile without authorization', function(done) {
+      var me = Richard;
+      json('get', endpoint+'/'+me.sid+'/profile')
+      .expect(401, function(err, res) {
+        if (err) { return done(err); }
+        done();
+      });
+    });
+
+    it('return 401 if get profile without authorization (2)', function(done) {
+      var me = Richard;
+      json('get', endpoint+'/'+me.sid+'/profile?access_token=INVALID_ACCESS_TOKEN')
+      .expect(401, function(err, res) {
+        if (err) { return done(err); }
+        done();
+      });
+    });
+
     it('query user own posts', function(done) {
       var me = Richard;
       var myPosts = RichardPosts;
