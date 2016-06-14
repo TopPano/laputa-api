@@ -198,6 +198,8 @@ module.exports = function(Post) {
       var imgType = req.files.image[0].mimetype;
       var imgWidth = req.body.width;
       var imgHeight = req.body.height;
+      var imgOrientation = req.body.orientation ? req.body.orientation.trim().toLowerCase() : null;
+      var imgDirection = req.body.recordDirection ? req.body.recordDirection.trim().toLowerCase() : null;
       var thumbBuf = req.files.thumbnail[0].buffer;
       var thumbType = req.files.thumbnail[0].mimetype;
       var thumbLat = req.body.thumbLat || null;
@@ -278,7 +280,13 @@ module.exports = function(Post) {
       .then(function(location) {
         return new P(function(resolve, reject) {
           var dimension = {};
+          var missingProperties = [];
           if (mediaType === MEDIA_PANO_PHOTO) {
+            if (!thumbLat) { missingProperties.push('thumbLat'); }
+            if (!thumbLng) { missingProperties.push('thumbLng'); }
+            if (missingProperties.length !== 0) {
+              return reject(new Error('Missing Properties: ' + missingProperties));
+            }
             dimension = {
               width: imgWidth,
               height: imgHeight,
@@ -286,9 +294,22 @@ module.exports = function(Post) {
               lng: thumbLng
             };
           } else if (mediaType === MEDIA_LIVE_PHOTO) {
+            if (!imgOrientation) { missingProperties.push('orientation'); }
+            if (!imgDirection) { missingProperties.push('direction'); }
+            if (missingProperties.length !== 0) {
+              return reject(new Error('Missing Properties: ' + missingProperties));
+            }
+            if (![ 'landscape', 'portrait' ].find(function(value) { return value === imgOrientation; })) {
+              return reject(new Error('Invalid Image Orientation Value: ' + imgOrientation));
+            }
+            if (![ 'horizontal', 'vertical' ].find(function(value) { return value === imgDirection; })) {
+              return reject(new Error('Invalid Image Direction Value: ' + imgDirection));
+            }
             dimension = {
               width: imgWidth,
-              height: imgHeight
+              height: imgHeight,
+              orientation: imgOrientation,
+              direction: imgDirection
             };
           }
           var postObj = {

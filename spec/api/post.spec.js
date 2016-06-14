@@ -111,6 +111,8 @@ describe('REST API endpoint /post', function() {
       .field('caption', 'test for livephoto')
       .field('width', '8192')
       .field('height', '4096')
+      .field('orientation', 'landscape')
+      .field('recordDirection', 'horizontal')
       .field('locationName', 'Home Sweet Home')
       .field('locationLat', '25.05511')
       .field('locationLng', '121.61171')
@@ -120,6 +122,45 @@ describe('REST API endpoint /post', function() {
         if (err) { return done(err); }
         res.body.result.should.have.property('postId');
         res.body.result.should.have.property('thumbnailUrl');
+        done();
+      });
+    });
+
+    it('return 500 if missing properties when creating a livephoto post', function(done) {
+      var user = Hawk;
+      json('post', endpoint+'/livephoto?access_token='+user.accessToken.id, 'multipart/form-data')
+      .field('caption', 'test for livephoto')
+      .field('width', '8192')
+      .field('height', '4096')
+      .field('recordDirection', 'horizontal')
+      .field('locationName', 'Home Sweet Home')
+      .field('locationLat', '25.05511')
+      .field('locationLng', '121.61171')
+      .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
+      .attach('image', __dirname+'/fixtures/1.jpg.zip')
+      .expect(500, function(err, res) {
+        if (err) { return done(err); }
+        res.body.error.should.have.property('message', 'Missing Properties: orientation');
+        done();
+      });
+    });
+
+    it('return 500 if create a livephoto post with invaliding properties', function(done) {
+      var user = Hawk;
+      json('post', endpoint+'/livephoto?access_token='+user.accessToken.id, 'multipart/form-data')
+      .field('caption', 'test for livephoto')
+      .field('width', '8192')
+      .field('height', '4096')
+      .field('orientation', 'landscape')
+      .field('recordDirection', 'updown')
+      .field('locationName', 'Home Sweet Home')
+      .field('locationLat', '25.05511')
+      .field('locationLng', '121.61171')
+      .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
+      .attach('image', __dirname+'/fixtures/1.jpg.zip')
+      .expect(500, function(err, res) {
+        if (err) { return done(err); }
+        res.body.error.should.have.property('message', 'Invalid Image Direction Value: updown');
         done();
       });
     });
