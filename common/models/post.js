@@ -12,10 +12,16 @@ var VerpixId = require('../utils/verpix-id-gen');
 
 var idGen = new VerpixId();
 
-var gearClient = require('gearmanode').client();
-gearClient.jobServers.forEach(function(server) {
-  server.setOption('exceptions', function() {});
-});
+var gearClient;
+try {
+  var gearServers = process.env.G_SERVERS ? [ JSON.parse(process.env.G_SERVERS) ] : [ { host: 'localhost', port: 4730 } ];
+  gearClient = require('gearmanode').client({ servers: gearServers });
+  gearClient.jobServers.forEach(function(server) {
+    server.setOption('exceptions', function() {});
+  });
+} catch (err) {
+  throw new Error(err);
+}
 
 module.exports = function(Post) {
 
