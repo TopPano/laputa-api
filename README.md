@@ -1,12 +1,11 @@
 # Verpix-API
 
-The API backend for service [Verpix](https://www.verpix.me).
+The API backend for [Verpix](https://www.verpix.me).
 
 ## Installation
-Install dependent npm modules.
+Install dependent npm modules:
 
 ```
-$ cd laputa-api
 $ npm install
 ```
 
@@ -18,15 +17,21 @@ Install dependent tools:
 $ npm install pm2 -g
 ```
 
+Install [Gearman](http://gearman.org/getting-started/#installing).
+
+* Install Gearman on [Mac](http://richardsumilang.com/server/gearman/install-gearman-on-os-x/)
+
 ## Usage
 
+Set up a [Gearman job server](http://gearman.org/getting-started/#starting) before starting the server.
+
 ### Environment Variables
-* `HOST` The hostname of the serice (default: '0.0.0.0')
-* `PORT` The port number that the service is serving (default: 3000)
-* `NODE_ENV` The environment mode (dev/production) that the service is running
+* `HOST` The hostname of the server (default: '0.0.0.0')
+* `PORT` The port number that the server is serving (default: 3000)
+* `NODE_ENV` The environment mode (dev/production) that the server is running
 * `DB_URL` The URL to connect to MongoDB service (default in Dev mode: 'mongodb://localhost:27017/verpix-dev-db', no default setting for Production mode)
 * `S3_BKT` The bucket name of the AWS S3 service (no default setting)
-* `G_SERVERS` The server list of the gearman job servers (default: [ { host: 'hostlocal', port: 4370 } ])
+* `G_SERVERS` The server list of the gearman job servers (default: [ { host: 'localhost', port: 4370 } ])
 
 ### Development Mode
 You need to setup a MongoDB service for server to running in this mode. The default MongoDB setting for the server is **'mongodb://localhost:27017/verpix-dev-db'**. To change the default setting, use the environment variable: `DB_URL`.
