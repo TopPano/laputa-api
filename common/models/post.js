@@ -78,17 +78,23 @@ module.exports = function(Post) {
       case 'deletePanoPhoto': {
         var post = options.post;
         var list = [];
-        list.push(post.thumbnail.srcUrl);
-        list.push(post.thumbnail.downloadUrl);
-        list.push(post.media.srcUrl);
-        list.push(post.media.srcDownloadUrl);
-        list = list.concat(post.media.srcTiledImages.map(function(image) { return image.srcUrl; }));
-        list.push(post.media.srcMobileUrl);
-        list.push(post.media.srcMobileDownloadUrl);
-        list = list.concat(post.media.srcMobileTiledImages.map(function(image) { return image.srcUrl; }));
-        job = gearClient.submitJob('deletePostImages', JSON.stringify({
-          imageList: list
-        }));
+        if (post.thumbnail) {
+          list.push(post.thumbnail.srcUrl);
+          list.push(post.thumbnail.downloadUrl);
+        }
+        if (post.media) {
+          list.push(post.media.srcUrl);
+          list.push(post.media.srcDownloadUrl);
+          list = list.concat(post.media.srcTiledImages.map(function(image) { return image.srcUrl; }));
+          list.push(post.media.srcMobileUrl);
+          list.push(post.media.srcMobileDownloadUrl);
+          list = list.concat(post.media.srcMobileTiledImages.map(function(image) { return image.srcUrl; }));
+        }
+        if (list.length !== 0) {
+          job = gearClient.submitJob('deletePostImages', JSON.stringify({
+            imageList: list
+          }));
+        }
         break;
       }
       default:
