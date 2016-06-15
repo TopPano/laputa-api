@@ -1,0 +1,3 @@
+[submodule "common/utils/aws-wrapper"]
+	path = common/utils/aws-wrapper
+	url = https://github.com/TopPano/verpix-async.git
