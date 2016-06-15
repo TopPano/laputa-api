@@ -6,11 +6,18 @@ MAINTAINER uniray7 uniray7@gmail.com
 # install basic packages
 RUN apt-get update
 RUN apt-get install -y curl
-RUN apt-get install -y build-essential
 
 # install nodejs
+ENV NODE_VERSION 5.11.1
+ENV NVM_DIR /home/.nvm
+
 RUN curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.31.1/install.sh | bash
-RUN nvm install 5.11.1
+RUN . $NVM_DIR/nvm.sh && nvm install v$NODE_VERSION && nvm alias default v$NODE_VERSION
+
+ENV PATH      $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
+
+RUN apt-get update
+RUN apt-get install -y build-essential
 
 # install python2.7 for bcrypt, which is node_module of laputa-api
 RUN apt-get install -y python
