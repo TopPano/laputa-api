@@ -5,6 +5,7 @@ MAINTAINER uniray7 uniray7@gmail.com
 
 # install basic packages
 RUN apt-get update
+RUN apt-get git
 RUN apt-get install -y curl
 
 # install nodejs
@@ -14,7 +15,7 @@ ENV NVM_DIR /home/.nvm
 RUN curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.31.1/install.sh | bash
 RUN . $NVM_DIR/nvm.sh && nvm install v$NODE_VERSION && nvm alias default v$NODE_VERSION
 
-ENV PATH      $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
+ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 
 RUN apt-get update
 RUN apt-get install -y build-essential
@@ -25,6 +26,8 @@ RUN apt-get install -y python
 # setup project
 ADD . /laputa-api
 WORKDIR /laputa-api
+RUN git submodule init
+RUN git submodule update
 RUN npm install
 
 EXPOSE 3000
