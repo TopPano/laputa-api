@@ -583,11 +583,6 @@
         }
       }
     },
-    "gm": {
-      "version": "1.22.0",
-      "from": "gm@>=1.21.1 <2.0.0",
-      "resolved": "https://registry.npmjs.org/gm/-/gm-1.22.0.tgz"
-    },
     "graceful-fs": {
       "version": "2.0.3",
       "from": "graceful-fs@>=2.0.0 <2.1.0",
