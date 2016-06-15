@@ -6,7 +6,7 @@ var P = require('bluebird');
 var logger = require('winston');
 var crypto = require('crypto');
 
-var S3Uploader = require('../utils/S3Uploader');
+var S3Uploader = require('../utils/aws-wrapper').S3Uploader;
 var utils = require('../utils/utils');
 var VerpixId = require('../utils/verpix-id-gen');
 
@@ -115,7 +115,7 @@ module.exports = function(Post) {
   }
 
   function uploadS3(params, callback) {
-    var uploader = new S3Uploader();
+    var uploader = new S3Uploader({ Bucket: process.env.S3_BKT });
     var shardingKey = genShardingKey();
 
     try {
