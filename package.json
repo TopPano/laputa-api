@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "main": "server/server.js",
   "scripts": {
+    "postinstall": "cd common/utils/aws-wrapper; npm install",
     "pretest": "jshint .",
     "test": "S3_BKT='verpix-img-development' mocha -C -R spec spec/ --recursive --timeout 30000",
     "dev": "NODE_ENV='dev' S3_BKT='verpix-img-development' node .",
