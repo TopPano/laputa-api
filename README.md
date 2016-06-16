@@ -62,7 +62,7 @@ The server will be running in background and monitoring by pm2 in this mode. It'
 #### To start the server:
 
 ```
-$ DB_URL='mongodb://localhost:27017/verpix-dev-db' S3_BKT='verpix-img-production' npm start
+$ DB_URL='mongodb://localhost:27017/verpix-dev-db' S3_BKT='verpix-img-production' G_SERVERS='[{"host": "localhost", "port": 4370}]' npm start
 ```
 
 By default, `npm start` will set env variable `NODE_ENV` to **production** so you don't have to set it manually.
