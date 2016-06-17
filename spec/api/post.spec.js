@@ -47,7 +47,7 @@ describe('REST API endpoint /post', function() {
     });
   }
 
-  describe('Post - CRUD', function() {
+  describe.only('Post - CRUD', function() {
     var Hawk = {};
     var HawkPosts = [];
     var Richard = {};
@@ -109,15 +109,16 @@ describe('REST API endpoint /post', function() {
       var user = Hawk;
       json('post', endpoint+'/livephoto?access_token='+user.accessToken.id, 'multipart/form-data')
       .field('caption', 'test for livephoto')
-      .field('width', '8192')
-      .field('height', '4096')
-      .field('orientation', 'landscape')
+      .field('width', '640')
+      .field('height', '480')
+      .field('imgArrBoundary', 'papayabird')
+      .field('orientation', 'portrait')
       .field('recordDirection', 'horizontal')
       .field('locationName', 'Home Sweet Home')
       .field('locationLat', '25.05511')
       .field('locationLng', '121.61171')
       .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
-      .attach('image', __dirname+'/fixtures/1.jpg.zip')
+      .attach('image', __dirname+'/fixtures/livephoto.zip')
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         res.body.result.should.have.property('postId');
@@ -130,17 +131,36 @@ describe('REST API endpoint /post', function() {
       var user = Hawk;
       json('post', endpoint+'/livephoto?access_token='+user.accessToken.id, 'multipart/form-data')
       .field('caption', 'test for livephoto')
-      .field('width', '8192')
-      .field('height', '4096')
+      .field('width', '640')
+      .field('height', '480')
+      .field('imgArrBoundary', 'papayabird')
       .field('recordDirection', 'horizontal')
       .field('locationName', 'Home Sweet Home')
       .field('locationLat', '25.05511')
       .field('locationLng', '121.61171')
       .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
-      .attach('image', __dirname+'/fixtures/1.jpg.zip')
+      .attach('image', __dirname+'/fixtures/livephoto.zip')
       .expect(500, function(err, res) {
         if (err) { return done(err); }
-        res.body.error.should.have.property('message', 'Missing Properties: orientation');
+        done();
+      });
+    });
+
+    it('return 500 if missing properties when creating a livephoto post (2)', function(done) {
+      var user = Hawk;
+      json('post', endpoint+'/livephoto?access_token='+user.accessToken.id, 'multipart/form-data')
+      .field('caption', 'test for livephoto')
+      .field('width', '640')
+      .field('height', '480')
+      .field('orientation', 'portrait')
+      .field('recordDirection', 'horizontal')
+      .field('locationName', 'Home Sweet Home')
+      .field('locationLat', '25.05511')
+      .field('locationLng', '121.61171')
+      .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
+      .attach('image', __dirname+'/fixtures/livephoto.zip')
+      .expect(500, function(err, res) {
+        if (err) { return done(err); }
         done();
       });
     });
@@ -149,18 +169,37 @@ describe('REST API endpoint /post', function() {
       var user = Hawk;
       json('post', endpoint+'/livephoto?access_token='+user.accessToken.id, 'multipart/form-data')
       .field('caption', 'test for livephoto')
-      .field('width', '8192')
-      .field('height', '4096')
-      .field('orientation', 'landscape')
+      .field('width', '640')
+      .field('height', '480')
+      .field('imgArrBoundary', 'papayabird')
+      .field('orientation', 'portrait')
       .field('recordDirection', 'updown')
       .field('locationName', 'Home Sweet Home')
       .field('locationLat', '25.05511')
       .field('locationLng', '121.61171')
       .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
-      .attach('image', __dirname+'/fixtures/1.jpg.zip')
+      .attach('image', __dirname+'/fixtures/livephoto.zip')
       .expect(500, function(err, res) {
         if (err) { return done(err); }
-        res.body.error.should.have.property('message', 'Invalid Image Direction Value: updown');
+        done();
+      });
+    });
+
+    it('return 500 if create a livephoto post with invaliding properties (2)', function(done) {
+      var user = Hawk;
+      json('post', endpoint+'/livephoto?access_token='+user.accessToken.id, 'multipart/form-data')
+      .field('caption', 'test for livephoto')
+      .field('width', '640')
+      .field('height', '480')
+      .field('orientation', 'invalidOrientationValue')
+      .field('recordDirection', 'horizontal')
+      .field('locationName', 'Home Sweet Home')
+      .field('locationLat', '25.05511')
+      .field('locationLng', '121.61171')
+      .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
+      .attach('image', __dirname+'/fixtures/livephoto.zip')
+      .expect(500, function(err, res) {
+        if (err) { return done(err); }
         done();
       });
     });
