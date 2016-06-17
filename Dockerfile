@@ -10,6 +10,9 @@ ENV NVM_DIR /home/.nvm
 RUN . $NVM_DIR/nvm.sh && nvm install v$NODE_VERSION && nvm alias default v$NODE_VERSION
 ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 
+#install pm2
+RUN npm install -g pm2
+
 # install python2.7 for bcrypt, which is node_module of laputa-api
 RUN apt-get install -y python
 
