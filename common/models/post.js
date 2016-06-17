@@ -98,7 +98,8 @@ module.exports = function(Post) {
             },
             media: {
               srcUrl: response.srcUrl,
-              srcDownloadUrl: response.srcDownloadUrl
+              srcDownloadUrl: response.srcDownloadUrl,
+              srcHighImages: response.srcHighImages
             }
           }, function(err) {
             if (err) { logger.error(err); }
@@ -139,6 +140,7 @@ module.exports = function(Post) {
         if (post.media) {
           list.push(post.media.srcUrl);
           list.push(post.media.srcDownloadUrl);
+          list = list.concat(post.media.srcHighImages.map(function(image) { return image.srcUrl; }));
         }
         if (list.length !== 0) {
           job = gearClient.submitJob('deletePostImages', JSON.stringify({
@@ -218,6 +220,7 @@ module.exports = function(Post) {
       var imgHeight = req.body.height;
       var imgOrientation = req.body.orientation ? req.body.orientation.trim().toLowerCase() : null;
       var imgDirection = req.body.recordDirection ? req.body.recordDirection.trim().toLowerCase() : null;
+      var imgArrBoundary = req.body.imgArrBoundary || null;
       var thumbBuf = req.files.thumbnail[0].buffer;
       var thumbType = req.files.thumbnail[0].mimetype;
       var thumbLat = req.body.thumbLat || null;
@@ -376,7 +379,7 @@ module.exports = function(Post) {
       })
       .then(function(result) {
         // create a job for worker
-        createAsyncJob({
+        var params = {
           jobType: mediaType,
           postId: result.post.sid,
           image: {
@@ -389,7 +392,15 @@ module.exports = function(Post) {
             srcUrl: result.thumbnail.s3Url,
             downloadUrl: result.thumbnail.cdnUrl
           }
-        });
+        };
+        if (mediaType === MEDIA_LIVE_PHOTO) {
+          if (!imgArrBoundary) {
+            logger.error('Missing properties: image array boundary');
+            throw new Error('Internal Error');
+          }
+          params.image.arrayBoundary = imgArrBoundary;
+        }
+        createAsyncJob(params);
         callback(null, {
           postId: result.post.id,
           thumbnailUrl: result.thumbnail.cdnUrl
