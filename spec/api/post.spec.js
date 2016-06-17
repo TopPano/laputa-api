@@ -47,7 +47,7 @@ describe('REST API endpoint /post', function() {
     });
   }
 
-  describe.only('Post - CRUD', function() {
+  describe('Post - CRUD', function() {
     var Hawk = {};
     var HawkPosts = [];
     var Richard = {};
