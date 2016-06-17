@@ -401,8 +401,7 @@ module.exports = function(Post) {
         };
         if (mediaType === MEDIA_LIVE_PHOTO) {
           if (!imgArrBoundary) {
-            logger.error('Missing properties: image array boundary');
-            throw new Error('Internal Error');
+            return P.reject(new Error('Missing properties: image array boundary'));
           }
           params.image.arrayBoundary = imgArrBoundary;
         }
@@ -414,10 +413,10 @@ module.exports = function(Post) {
       })
       .catch(function(err) {
         logger.error(err);
-        if (err.status && err.status >= 500) {
-          callback(new Error('Internal Error'));
-        } else {
+        if (err.status && err.status >= 400 && err.status < 500) {
           callback(err);
+        } else {
+          callback(new Error('Internal Error'));
         }
       });
     } catch(error) {
