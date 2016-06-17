@@ -6,16 +6,22 @@ var P = require('bluebird');
 var logger = require('winston');
 var crypto = require('crypto');
 
-var S3Uploader = require('../utils/S3Uploader');
+var S3Uploader = require('../utils/aws-wrapper').S3Uploader;
 var utils = require('../utils/utils');
 var VerpixId = require('../utils/verpix-id-gen');
 
 var idGen = new VerpixId();
 
-var gearClient = require('gearmanode').client();
-gearClient.jobServers.forEach(function(server) {
-  server.setOption('exceptions', function() {});
-});
+var gearClient;
+try {
+  var gearServers = process.env.G_SERVERS ? JSON.parse(process.env.G_SERVERS) : [ { host: 'localhost', port: 4730 } ];
+  gearClient = require('gearmanode').client({ servers: gearServers });
+  gearClient.jobServers.forEach(function(server) {
+    server.setOption('exceptions', function() {});
+  });
+} catch (err) {
+  throw new Error(err);
+}
 
 var MEDIA_PANO_PHOTO = 'panoPhoto';
 var MEDIA_LIVE_PHOTO = 'livePhoto';
@@ -104,29 +110,41 @@ module.exports = function(Post) {
       case 'deletePanoPhoto': {
         post = options.post;
         list = [];
-        list.push(post.thumbnail.srcUrl);
-        list.push(post.thumbnail.downloadUrl);
-        list.push(post.media.srcUrl);
-        list.push(post.media.srcDownloadUrl);
-        list = list.concat(post.media.srcTiledImages.map(function(image) { return image.srcUrl; }));
-        list.push(post.media.srcMobileUrl);
-        list.push(post.media.srcMobileDownloadUrl);
-        list = list.concat(post.media.srcMobileTiledImages.map(function(image) { return image.srcUrl; }));
-        job = gearClient.submitJob('deletePostImages', JSON.stringify({
-          imageList: list
-        }));
+        if (post.thumbnail) {
+          list.push(post.thumbnail.srcUrl);
+          list.push(post.thumbnail.downloadUrl);
+        }
+        if (post.media) {
+          list.push(post.media.srcUrl);
+          list.push(post.media.srcDownloadUrl);
+          list = list.concat(post.media.srcTiledImages.map(function(image) { return image.srcUrl; }));
+          list.push(post.media.srcMobileUrl);
+          list.push(post.media.srcMobileDownloadUrl);
+          list = list.concat(post.media.srcMobileTiledImages.map(function(image) { return image.srcUrl; }));
+        }
+        if (list.length !== 0) {
+          job = gearClient.submitJob('deletePostImages', JSON.stringify({
+            imageList: list
+          }));
+        }
         break;
       }
       case 'deleteLivePhoto': {
         post = options.post;
         list = [];
-        list.push(post.thumbnail.srcUrl);
-        list.push(post.thumbnail.downloadUrl);
-        list.push(post.media.srcUrl);
-        list.push(post.media.srcDownloadUrl);
-        job = gearClient.submitJob('deletePostImages', JSON.stringify({
-          imageList: list
-        }));
+        if (post.thumbnail) {
+          list.push(post.thumbnail.srcUrl);
+          list.push(post.thumbnail.downloadUrl);
+        }
+        if (post.media) {
+          list.push(post.media.srcUrl);
+          list.push(post.media.srcDownloadUrl);
+        }
+        if (list.length !== 0) {
+          job = gearClient.submitJob('deletePostImages', JSON.stringify({
+            imageList: list
+          }));
+        }
         break;
       }
       default:
@@ -153,7 +171,7 @@ module.exports = function(Post) {
   }
 
   function uploadS3(params, callback) {
-    var uploader = new S3Uploader();
+    var uploader = new S3Uploader({ Bucket: process.env.S3_BKT });
     var shardingKey = genShardingKey();
 
     try {

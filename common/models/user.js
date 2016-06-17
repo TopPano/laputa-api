@@ -5,8 +5,8 @@ var passport = require('passport');
 var randomstring = require('randomstring');
 var logger = require('winston');
 
-var S3Uploader = require('../utils/S3Uploader');
-var S3Remover = require('../utils/S3Remover');
+var S3Uploader = require('../utils/aws-wrapper').S3Uploader;
+var S3Remover = require('../utils/aws-wrapper').S3Remover;
 var utils = require('../utils/utils');
 
 var config = require('../../server/api.json');
@@ -407,7 +407,7 @@ module.exports = function(User) {
   });
 
   User.uploadProfilePhoto = function(id, json, callback) {
-    var uploader = new S3Uploader();
+    var uploader = new S3Uploader({ Bucket: process.env.S3_BKT });
     try {
       var image = json.image ? new Buffer(json.image, 'base64') : undefined;
       if (!image) {
@@ -426,7 +426,7 @@ module.exports = function(User) {
         var photoIndex = 1;
         if (user.profilePhotoUrl) {
           photoIndex = (parseInt(user.profilePhotoUrl.split('_')[2].split('.')[0], 10) + 1) % 1024;
-          var remover = new S3Remover();
+          var remover = new S3Remover({ Bucket: process.env.S3_BKT });
           remover.on('success', function(data) {
             var imageFilename = id+'_profile_'+photoIndex+'.jpg';
             var fileKey = 'users/'+id+'/photo/'+imageFilename;
