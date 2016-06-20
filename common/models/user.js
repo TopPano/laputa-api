@@ -13,6 +13,29 @@ var config = require('../../server/api.json');
 
 module.exports = function(User) {
 
+  var s3Uploader, s3Remover;
+  User.on('attached', function(app) {
+    if (process.env.S3_BKT === 'MOCKUP') {
+      s3Uploader = new S3Uploader({
+        Bucket: process.env.S3_BKT,
+        MockupBucketPath: process.env.S3_MOCKUP_BKTPATH,
+        MockupServerPort: process.env.S3_MOCKUP_PORT
+      });
+      s3Remover = new S3Remover({ Bucket: process.env.S3_BKT });
+      // XXX: S3Uploader and S3Remover will both create a mockup instance, however, mockup instance
+      //      is a singleton, therefore, to check whether the mockup server is up we only need to
+      //      check one of them.
+      if (!s3Uploader.isMockupServerUp()) {
+        s3Uploader.on('mockupServerStarted', function() {
+          app.emit('mockupServerStarted');
+        });
+      }
+    } else {
+      s3Uploader = new S3Uploader({ Bucket: process.env.S3_BKT });
+      s3Remover = new S3Remover({ Bucket: process.env.S3_BKT });
+    }
+  });
+
   // disable default remote methods
   User.disableRemoteMethod('__get__followers', false);
   User.disableRemoteMethod('__create__followers', false);
@@ -407,11 +430,16 @@ module.exports = function(User) {
   });
 
   User.uploadProfilePhoto = function(id, json, callback) {
-    var uploader = new S3Uploader({ Bucket: process.env.S3_BKT });
     try {
+      var error;
+      if (!s3Uploader || !s3Remover) {
+        error = new Error('S3 uploader/remover is not ready yet!');
+        error.status = 500;
+        return callback(error);
+      }
       var image = json.image ? new Buffer(json.image, 'base64') : undefined;
       if (!image) {
-        var error = new Error('No image found');
+        error = new Error('No image found');
         error.status = 400;
         return callback(error);
       }
@@ -426,11 +454,20 @@ module.exports = function(User) {
         var photoIndex = 1;
         if (user.profilePhotoUrl) {
           photoIndex = (parseInt(user.profilePhotoUrl.split('_')[2].split('.')[0], 10) + 1) % 1024;
-          var remover = new S3Remover({ Bucket: process.env.S3_BKT });
-          remover.on('success', function(data) {
+          s3Remover.remove({
+            Key: user.profilePhotoUrl.split('/').slice(3, 7).join('/')
+          }, function(err) {
+            if (err) { return callback(err); }
             var imageFilename = id+'_profile_'+photoIndex+'.jpg';
             var fileKey = 'users/'+id+'/photo/'+imageFilename;
-            uploader.on('success', function(data) {
+            s3Uploader.send({
+              File: image,
+              Key: fileKey,
+              options: {
+                ACL: 'public-read'
+              }
+            }, function(err, data) {
+              if (err) { return callback(err); }
               assert(data.hasOwnProperty('Location'), 'Unable to get location property from S3 response object');
               assert((data.hasOwnProperty('key') || data.hasOwnProperty('Key')), 'Unable to get key property from S3 response object');
               // update with the new profile photo url
@@ -440,27 +477,18 @@ module.exports = function(User) {
                 callback(null, 'success');
               });
             });
-            uploader.on('error', function(err) {
-              callback(err);
-            });
-            uploader.send({
-              File: image,
-              Key: fileKey,
-              options: {
-                ACL: 'public-read'
-              }
-            });
-          });
-          remover.on('error', function(err) {
-            callback(err);
-          });
-          remover.remove({
-            Key: user.profilePhotoUrl.split('/').slice(3, 7).join('/')
           });
         } else {
           var imageFilename = id+'_profile_'+photoIndex+'.jpg';
           var fileKey = 'users/'+id+'/photo/'+imageFilename;
-          uploader.on('success', function(data) {
+          s3Uploader.send({
+            File: image,
+            Key: fileKey,
+            options: {
+              ACL: 'public-read'
+            }
+          }, function(err, data) {
+            if (err) { return callback(err); }
             assert(data.hasOwnProperty('Location'), 'Unable to get location property from S3 response object');
             assert((data.hasOwnProperty('key') || data.hasOwnProperty('Key')), 'Unable to get key property from S3 response object');
             // update with the new profile photo url
@@ -469,16 +497,6 @@ module.exports = function(User) {
               if (err) { return callback(err); }
               callback(null, 'success');
             });
-          });
-          uploader.on('error', function(err) {
-            callback(err);
-          });
-          uploader.send({
-            File: image,
-            Key: fileKey,
-            options: {
-              ACL: 'public-read'
-            }
           });
         }
       });

@@ -28,6 +28,24 @@ var MEDIA_LIVE_PHOTO = 'livePhoto';
 
 module.exports = function(Post) {
 
+  var s3Uploader;
+  Post.on('attached', function(app) {
+    if (process.env.S3_BKT === 'MOCKUP') {
+      s3Uploader = new S3Uploader({
+        Bucket: process.env.S3_BKT,
+        MockupBucketPath: process.env.S3_MOCKUP_BKTPATH,
+        MockupServerPort: process.env.S3_MOCKUP_PORT
+      });
+      if (!s3Uploader.isMockupServerUp()) {
+        s3Uploader.on('mockupServerStarted', function() {
+          app.emit('mockupServerStarted');
+        });
+      }
+    } else {
+      s3Uploader = new S3Uploader({ Bucket: process.env.S3_BKT });
+    }
+  });
+
   // disable default remote methods
   // XXX: The way I override the default remtoe method (define a 'findPostById' method to replace default
   //      'findById' method by registering the same path '/:id') has unexpected behavior. Another way
@@ -179,16 +197,26 @@ module.exports = function(Post) {
   }
 
   function uploadS3(params, callback) {
-    var uploader = new S3Uploader({ Bucket: process.env.S3_BKT });
     var shardingKey = genShardingKey();
-
     try {
       var fileKey = 'posts/'+params.postId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp+'/'+params.imageFilename;
-      uploader.on('success', function(data) {
-        var s3Filename = data.key || data.key;
+      if (!s3Uploader) {
+        var error = new Error('S3 uploader is not ready yet!');
+        error.status = 500;
+        return callback(error);
+      }
+      s3Uploader.send({
+        File: params.image,
+        Key: fileKey,
+        options: {
+          ACL: 'public-read'
+        }
+      }, function(err, data) {
+        if (err) { return callback(err); }
+        var s3Filename = data.Key || data.key;
         var s3Url = data.Location;
         // TODO: use real CDN download url
-        var cdnFilename = data.key || data.key;
+        var cdnFilename = data.Key || data.key;
         var cdnUrl = data.Location;
         callback(null, {
           cdnFilename: cdnFilename,
@@ -196,16 +224,6 @@ module.exports = function(Post) {
           s3Filename: s3Filename,
           s3Url: s3Url
         });
-      });
-      uploader.on('error', function(err) {
-        callback(err);
-      });
-      uploader.send({
-        File: params.image,
-        Key: fileKey,
-        options: {
-          ACL: 'public-read'
-        }
       });
     } catch (err) {
       callback(err);
