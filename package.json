@@ -7,7 +7,7 @@
     "pretest": "jshint .",
     "test": "S3_BKT='verpix-img-development' mocha -C -R spec spec/ --recursive --timeout 30000",
     "dev": "NODE_ENV='dev' S3_BKT='verpix-img-development' node .",
-    "start": "NODE_ENV='production' pm2 start server/server.js --name verpix-api",
+    "start": "NODE_ENV='production' pm2 start $IS_DAEMON server/server.js --name verpix-api",
     "stop": "NODE_ENV='production' pm2 delete verpix-api -s &> /dev/null"
   },
   "dependencies": {
