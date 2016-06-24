@@ -131,16 +131,13 @@ module.exports = function(Post) {
         list = [];
         if (post.thumbnail) {
           list.push(post.thumbnail.srcUrl);
-          list.push(post.thumbnail.downloadUrl);
         }
         if (post.media) {
           if (post.media.srcUrl) list.push(post.media.srcUrl);
-          if (post.media.srcDownloadUrl) list.push(post.media.srcDownloadUrl);
           if (post.media.srcTiledImages) {
             list = list.concat(post.media.srcTiledImages.map(function(image) { return image.srcUrl; }));
           }
           if (post.media.srcMobileUrl) list.push(post.media.srcMobileUrl);
-          if (post.media.srcMobileDownloadUrl) list.push(post.media.srcMobileDownloadUrl);
           if (post.media.srcMobileTiledImages) {
             list = list.concat(post.media.srcMobileTiledImages.map(function(image) { return image.srcUrl; }));
           }
@@ -157,11 +154,9 @@ module.exports = function(Post) {
         list = [];
         if (post.thumbnail) {
           list.push(post.thumbnail.srcUrl);
-          list.push(post.thumbnail.downloadUrl);
         }
         if (post.media) {
           if (post.media.srcUrl) list.push(post.media.srcUrl);
-          if (post.media.srcDownloadUrl) list.push(post.media.srcDownloadUrl);
           if (post.media.srcHighImages) {
             list = list.concat(post.media.srcHighImages.map(function(image) { return image.srcUrl; }));
           }
