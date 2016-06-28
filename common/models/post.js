@@ -117,7 +117,8 @@ module.exports = function(Post) {
             media: {
               srcUrl: response.srcUrl,
               srcDownloadUrl: response.srcDownloadUrl,
-              srcHighImages: response.srcHighImages
+              srcHighImages: response.srcHighImages,
+              srcLowImages: response.srcLowImages
             }
           }, function(err) {
             if (err) { logger.error(err); }
