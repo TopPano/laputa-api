@@ -1,3 +1,6 @@
 [submodule "common/utils/aws-wrapper"]
 	path = common/utils/aws-wrapper
 	url = https://github.com/TopPano/aws-wrapper.git
+[submodule "common/utils/verpix-utils"]
+	path = common/utils/verpix-utils
+	url = https://github.com/TopPano/verpix-utils.git
