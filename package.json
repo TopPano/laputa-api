@@ -25,6 +25,7 @@
     "loopback-component-explorer": "2.5.0",
     "loopback-connector-mongodb": "1.15.2",
     "loopback-datasource-juggler": "2.46.0",
+    "merge": "1.2.0",
     "moment": "2.13.0",
     "multer": "1.1.0",
     "passport": "0.2.2",

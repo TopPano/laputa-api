@@ -6,11 +6,11 @@ var P = require('bluebird');
 var logger = require('winston');
 var crypto = require('crypto');
 
+var utils = require('../utils');
 var S3Uploader = require('../utils/aws-wrapper').S3Uploader;
-var utils = require('../utils/utils');
-var VerpixId = require('../utils/verpix-id-gen');
+var IdGenerator = require('../utils/id-generator');
 
-var idGen = new VerpixId();
+var idGen = new IdGenerator();
 
 var gearClient;
 try {

@@ -7,7 +7,7 @@ var logger = require('winston');
 
 var S3Uploader = require('../utils/aws-wrapper').S3Uploader;
 var S3Remover = require('../utils/aws-wrapper').S3Remover;
-var utils = require('../utils/utils');
+var utils = require('../utils');
 
 var config = require('../../server/api.json');
 
