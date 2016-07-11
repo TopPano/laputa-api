@@ -1,50 +1,21 @@
 'use strict';
-var assign = require('lodash/assign');
 var moment = require('moment');
 var async = require('async');
 var P = require('bluebird');
 var logger = require('winston');
-var crypto = require('crypto');
-
+var createError = require('http-errors');
 var utils = require('../utils');
-var S3Uploader = require('../utils/aws-wrapper').S3Uploader;
-var IdGenerator = require('../utils/id-generator');
 
+var IdGenerator = require('../utils/id-generator');
 var idGen = new IdGenerator();
 
-var gearClient;
-try {
-  var gearServers = process.env.G_SERVERS ? JSON.parse(process.env.G_SERVERS) : [ { host: 'localhost', port: 4730 } ];
-  gearClient = require('gearmanode').client({ servers: gearServers });
-  gearClient.jobServers.forEach(function(server) {
-    server.setOption('exceptions', function() {});
-  });
-} catch (err) {
-  throw new Error(err);
-}
+var GearClient = require('../utils/gearman-client');
+var gearClient = GearClient.factory({ servers: process.env.G_SERVERS ? JSON.parse(process.env.G_SERVERS) : null });
 
 var MEDIA_PANO_PHOTO = 'panoPhoto';
 var MEDIA_LIVE_PHOTO = 'livePhoto';
 
 module.exports = function(Post) {
-
-  var s3Uploader;
-  Post.on('attached', function(app) {
-    if (process.env.S3_BKT === 'MOCKUP') {
-      s3Uploader = new S3Uploader({
-        Bucket: process.env.S3_BKT,
-        MockupBucketPath: process.env.S3_MOCKUP_BKTPATH,
-        MockupServerPort: process.env.S3_MOCKUP_PORT
-      });
-      if (!s3Uploader.isMockupServerUp()) {
-        s3Uploader.on('mockupServerStarted', function() {
-          app.emit('mockupServerStarted');
-        });
-      }
-    } else {
-      s3Uploader = new S3Uploader({ Bucket: process.env.S3_BKT });
-    }
-  });
 
   // disable default remote methods
   // XXX: The way I override the default remtoe method (define a 'findPostById' method to replace default
@@ -61,213 +32,101 @@ module.exports = function(Post) {
     return moment(new Date()).format('YYYY-MM-DD');
   }
 
-  function createAsyncJob(options) {
-    logger.debug('in createAsyncJob');
-    var job;
-    var post = {};
-    var list = [];
-    switch (options.jobType) {
-      case 'panoPhoto': {
-        logger.debug('creating async job: '+options.jobType);
-        job = gearClient.submitJob('handlePanoPhoto', JSON.stringify({
-          postId: options.postId,
-          image: assign({}, options.image, { buffer: options.image.buffer.toString('base64') }),
-          thumbnail: options.thumbnail
-        }));
-        job.on('complete', function() {
-          logger.debug('job completed for '+options.jobType);
-          var response = JSON.parse(job.response);
-          Post.updateAll({ sid: response.postId }, {
-            status: 'completed',
-            thumbnail: {
-              srcUrl: response.thumbUrl,
-              downloadUrl: response.thumbDownloadUrl
-            },
-            media: {
-              srcUrl: response.srcUrl,
-              srcDownloadUrl: response.srcDownloadUrl,
-              srcTiledImages: response.srcTiledImages,
-              srcMobileUrl: response.srcMobileUrl,
-              srcMobileDownloadUrl: response.srcMobileDownloadUrl,
-              srcMobileTiledImages: response.srcMobileTiledImages
-            }
-          }, function(err) {
-            if (err) { logger.error(err); }
-            logger.debug('updated post successfully');
-          });
-        });
-        break;
-      }
-      case 'livePhoto': {
-        logger.debug('creating async job: '+options.jobType);
-        job = gearClient.submitJob('handleLivePhoto', JSON.stringify({
-          postId: options.postId,
-          image: assign({}, options.image, { buffer: options.image.buffer.toString('base64') }),
-          thumbnail: options.thumbnail
-        }));
-        job.on('complete', function() {
-          logger.debug('job completed for '+options.jobType);
-          var response = JSON.parse(job.response);
-          Post.updateAll({ sid: response.postId }, {
-            status: 'completed',
-            thumbnail: {
-              srcUrl: response.thumbUrl,
-              downloadUrl: response.thumbDownloadUrl
-            },
-            media: {
-              srcUrl: response.srcUrl,
-              srcDownloadUrl: response.srcDownloadUrl,
-              srcHighImages: response.srcHighImages,
-              srcLowImages: response.srcLowImages
-            }
-          }, function(err) {
-            if (err) { logger.error(err); }
-            logger.debug('updated post successfully');
-          });
-        });
-        break;
-      }
-      case 'deletePanoPhoto': {
-        post = options.post;
-        list = [];
-        if (post.thumbnail) {
-          list.push(post.thumbnail.srcUrl);
-        }
-        if (post.media) {
-          if (post.media.srcUrl) list.push(post.media.srcUrl);
-          if (post.media.srcTiledImages) {
-            list = list.concat(post.media.srcTiledImages.map(function(image) { return image.srcUrl; }));
-          }
-          if (post.media.srcMobileUrl) list.push(post.media.srcMobileUrl);
-          if (post.media.srcMobileTiledImages) {
-            list = list.concat(post.media.srcMobileTiledImages.map(function(image) { return image.srcUrl; }));
-          }
-        }
-        if (list.length !== 0) {
-          job = gearClient.submitJob('deletePostImages', JSON.stringify({
-            imageList: list
-          }));
-        }
-        break;
-      }
-      case 'deleteLivePhoto': {
-        post = options.post;
-        list = [];
-        if (post.thumbnail) {
-          list.push(post.thumbnail.srcUrl);
-        }
-        if (post.media) {
-          if (post.media.srcUrl) list.push(post.media.srcUrl);
-          if (post.media.srcHighImages) {
-            list = list.concat(post.media.srcHighImages.map(function(image) { return image.srcUrl; }));
-          }
-        }
-        if (list.length !== 0) {
-          job = gearClient.submitJob('deletePostImages', JSON.stringify({
-            imageList: list
-          }));
-        }
-        break;
-      }
-      default:
-        return;
-    }
-    if (job) {
-      job.on('socketError', function(serverId, e) {
-        logger.error('[ %s ]: onSocketError: server: %s, error: %s', job.name, serverId, e.toString());
-      });
-      job.on('jobServerError', function(serverId, code, message) {
-        logger.error('[ %s ]: onJobServerError: code: %s, message: %s', serverId, code, message);
-      });
-      job.on('error', function(e) {
-        logger.error('[ %s ]: onError: %s', job.name, e.toString());
-      });
-      job.on('exception', function(e) {
-        logger.error('[ %s ]: onException: %s', job.name, e.toString());
-      });
-      job.on('timeout', function() {
-        logger.error('[ %s ]: job timeout', job.name);
-      });
-    }
-    return job;
-  }
-
-  function uploadS3(params, callback) {
-    var shardingKey = genShardingKey();
+  function createPostForeground(mediaType, req, callback) {
     try {
-      var fileKey = 'posts/'+params.postId+'/'+shardingKey+'/'+params.type+'/'+params.quality+'/'+params.timestamp+'/'+params.imageFilename;
-      if (!s3Uploader) {
-        var error = new Error('S3 uploader is not ready yet!');
-        error.status = 500;
-        return callback(error);
+      if (!req.body || !req.files) {
+        return callback(new createError.BadRequest('missing properties'));
       }
-      s3Uploader.send({
-        File: params.image,
-        Key: fileKey,
-        options: {
-          ACL: 'public-read'
-        }
-      }, function(err, data) {
-        if (err) { return callback(err); }
-        var s3Filename = data.Key || data.key;
-        var s3Url = data.Location;
-        // TODO: use real CDN download url
-        var cdnFilename = data.Key || data.key;
-        var cdnUrl = data.Location;
-        callback(null, {
-          cdnFilename: cdnFilename,
-          cdnUrl: cdnUrl,
-          s3Filename: s3Filename,
-          s3Url: s3Url
-        });
-      });
-    } catch (err) {
-      callback(err);
-    }
 
-    function genShardingKey() {
-      var keylen = 4;
-      return crypto.randomBytes(Math.ceil(keylen/2)).toString('hex');
-    }
-  }
-
-  function createPost(mediaType, req, callback) {
-    try {
-      var caption = req.body.caption;
+      /* image */
       var imgBuf = req.files.image[0].buffer;
       var imgType = req.files.image[0].mimetype;
       var imgWidth = req.body.width;
       var imgHeight = req.body.height;
       var imgOrientation = req.body.orientation ? req.body.orientation.trim().toLowerCase() : null;
       var imgDirection = req.body.recordDirection ? req.body.recordDirection.trim().toLowerCase() : null;
-      var imgArrBoundary = req.body.imgArrBoundary || null;
+      var imgArrBoundary = req.body.imgArrBoundary;
+
+      if (!imgBuf || !imgType || !imgWidth || !imgHeight) {
+        return callback(new createError.BadRequest('missing properties'));
+      }
+      if (![ 'application/zip', 'image/jpeg' ].find(function(value) { return value === imgType; })) {
+        return callback(new createError.BadRequest(
+          'invalid image type'
+        ));
+      }
+      if (mediaType === MEDIA_LIVE_PHOTO) {
+        if (!imgOrientation || !imgDirection || !imgArrBoundary) {
+          return callback(new createError.BadRequest(
+            'missing properties'
+          ));
+        }
+        if (![ 'landscape', 'portrait' ].find(function(value) { return value === imgOrientation; })) {
+          return callback(new createError.BadRequest(
+            'invalid orientation value'
+          ));
+        }
+        if (![ 'horizontal', 'vertical' ].find(function(value) { return value === imgDirection; })) {
+          return callback(new createError.BadRequest(
+            'invalid direction value'
+          ));
+        }
+      }
+
+      /* thumbnail */
       var thumbBuf = req.files.thumbnail[0].buffer;
       var thumbType = req.files.thumbnail[0].mimetype;
-      var thumbLat = req.body.thumbLat || null;
-      var thumbLng = req.body.thumbLng || null;
-      var locationProvider = req.body.locationProvider || 'facebook';
-      var locationProviderId = req.body.locationProviderId || null;
-      var locationName = req.body.locationName || null;
-      var locationCity = req.body.locationCity || null;
-      var locationStreet = req.body.locationStreet || null;
-      var locationZip = req.body.locationZip || null;
-      var locationLat = req.body.locationLat || null;
-      var locationLng = req.body.locationLng || null;
-      var now = getTimeNow();
+      var thumbLat = req.body.thumbLat;
+      var thumbLng = req.body.thumbLng;
 
-      if ((mediaType === MEDIA_PANO_PHOTO && (!thumbBuf || !thumbType || !thumbLat || !thumbLng)) ||
-          (mediaType === MEDIA_LIVE_PHOTO && (!thumbBuf || !thumbType))) {
-        return callback(new Error('Missing properties'));
-      }
-      if (!imgBuf || !imgType || !imgWidth || !imgHeight) {
-        return callback(new Error('Missing properties'));
-      }
-      if (imgType !== 'application/zip') {
-        return callback(new Error('Invalid image type'));
+      if (!thumbBuf || !thumbType) {
+        return callback(new createError.BadRequest('missing properties'));
       }
       if (thumbType !== 'image/jpeg') {
-        return callback(new Error('Invalid thumbnail type'));
+        return callback(new createError.BadRequest('invalid thumbnail type'));
       }
+      if ((mediaType === MEDIA_PANO_PHOTO && (!thumbLat || !thumbLng))) {
+        return callback(new createError.BadRequest('missing properties'));
+      }
+
+      /* caption */
+      var caption = req.body.caption;
+
+      /* location */
+      var locationProvider = req.body.locationProvider || 'facebook';
+      var locationProviderId = req.body.locationProviderId;
+      var locationName = req.body.locationName;
+      var locationCity = req.body.locationCity;
+      var locationStreet = req.body.locationStreet;
+      var locationZip = req.body.locationZip;
+      var locationLat = req.body.locationLat;
+      var locationLng = req.body.locationLng;
+
+      /* share */
+      // XXX: Both query string and headers have a limit on the length
+      //      (the limit is not specified in the spec but enforced by
+      //      the browser implementation), however, the limit of headers
+      //      is higher than the query string, so we use headers to
+      //      carry the token.
+      //
+      //      see:
+      //      https://boutell.com/newfaq/misc/urllength.html
+      //      http://stackoverflow.com/questions/686217/maximum-on-http-header-values
+      var share = [];
+      if (req.get('Share-Facebook')) {
+        share.push({
+          name: 'facebook',
+          accessToken: req.get('Share-Facebook')
+        });
+      }
+      if (req.get('Share-Twitter')) {
+        share.push({
+          name: 'twitter',
+          accessToken: req.get('Share-Twitter')
+        });
+      }
+
+      var now = getTimeNow();
 
       var Location = Post.app.models.location;
       new P(function(resolve) {
@@ -307,9 +166,8 @@ module.exports = function(Post) {
             }, function(err, location) {
               if (err) { reject(err); }
               else if (!location) {
-                var error = new Error('Failed to Create Location');
-                error.status = 500;
-                reject(error);
+                logger.error('Failed to create location');
+                reject(new createError.InternalServerError());
               }
               else { resolve(location); }
             });
@@ -323,11 +181,6 @@ module.exports = function(Post) {
           var dimension = {};
           var missingProperties = [];
           if (mediaType === MEDIA_PANO_PHOTO) {
-            if (!thumbLat) { missingProperties.push('thumbLat'); }
-            if (!thumbLng) { missingProperties.push('thumbLng'); }
-            if (missingProperties.length !== 0) {
-              return reject(new Error('Missing Properties: ' + missingProperties));
-            }
             dimension = {
               width: imgWidth,
               height: imgHeight,
@@ -335,17 +188,6 @@ module.exports = function(Post) {
               lng: thumbLng
             };
           } else if (mediaType === MEDIA_LIVE_PHOTO) {
-            if (!imgOrientation) { missingProperties.push('orientation'); }
-            if (!imgDirection) { missingProperties.push('direction'); }
-            if (missingProperties.length !== 0) {
-              return reject(new Error('Missing Properties: ' + missingProperties));
-            }
-            if (![ 'landscape', 'portrait' ].find(function(value) { return value === imgOrientation; })) {
-              return reject(new Error('Invalid Image Orientation Value: ' + imgOrientation));
-            }
-            if (![ 'horizontal', 'vertical' ].find(function(value) { return value === imgDirection; })) {
-              return reject(new Error('Invalid Image Direction Value: ' + imgDirection));
-            }
             dimension = {
               width: imgWidth,
               height: imgHeight,
@@ -363,66 +205,34 @@ module.exports = function(Post) {
           Post.create(postObj, function(err, post) {
             if (err) { reject(err); }
             else if (!post) {
-              var error = new Error('Failed to Create Location');
-              error.status = 500;
-              reject(error);
+              logger.error('Failed to create location');
+              reject(new createError.InternalServerError());
             }
             else { resolve(post); }
           });
         });
       })
       .then(function(post) {
-        var type;
-        if (mediaType === MEDIA_PANO_PHOTO) {
-          type = 'pan';
-        } else if (mediaType === MEDIA_LIVE_PHOTO) {
-          type = 'live';
-        }
-        return new P(function(resolve, reject) {
-          uploadS3({
-            type: type,
-            quality: 'thumb',
-            postId: post.id,
-            timestamp: now,
-            imageFilename: post.id + '.jpg',
-            image: thumbBuf
-          }, function(err, result) {
-            if (err) { reject(err); }
-            else {
-              resolve({
-                post: post,
-                thumbnail: result
-              });
-            }
-          });
-        });
-      })
-      .then(function(result) {
-        // create a job for worker
         var params = {
-          jobType: mediaType,
-          postId: result.post.sid,
+          mediaType: mediaType,
+          postId: post.id,
           image: {
             width: imgWidth,
             height: imgHeight,
-            buffer: imgBuf,
-            hasZipped: true
+            buffer: imgBuf.toString('base64'),
+            hasZipped: imgType === 'application/zip' ? true : false
           },
           thumbnail: {
-            srcUrl: result.thumbnail.s3Url,
-            downloadUrl: result.thumbnail.cdnUrl
-          }
+            buffer: thumbBuf.toString('base64')
+          },
+          share: share
         };
         if (mediaType === MEDIA_LIVE_PHOTO) {
-          if (!imgArrBoundary) {
-            return P.reject(new Error('Missing properties: image array boundary'));
-          }
           params.image.arrayBoundary = imgArrBoundary;
         }
-        createAsyncJob(params);
+        createPostBackground(params);
         callback(null, {
-          postId: result.post.id,
-          thumbnailUrl: result.thumbnail.cdnUrl
+          postId: post.id
         });
       })
       .catch(function(err) {
@@ -430,7 +240,7 @@ module.exports = function(Post) {
         if (err.status && err.status >= 400 && err.status < 500) {
           callback(err);
         } else {
-          callback(new Error('Internal Error'));
+          callback(new createError.InternalServerErrorerror());
         }
       });
     } catch(error) {
@@ -438,9 +248,69 @@ module.exports = function(Post) {
     }
   }
 
+  function createPostBackground(params) {
+    var jobName;
+    if      (params.mediaType === MEDIA_PANO_PHOTO) { jobName = 'postProcessingPanoPhoto'; }
+    else if (params.mediaType === MEDIA_LIVE_PHOTO) { jobName = 'postProcessingLivePhoto'; }
+    gearClient.submitJob(jobName, params, function(err, result) {
+      if (err) {
+        logger.error(err);
+        Post.updateAll({ sid: params.postId }, {
+          status: 'failed'
+        }, function(err) {
+          if (err) { logger.error(err); }
+        });
+      } else {
+        var media;
+        if (result.mediaType === MEDIA_PANO_PHOTO) {
+          media = {
+            srcUrl: result.srcUrl,
+            srcDownloadUrl: result.srcDownloadUrl,
+            srcTiledImages: result.srcTiledImages,
+            srcMobileUrl: result.srcMobileUrl,
+            srcMobileDownloadUrl: result.srcMobileDownloadUrl,
+            srcMobileTiledImages: result.srcMobileTiledImages
+          };
+        } else if (result.mediaType === MEDIA_LIVE_PHOTO) {
+          media = {
+            srcUrl: result.srcUrl,
+            srcDownloadUrl: result.srcDownloadUrl,
+            srcHighImages: result.srcHighImages,
+            srcLowImages: result.srcLowImages
+          };
+        } else {
+          return logger.error(new Error('Caught invalid media type response: id: ' + params.postId));
+        }
+        Post.updateAll({ sid: params.postId }, {
+          status: 'completed',
+          thumbnail: {
+            srcUrl: result.thumbUrl,
+            downloadUrl: result.thumbDownloadUrl
+          },
+          media: media
+        }, function(err) {
+          if (err) { return logger.error(err); }
+
+          /* share */
+          if (params.share.length !== 0) {
+            params.share.forEach(function(target) {
+              var jobName = target.name;
+              gearClient.submitJob(jobName, {
+                postId: params.postId,
+                accessToken: target.accessToken
+              }, function(err) {
+                if (err) { logger.error(err); }
+              });
+            });
+          }
+        });
+      }
+    });
+  }
+
   Post.createPanoPhoto = function(req, callback) {
     logger.debug('in createPanoPhoto');
-    createPost(MEDIA_PANO_PHOTO, req, callback);
+    createPostForeground(MEDIA_PANO_PHOTO, req, callback);
   };
   Post.remoteMethod('createPanoPhoto', {
     accepts: [
@@ -452,7 +322,7 @@ module.exports = function(Post) {
 
   Post.createLivePhoto = function(req, callback) {
     logger.debug('in createLivePhoto');
-    createPost(MEDIA_LIVE_PHOTO, req, callback);
+    createPostForeground(MEDIA_LIVE_PHOTO, req, callback);
   };
   Post.remoteMethod('createLivePhoto', {
     accepts: [
@@ -487,15 +357,44 @@ module.exports = function(Post) {
         error.status = 404;
         return next(error);
       }
+      var list = [];
       switch (post.mediaType) {
-        case 'panoPhoto':
-          createAsyncJob({ jobType: 'deletePanoPhoto', post: post });
+        case MEDIA_PANO_PHOTO:
+          if (post.thumbnail && post.thumbnail.srcUrl) {
+            list.push(post.thumbnail.srcUrl);
+          }
+          if (post.media) {
+            if (post.media.srcUrl) list.push(post.media.srcUrl);
+            if (post.media.srcTiledImages) {
+              list = list.concat(post.media.srcTiledImages.map(function(image) { return image.srcUrl; }));
+            }
+            if (post.media.srcMobileUrl) list.push(post.media.srcMobileUrl);
+            if (post.media.srcMobileTiledImages !== undefined) {
+              list = list.concat(post.media.srcMobileTiledImages.map(function(image) { return image.srcUrl; }));
+            }
+          }
           break;
-        case 'livePhoto':
-          createAsyncJob({ jobType: 'deleteLivePhoto', post: post });
+        case MEDIA_LIVE_PHOTO:
+          if (post.thumbnail && post.thumbnail.srcUrl) {
+            list.push(post.thumbnail.srcUrl);
+          }
+          if (post.media) {
+            if (post.media.srcUrl) list.push(post.media.srcUrl);
+            if (post.media.srcHighImages) {
+              list = list.concat(post.media.srcHighImages.map(function(image) { return image.srcUrl; }));
+            }
+            if (post.media.srcLowImages) {
+              list = list.concat(post.media.srcLowImages.map(function(image) { return image.srcUrl; }));
+            }
+          }
           break;
         default:
           break;
+      }
+      if (list.length !== 0) {
+        gearClient.submitJob('deletePostImages', { imageList: list }, function(err) {
+          if (err) { logger.error(err); }
+        });
       }
       next();
     });
