@@ -12,7 +12,7 @@
 
 module.exports = function(UserIdentity) {
   var loopback = require('loopback');
-  var generateKey = require('../utils/key-gen');
+  var genHmac = require('../utils').genHmac;
 
   function createAccessToken(user, ttl, callback) {
     if (arguments.length === 2 && typeof ttl === 'function') {
@@ -34,7 +34,7 @@ module.exports = function(UserIdentity) {
               (profile.provider || provider) + '.me';
     }
     var username = provider + '.' + (profile.username || profile.id);
-    var password = generateKey('password');
+    var password = genHmac('password');
     var userObj = {
       username: username,
       password: password

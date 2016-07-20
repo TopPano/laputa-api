@@ -100,7 +100,6 @@ describe('REST API endpoint /post', function() {
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         res.body.result.should.have.property('postId');
-        res.body.result.should.have.property('thumbnailUrl');
         done();
       });
     });
@@ -122,12 +121,11 @@ describe('REST API endpoint /post', function() {
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         res.body.result.should.have.property('postId');
-        res.body.result.should.have.property('thumbnailUrl');
         done();
       });
     });
 
-    it('return 500 if missing properties when creating a livephoto post', function(done) {
+    it('return 400 if missing properties when creating a livephoto post', function(done) {
       var user = Hawk;
       json('post', endpoint+'/livephoto?access_token='+user.accessToken.id, 'multipart/form-data')
       .field('caption', 'test for livephoto')
@@ -140,13 +138,14 @@ describe('REST API endpoint /post', function() {
       .field('locationLng', '121.61171')
       .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
       .attach('image', __dirname+'/fixtures/livephoto.zip')
-      .expect(500, function(err, res) {
+      .expect(400, function(err, res) {
         if (err) { return done(err); }
+        res.body.error.message.should.equal('missing properties');
         done();
       });
     });
 
-    it('return 500 if missing properties when creating a livephoto post (2)', function(done) {
+    it('return 400 if missing properties when creating a livephoto post (2)', function(done) {
       var user = Hawk;
       json('post', endpoint+'/livephoto?access_token='+user.accessToken.id, 'multipart/form-data')
       .field('caption', 'test for livephoto')
@@ -159,13 +158,14 @@ describe('REST API endpoint /post', function() {
       .field('locationLng', '121.61171')
       .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
       .attach('image', __dirname+'/fixtures/livephoto.zip')
-      .expect(500, function(err, res) {
+      .expect(400, function(err, res) {
         if (err) { return done(err); }
+        res.body.error.message.should.equal('missing properties');
         done();
       });
     });
 
-    it('return 500 if create a livephoto post with invaliding properties', function(done) {
+    it('return 400 if create a livephoto post with invalid properties', function(done) {
       var user = Hawk;
       json('post', endpoint+'/livephoto?access_token='+user.accessToken.id, 'multipart/form-data')
       .field('caption', 'test for livephoto')
@@ -179,13 +179,14 @@ describe('REST API endpoint /post', function() {
       .field('locationLng', '121.61171')
       .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
       .attach('image', __dirname+'/fixtures/livephoto.zip')
-      .expect(500, function(err, res) {
+      .expect(400, function(err, res) {
         if (err) { return done(err); }
+        res.body.error.message.should.equal('invalid direction value');
         done();
       });
     });
 
-    it('return 500 if create a livephoto post with invaliding properties (2)', function(done) {
+    it('return 400 if create a livephoto post with invalid properties (2)', function(done) {
       var user = Hawk;
       json('post', endpoint+'/livephoto?access_token='+user.accessToken.id, 'multipart/form-data')
       .field('caption', 'test for livephoto')
@@ -198,8 +199,10 @@ describe('REST API endpoint /post', function() {
       .field('locationLng', '121.61171')
       .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
       .attach('image', __dirname+'/fixtures/livephoto.zip')
-      .expect(500, function(err, res) {
+      .expect(400, function(err, res) {
         if (err) { return done(err); }
+        console.log(res.body.error.message);
+        res.body.error.message.should.equal('missing properties');
         done();
       });
     });

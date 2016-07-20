@@ -4,7 +4,7 @@ var assert = require('assert');
   'use strict';
   /**
    * Generate a key
-   * @param {String} hmacKey The hmac key, default to 'password'
+   * @param {String} hmacKey The key for create HMAC
    * @param {String} alogrithm The algorithm, default to 'sha1'
    * @param {String} encoding The string encoding, default to 'hex'
    * @returns {String} The generated key

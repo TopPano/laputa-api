@@ -1,6 +1,6 @@
 var async = require('async');
 var logger = require('winston');
-var utils = require('../../common/utils/utils');
+var utils = require('../../common/utils');
 var config = require('../api.json');
 module.exports = function (server) {
   // Install explore route

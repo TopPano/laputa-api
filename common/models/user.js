@@ -5,36 +5,14 @@ var passport = require('passport');
 var randomstring = require('randomstring');
 var logger = require('winston');
 
-var S3Uploader = require('../utils/aws-wrapper').S3Uploader;
-var S3Remover = require('../utils/aws-wrapper').S3Remover;
-var utils = require('../utils/utils');
+var utils = require('../utils');
+
+var GearClient = require('../utils/gearman-client');
+var gearClient = GearClient.factory({ servers:  process.env.G_SERVERS ? JSON.parse(process.env.G_SERVERS) : null });
 
 var config = require('../../server/api.json');
 
 module.exports = function(User) {
-
-  var s3Uploader, s3Remover;
-  User.on('attached', function(app) {
-    if (process.env.S3_BKT === 'MOCKUP') {
-      s3Uploader = new S3Uploader({
-        Bucket: process.env.S3_BKT,
-        MockupBucketPath: process.env.S3_MOCKUP_BKTPATH,
-        MockupServerPort: process.env.S3_MOCKUP_PORT
-      });
-      s3Remover = new S3Remover({ Bucket: process.env.S3_BKT });
-      // XXX: S3Uploader and S3Remover will both create a mockup instance, however, mockup instance
-      //      is a singleton, therefore, to check whether the mockup server is up we only need to
-      //      check one of them.
-      if (!s3Uploader.isMockupServerUp()) {
-        s3Uploader.on('mockupServerStarted', function() {
-          app.emit('mockupServerStarted');
-        });
-      }
-    } else {
-      s3Uploader = new S3Uploader({ Bucket: process.env.S3_BKT });
-      s3Remover = new S3Remover({ Bucket: process.env.S3_BKT });
-    }
-  });
 
   // disable default remote methods
   User.disableRemoteMethod('__get__followers', false);
@@ -431,15 +409,8 @@ module.exports = function(User) {
 
   User.uploadProfilePhoto = function(id, json, callback) {
     try {
-      var error;
-      if (!s3Uploader || !s3Remover) {
-        error = new Error('S3 uploader/remover is not ready yet!');
-        error.status = 500;
-        return callback(error);
-      }
-      var image = json.image ? new Buffer(json.image, 'base64') : undefined;
-      if (!image) {
-        error = new Error('No image found');
+      if (!json.image) {
+        var error = new Error('No image found');
         error.status = 400;
         return callback(error);
       }
@@ -450,50 +421,31 @@ module.exports = function(User) {
           error.status = 404;
           return callback(error);
         }
-        // TODO: ugly.......
-        var photoIndex = 1;
         if (user.profilePhotoUrl) {
-          photoIndex = (parseInt(user.profilePhotoUrl.split('_')[2].split('.')[0], 10) + 1) % 1024;
-          s3Remover.remove({
-            Key: user.profilePhotoUrl.split('/').slice(3, 7).join('/')
-          }, function(err) {
+          gearClient.submitJob('replaceUserPhoto', {
+            userId: id,
+            oldUrl: user.profilePhotoUrl,
+            image: json.image
+          }, function(err, result) {
             if (err) { return callback(err); }
-            var imageFilename = id+'_profile_'+photoIndex+'.jpg';
-            var fileKey = 'users/'+id+'/photo/'+imageFilename;
-            s3Uploader.send({
-              File: image,
-              Key: fileKey,
-              options: {
-                ACL: 'public-read'
-              }
-            }, function(err, data) {
+            User.updateAll({ sid: id }, {
+              profilePhotoSrcUrl: result.srcUrl,
+              profilePhotoUrl: result.downloadUrl
+            }, function(err) {
               if (err) { return callback(err); }
-              assert(data.hasOwnProperty('Location'), 'Unable to get location property from S3 response object');
-              assert((data.hasOwnProperty('key') || data.hasOwnProperty('Key')), 'Unable to get key property from S3 response object');
-              // update with the new profile photo url
-              // TODO: use CDN url
-              User.updateAll({sid: id}, {profilePhotoUrl: data.Location}, function(err) {
-                if (err) { return callback(err); }
-                callback(null, 'success');
-              });
+              callback(null, 'success');
             });
           });
         } else {
-          var imageFilename = id+'_profile_'+photoIndex+'.jpg';
-          var fileKey = 'users/'+id+'/photo/'+imageFilename;
-          s3Uploader.send({
-            File: image,
-            Key: fileKey,
-            options: {
-              ACL: 'public-read'
-            }
-          }, function(err, data) {
+          gearClient.submitJob('createUserPhoto', {
+            userId: id,
+            image: json.image
+          }, function(err, result) {
             if (err) { return callback(err); }
-            assert(data.hasOwnProperty('Location'), 'Unable to get location property from S3 response object');
-            assert((data.hasOwnProperty('key') || data.hasOwnProperty('Key')), 'Unable to get key property from S3 response object');
-            // update with the new profile photo url
-            // TODO: use CDN url
-            User.updateAll({sid: id}, {profilePhotoUrl: data.Location}, function(err) {
+            User.updateAll({ sid: id }, {
+              profilePhotoSrcUrl: result.srcUrl,
+              profilePhotoUrl: result.downloadUrl
+            }, function(err) {
               if (err) { return callback(err); }
               callback(null, 'success');
             });
