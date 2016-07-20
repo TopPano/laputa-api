@@ -376,7 +376,7 @@ describe('REST API endpoint /post', function() {
       var post = posts[0];
       json('post', endpoint+'/'+post.sid+'/like?access_token='+user.accessToken.id)
       .expect(400, function(err, res) {
-        res.body.error.should.have.property('message', 'Missing property: userId');
+        res.body.error.should.have.property('message', 'missing property: user ID');
         done(err);
       });
     });
@@ -385,6 +385,7 @@ describe('REST API endpoint /post', function() {
       json('post', endpoint+'/123/like?access_token='+user.accessToken.id)
       .send({userId: user.sid})
       .expect(404, function(err, res) {
+        res.body.error.should.have.property('message', 'post not found');
         done(err);
       });
     });
@@ -403,7 +404,7 @@ describe('REST API endpoint /post', function() {
       var post = posts[0];
       json('post', endpoint+'/'+post.sid+'/unlike?access_token='+user.accessToken.id)
       .expect(400, function(err, res) {
-        res.body.error.should.have.property('message', 'Missing property: userId');
+        res.body.error.should.have.property('message', 'missing property: user ID');
         done(err);
       });
     });
