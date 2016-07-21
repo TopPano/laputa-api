@@ -614,11 +614,6 @@
         }
       }
     },
-    "http-errors": {
-      "version": "1.5.0",
-      "from": "http-errors@latest",
-      "resolved": "https://registry.npmjs.org/http-errors/-/http-errors-1.5.0.tgz"
-    },
     "http-signature": {
       "version": "1.1.1",
       "from": "http-signature@>=1.1.0 <1.2.0",

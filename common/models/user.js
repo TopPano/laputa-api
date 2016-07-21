@@ -4,6 +4,7 @@ var async = require('async');
 var passport = require('passport');
 var randomstring = require('randomstring');
 var logger = require('winston');
+var createError = require('../utils/http-errors');
 
 var utils = require('../utils');
 
@@ -33,11 +34,12 @@ module.exports = function(User) {
 
   User.authFacebookToken = function(req, res, callback) {
     passport.authenticate('facebook-token', function(err, user, info) {
-      if (err) { return callback(err); }
+      if (err) {
+        logger.error(err);
+        return callback(new createError.InternalServerError());
+      }
       if (!user) {
-        var error = new Error('Authentication Error');
-        error.status = 401;
-        return callback(error);
+        return callback(new createError.Unauthorized());
       }
       if (info && info.accessToken) {
         if (req.query.include === 'user') {
@@ -46,11 +48,12 @@ module.exports = function(User) {
             where: { userId: user.sid },
             fields: ['provider', 'profile']
           }, function(err, identity) {
-            if (err) { return callback(err); }
+            if (err) {
+              logger.error(err);
+              return callback(new createError.InternalServerError());
+            }
             if (identity.length === 0) {
-              var error = new Error('Authentication Error');
-              error.status = 401;
-              return callback(error);
+              return callback(new createError.Unauthorized());
             }
             return callback(null, { token: info.accessToken, user: user, identity: identity[0] });
           });
@@ -138,21 +141,18 @@ module.exports = function(User) {
           // update the where clause for the 'posts' inclusion of the query
           query.include.scope.include.scope.where.sid = where.sid;
         } else {
-          var error = new Error('Invalid query operator');
-          error.status = 400;
-          return callback(error);
+          return callback(new createError.BadRequest('invalid query operator'));
         }
-      } catch (e) {
-        var error = new Error('Bad request');
-        error.status = 400;
-        return callback(error);
+      } catch (err) {
+        logger.error(err);
+        return callback(new createError.BadRequest());
       }
     }
     var Follow = User.app.models.follow;
     Follow.find(query, function(err, followingList) {
       if (err) {
         logger.error(err);
-        return callback(err);
+        return callback(new createError.InternalServerError());
       }
       var output = {
         page: {
@@ -205,41 +205,36 @@ module.exports = function(User) {
 
   var verifyFollowing = function(followerId, followeeId, done) {
     if (followerId === followeeId) {
-      var error = new Error('Self following is not allowed');
-      error.status = 400;
-      return done(error);
+      return done(new createError.BadRequest('self following is not allowed'));
     }
     async.parallel({
       verifyFollower: function(callback) {
         User.findById(followerId, function(err, user) {
           if (err) { return callback(err); }
-          if (!user) { return callback(new Error('Invalid User ID: '+followerId)); }
+          if (!user) { return callback(new createError.NotFound('the follower user is not found')); }
           callback(null);
         });
       },
       verifyFollowee: function(callback) {
         User.findById(followeeId, function(err, user) {
           if (err) { return callback(err); }
-          if (!user) { return callback(new Error('Invalid User ID: '+followeeId)); }
+          if (!user) { return callback(new createError.NotFound('the followee user is not found')); }
           callback(null);
         });
       }
     }, function(err) {
-      if (err) { return done(err); }
+      if (err) {
+        if (err.status === 404) { return done(err); }
+        logger.error(err);
+        return done(new createError.InternalServerError());
+      }
       done();
     });
   };
 
   User.follow = function(followerId, followeeId, callback) {
     verifyFollowing(followerId, followeeId, function(err) {
-      if (err) {
-        if (err.message.indexOf('Invalid User') !== -1) {
-          var error = new Error(err);
-          error.status = 404;
-          return callback(error);
-        }
-        return callback(err);
-      }
+      if (err) { return callback(err); }
       var Follow = User.app.models.follow;
       // Check if it is a duplicate following
       // FIXME: We should use composite id here instead of checking for duplicate entry
@@ -252,7 +247,10 @@ module.exports = function(User) {
       //          https://github.com/strongloop/loopback-datasource-juggler/issues/478
       var followObj = { followerId: followerId, followeeId: followeeId };
       Follow.findOrCreate({ where: followObj }, followObj, function(err) {
-        if (err) { return callback(err); }
+        if (err) {
+          logger.error(err);
+          return callback(new createError.InternalServerError());
+        }
         callback(null, 'success');
       });
     });
@@ -268,19 +266,12 @@ module.exports = function(User) {
 
   User.unfollow = function(followerId, followeeId, callback) {
     verifyFollowing(followerId, followeeId, function(err) {
-      if (err) {
-        if (err.message.indexOf('Invalid User') !== -1) {
-          var error = new Error(err);
-          error.status = 404;
-          return callback(error);
-        }
-        return callback(err);
-      }
+      if (err) { return callback(err); }
       var Follow = User.app.models.follow;
       Follow.destroyAll({followerId: followerId, followeeId: followeeId}, function(err) {
         if (err) {
           logger.error(err);
-          return callback(err);
+          return callback(new createError.InternalServerError());
         }
         callback(null, 'success');
       });
@@ -323,7 +314,10 @@ module.exports = function(User) {
         }
       }
     }, function(err, followers) {
-      if (err) { return callback(err); }
+      if (err) {
+        logger.error(err);
+        return callback(new createError.InternalServerError());
+      }
       var output = [];
       if (!followers) {
         return callback(null, output);
@@ -379,7 +373,10 @@ module.exports = function(User) {
         }
       }
     }, function(err, following) {
-      if (err) { return callback(err); }
+      if (err) {
+        logger.error(err);
+        return callback(new createError.InternalServerError());
+      }
       var output = [];
       if (!following) {
         return callback(null, output);
@@ -408,56 +405,48 @@ module.exports = function(User) {
   });
 
   User.uploadProfilePhoto = function(id, json, callback) {
-    try {
-      if (!json.image) {
-        var error = new Error('No image found');
-        error.status = 400;
-        return callback(error);
-      }
-      User.findById(id, function(err, user) {
-        if (err) { return callback(err); }
-        if (!user) {
-          var error = new Error('User Not Found');
-          error.status = 404;
-          return callback(error);
-        }
-        if (user.profilePhotoUrl) {
-          gearClient.submitJob('replaceUserPhoto', {
-            userId: id,
-            oldUrl: user.profilePhotoUrl,
-            image: json.image
-          }, function(err, result) {
-            if (err) { return callback(err); }
-            User.updateAll({ sid: id }, {
-              profilePhotoSrcUrl: result.srcUrl,
-              profilePhotoUrl: result.downloadUrl
-            }, function(err) {
-              if (err) { return callback(err); }
-              callback(null, 'success');
-            });
-          });
-        } else {
-          gearClient.submitJob('createUserPhoto', {
-            userId: id,
-            image: json.image
-          }, function(err, result) {
-            if (err) { return callback(err); }
-            User.updateAll({ sid: id }, {
-              profilePhotoSrcUrl: result.srcUrl,
-              profilePhotoUrl: result.downloadUrl
-            }, function(err) {
-              if (err) { return callback(err); }
-              callback(null, 'success');
-            });
-          });
-        }
-      });
-    } catch (err) {
-      logger.error(err);
-      var error = new Error('Internal Error');
-      error.status = 500;
-      callback(error);
+    if (!json.image) {
+      return callback(new createError.BadRequest('image not found'));
     }
+    User.findById(id, function(err, user) {
+      if (err) {
+        logger.error(err);
+        return callback(new createError.InternalServerError());
+      }
+      if (!user) {
+        return callback(new createError.NotFound('user not found'));
+      }
+      if (user.profilePhotoUrl) {
+        gearClient.submitJob('replaceUserPhoto', {
+          userId: id,
+          oldUrl: user.profilePhotoUrl,
+          image: json.image
+        }, function(err, result) {
+          if (err) { return callback(err); }
+          User.updateAll({ sid: id }, {
+            profilePhotoSrcUrl: result.srcUrl,
+            profilePhotoUrl: result.downloadUrl
+          }, function(err) {
+            if (err) { return callback(err); }
+            callback(null, 'success');
+          });
+        });
+      } else {
+        gearClient.submitJob('createUserPhoto', {
+          userId: id,
+          image: json.image
+        }, function(err, result) {
+          if (err) { return callback(err); }
+          User.updateAll({ sid: id }, {
+            profilePhotoSrcUrl: result.srcUrl,
+            profilePhotoUrl: result.downloadUrl
+          }, function(err) {
+            if (err) { return callback(err); }
+            callback(null, 'success');
+          });
+        });
+      }
+    });
   };
   User.remoteMethod('uploadProfilePhoto', {
     accepts: [
@@ -495,12 +484,10 @@ module.exports = function(User) {
     }, function(err, user) {
       if (err) {
         logger.error(err);
-        return callback(new Error('Internal Error'));
+        return callback(new createError.InternalServerError());
       }
       if (!user) {
-        var error = new Error('User Not Found');
-        error.status = 404;
-        return callback(error);
+        return callback(new createError.NotFound('user not found'));
       }
       var userObj = user.toJSON();
       var output = {
@@ -582,20 +569,20 @@ module.exports = function(User) {
         {
           query.where.sid = where.sid;
         } else {
-          var error = new Error('Invalid query operator');
-          error.status = 400;
-          return callback(error);
+          return callback(new createError.BadRequest('invalid query operator'));
         }
-      } catch (e) {
-        var error = new Error('Bad request');
-        error.status = 400;
-        return callback(error);
+      } catch (err) {
+        logger.error(err);
+        return callback(new createError.BadRequest());
       }
     }
 
     var Post = User.app.models.post;
     Post.find(query, function(err, posts) {
-      if (err) { return callback(err); }
+      if (err) {
+        logger.error(err);
+        return callback(new createError.InternalServerError());
+      }
       var output = {
         page: {
           hasNextPage: false,
@@ -645,26 +632,25 @@ module.exports = function(User) {
     var oldPassword = body.oldPassword || null;
     var newPassword = body.newPassword || null;
     if (!oldPassword || !newPassword) {
-      var error = new Error('Missing Information');
-      error.status = 400;
-      return callback(error);
+      return callback(new createError.BadRequest('missing properties'));
     }
     User.findById(id, function(err, user) {
-      var error;
-      if (err) { return callback(err); }
+      if (err) {
+        logger.error(err);
+        return callback(new createError.InternalServerError());
+      }
       if (!user) {
-        error = new Error('User Not Found');
-        error.status = 404;
-        return callback(error);
+        return callback(new createError.NotFound('user not found'));
       }
       user.hasPassword(oldPassword, function(err, isMatch) {
-        if (err) { return callback(err); }
+        if (err) {
+          logger.error(err);
+          return callback(new createError.InternalServerError());
+        }
         if (isMatch) {
           user.updateAttribute('password', newPassword, callback);
         } else {
-          error = new Error('Incorrect Old Password');
-          error.status = 401;
-          callback(error);
+          callback(new createError.Unauthorized('incorrect old password'));
         }
       });
     });
@@ -681,22 +667,20 @@ module.exports = function(User) {
   User.requestResetPassword = function(json, callback) {
     var email = json.email;
     if (!email) {
-      var error = new Error('Missing Information: Email');
-      error.status = 400;
-      return callback(error);
+      return callback(new createError.BadRequest('missing properties: email'));
     }
     User.find({ where: { email: email } }, function(err, user) {
-      if (err) { return callback(err); }
+      if (err) {
+        logger.error(err);
+        return callback(new createError.InternalServerError());
+      }
       if (!user || user.length === 0) {
-        var error = new Error('No user with the email was found');
-        error.status = 404;
-        return callback(error);
+        return callback(new createError.NotFound('no user with the email was found'));
       }
       User.resetPassword({ email: email }, function(err) {
         if (err) {
-          var error = new Error(err);
-          error.status = 401;
-          return callback(error);
+          logger.error(err);
+          return callback(new createError.InternalServerError());
         }
         callback(null, 'success');
       });
@@ -711,7 +695,7 @@ module.exports = function(User) {
   });
 
   User.on('resetPasswordRequest', function(info) {
-    if (!info.accessToken) { return logger.error('Invalid reset password request: Access Token Not Found'); }
+    if (!info.accessToken) { return logger.error('invalid reset password request: Access Token Not Found'); }
     User.findById(info.accessToken.userId, {
       include: {
         relation: 'identities',
@@ -721,7 +705,7 @@ module.exports = function(User) {
       }
     }, function(err, user) {
       if (err) { return logger.error(err); }
-      if (!user) { return logger.error('User Not Found: '+info.accessToken.userId); }
+      if (!user) { return logger.error('user not found: '+info.accessToken.userId); }
       var userObj = user.toJSON();
       var endpoint = User.app.get('restApiRoot') + '/users/resetPassword';
       var querystring = '?access_token=' + info.accessToken.id + '&redirect_url=www.verpix.me';
@@ -767,19 +751,16 @@ module.exports = function(User) {
     }, function(err, user) {
       if (err) {
         logger.error(err);
-        res.status(500).send('Internal Error');
-        return callback();
+        return callback(new createError.InternalServerError());
       }
       if (!user) {
-        res.status(404).send('User Not Found');
-        return callback();
+        return callback(new createError.NotFound('user not found'));
       }
       var userObj = user.toJSON();
       user.updateAttribute('password', newPassword, function(err) {
         if (err) {
           logger.error(err);
-          res.status(500).send('Internal Error');
-          return callback();
+          return callback(new createError.InternalServerError());
         }
         var username = userObj.identities.length !== 0 ? userObj.identities[0].profile.displayName : userObj.username;
         var html = 'Dear ' + username + ',<br><br>' +
@@ -796,8 +777,7 @@ module.exports = function(User) {
         }, function(err) {
           if (err) {
             logger.error(err);
-            res.status(500).send('Internal Error');
-            return callback();
+            return callback(new createError.InternalServerError());
           }
           if (req.query['redirect_url']) {
             res.redirect('https://'+req.query['redirect_url']);
@@ -819,9 +799,12 @@ module.exports = function(User) {
 
   User.createFeedback = function(id, json, callback) {
     User.findById(id, function(err, user) {
-      if (err) { return callback(err); }
-      if (!user) { return callback(new Error('No user with the id was found')); }
-      if (!user.email) { return callback(new Error('Internal Error')); }
+      if (err) {
+        logger.error(err);
+        return callback(new createError.InternalServerError());
+      }
+      if (!user) { return callback(new createError.NotFound('no user with the id was found')); }
+      if (!user.email) { return callback(new createError.InternalServerError('user email not found')); }
       if (json.message && typeof json.message === 'string' && json.message !== '') {
         var appVersion = json.appVersion || 'not provided';
         var deviceName = json.device.name || 'not provided';
@@ -841,7 +824,7 @@ module.exports = function(User) {
         }, function(err) {
           if (err) {
             logger.error(err);
-            return callback(err);
+            return callback(new createError.InternalServerError());
           }
           callback(null, 'success');
         });
