@@ -84,7 +84,7 @@ describe('REST API endpoint /post', function() {
       });
     });
 
-    it('create a new post for panophoto', function(done) {
+    it('create a new post for panophoto with location name', function(done) {
       var user = Hawk;
       json('post', endpoint+'/panophoto?access_token='+user.accessToken.id, 'multipart/form-data')
       .field('caption', 'test for panophoto')
@@ -95,6 +95,47 @@ describe('REST API endpoint /post', function() {
       .field('locationName', 'Home Sweet Home')
       .field('locationLat', '25.05511')
       .field('locationLng', '121.61171')
+      .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
+      .attach('image', __dirname+'/fixtures/1.jpg.zip')
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        res.body.result.should.have.property('postId');
+        done();
+      });
+    });
+
+    it('create a new post for panophoto with location id', function(done) {
+      var user = Hawk;
+      json('post', endpoint+'/panophoto?access_token='+user.accessToken.id, 'multipart/form-data')
+      .field('caption', 'test for panophoto')
+      .field('width', '8192')
+      .field('height', '4096')
+      .field('thumbLat', '30')
+      .field('thumbLng', '90')
+      .field('locationProviderId', '89473918471')
+      .field('locationName', 'Home Sweet Home')
+      .field('locationCity', 'Taipei')
+      .field('locationStreet', 'SongJung Road')
+      .field('locationZip', '10483')
+      .field('locationLat', '25.05511')
+      .field('locationLng', '121.61171')
+      .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
+      .attach('image', __dirname+'/fixtures/1.jpg.zip')
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        res.body.result.should.have.property('postId');
+        done();
+      });
+    });
+
+    it('create a new post for panophoto without location data', function(done) {
+      var user = Hawk;
+      json('post', endpoint+'/panophoto?access_token='+user.accessToken.id, 'multipart/form-data')
+      .field('caption', 'test for panophoto')
+      .field('width', '8192')
+      .field('height', '4096')
+      .field('thumbLat', '30')
+      .field('thumbLng', '90')
       .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
       .attach('image', __dirname+'/fixtures/1.jpg.zip')
       .expect(200, function(err, res) {
