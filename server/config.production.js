@@ -4,12 +4,18 @@
  * loaded if exists, either JSON or JS. And it will override the settings of 'config.json'. For more information, please read:
  * https://github.com/strongloop/loopback-boot/issues/101
  */
- 'use strict';
+'use strict';
 
 var p = require('../package.json');
 var version = p.version.split('.').shift();
 
 module.exports = {
   hostname: 'www.verpix.me',
-  restApiRoot: '/api' + (version > 0 ? '/v' + version : '')
+  restApiRoot: '/api' + (version > 0 ? '/v' + version : ''),
+  passportProviders: {
+    'facebook-token': {
+      clientID: '589634317860022',
+      clientSecret: '1d847021d22398516d480e2ecf543020'
+    }
+  }
 };

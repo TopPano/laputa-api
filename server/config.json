@@ -23,5 +23,12 @@
       "disableStackTrace": false
     }
   },
-  "legacyExplorer": false
+  "legacyExplorer": false,
+  "passportProviders": {
+    "facebook-token": {
+      "provider": "facebook-token",
+      "module": "passport-facebook-token",
+      "authScheme": "oAuth 2.0"
+    }
+  }
 }
