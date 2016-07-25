@@ -1,7 +1,9 @@
 var async = require('async');
 var logger = require('winston');
 var utils = require('../../common/utils');
+var createError = require('../../common/utils/http-errors');
 var config = require('../api.json');
+
 module.exports = function (server) {
   // Install explore route
   var router = server.loopback.Router();
@@ -9,12 +11,13 @@ module.exports = function (server) {
 
   function recent(req, res) {
     logger.debug('in /api/explore/recent');
-    var where = req.body.where || undefined;
-    var userId = req.accessToken.userId || undefined;
+    var where = req.body.where;
+    var userId = req.accessToken.userId;
     var limit = config.constants.query.PAGE_SIZE;
 
     if (!userId) {
-      return res.status(500).send({error: 'Internal Error'});
+      logger.error('user with the access token was not found: ' + JSON.stringify(req.accessToken));
+      return res.status(500).send(new createError.InternalServerError());
     }
 
     if (req.body.limit) {
@@ -66,15 +69,18 @@ module.exports = function (server) {
           {
             query.where.sid = where.sid;
           } else {
-            return res.status(400).send({error: 'Invalid query operator'});
+            return res.status(400).send(new createError.BadRequest('invalid query operator'));
           }
-      } catch (e) {
-        logger.error(e);
-        return res.status(400).send({error: 'Bad Request'});
+      } catch (err) {
+        logger.error(err);
+        return res.status(400).send(new createError.BadRequest());
       }
     }
     Post.find(query, function(err, posts) {
-      if (err) { return res.status(500).send('Internal Error'); }
+      if (err) {
+        logger.error(err);
+        return res.status(500).send(new createError.InternalServerError());
+      }
       var output = {
         page: {
           hasNextPage: false,

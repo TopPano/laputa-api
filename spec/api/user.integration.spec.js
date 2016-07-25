@@ -334,6 +334,7 @@ describe('Users - integration', function() {
           })
           .expect(400, function(err, res) {
             if (err) { return done(err); }
+            res.body.error.should.have.property('message', 'invalid query operator');
             done();
           });
         });
@@ -358,6 +359,7 @@ describe('Users - integration', function() {
         })
         .expect(400, function(err, res) {
           if (err) { return done(err); }
+          res.body.error.should.have.property('message', 'invalid query operator');
           done();
         });
       });
@@ -381,6 +383,7 @@ describe('Users - integration', function() {
         })
         .expect(400, function(err, res) {
           if (err) { return done(err); }
+          res.body.error.should.have.property('message', 'Bad Request');
           done();
         });
       });

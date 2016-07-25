@@ -3,7 +3,7 @@ var moment = require('moment');
 var async = require('async');
 var P = require('bluebird');
 var logger = require('winston');
-var createError = require('http-errors');
+var createError = require('../utils/http-errors');
 var utils = require('../utils');
 
 var IdGenerator = require('../utils/id-generator');
@@ -351,13 +351,18 @@ module.exports = function(Post) {
 
   Post.beforeRemote('deleteById', function(ctx, unused, next) {
     Post.findById(ctx.req.params.id, function(err, post) {
-      if (err) { return next(err); }
+      if (err) {
+        logger.error(err);
+        return next(new createError.InternalServerError());
+      }
       if (!post) {
-        var error = new Error('Post Not Found');
-        error.status = 404;
-        return next(error);
+        return next(new createError.NotFound('post not found'));
       }
       var list = [];
+      // XXX: Currently we are using AWS S3 as our object store, since S3 does not support bulk delete using
+      //      wildcard (so stupid...) so we have to enumerate the objects of the post that need to be deleted.
+      //
+      //      see https://forums.aws.amazon.com/thread.jspa?threadID=85996
       switch (post.mediaType) {
         case MEDIA_PANO_PHOTO:
           if (post.thumbnail && post.thumbnail.srcUrl) {
@@ -430,11 +435,12 @@ module.exports = function(Post) {
         }
       ]
     }, function(err, post) {
-      if (err) { return callback(err); }
+      if (err) {
+        logger.error(err);
+        return callback(new createError.InternalServerError());
+      }
       if (!post) {
-        var error = new Error('Post Not Found');
-        error.status = 404;
-        return callback(error);
+        return callback(new createError.NotFound('post not found'));
       }
       var postObj = post.toJSON();
       postObj.likes = utils.formatLikeList(postObj['_likes_'], req.accessToken ? req.accessToken.userId : null);
@@ -458,13 +464,10 @@ module.exports = function(Post) {
         return callback(err);
       }
       if (!post) {
-        res.status(404);
-        return callback('Post Not Found');
+        return callback(new createError.NotFound('post not found'));
       }
       if (!req.body.hasOwnProperty('userId')) {
-        var error = new Error('Missing property: userId');
-        error.status = 400;
-        return callback(error);
+        return callback(new createError.BadRequest('missing property: user ID'));
       }
       var userId = req.body.userId;
       var Like = Post.app.models.like;
@@ -478,14 +481,20 @@ module.exports = function(Post) {
       //          https://github.com/strongloop/loopback-datasource-juggler/issues/121
       //          https://github.com/strongloop/loopback-datasource-juggler/issues/478
       Like.find({where: {postId: postId, userId: userId}}, function(err, result) {
-        if (err) { return callback(err); }
+        if (err) {
+          logger.error(err);
+          return callback(new createError.InternalServerError());
+        }
         if (result.length === 0) {
           Like.create({postId: postId, userId: userId}, function(err) {
-            if (err) { return callback(err); }
+            if (err) {
+              logger.error(err);
+              return callback(new createError.InternalServerError());
+            }
             callback(null, 'success');
           });
         } else {
-          // Ignre duplicate like
+          // Ignore duplicate like
           callback(null, 'success');
         }
       });
@@ -505,21 +514,21 @@ module.exports = function(Post) {
     Post.findById(postId, function(err, post) {
       if (err) {
         logger.error(err);
-        return callback(err);
+        return callback(new createError.InternalServerError());
       }
       if (!post) {
-        res.status(404);
-        return callback('Post Not Found');
+        return callback(new createError.NotFound('post not found'));
       }
       if (!req.body.hasOwnProperty('userId')) {
-        var error = new Error('Missing property: userId');
-        error.status = 400;
-        return callback(error);
+        return callback(new createError.BadRequest('missing property: user ID'));
       }
       var userId = req.body.userId;
       var Like = Post.app.models.like;
       Like.destroyAll({postId: postId, userId: userId}, function(err) {
-        if (err) { return callback(err); }
+        if (err) {
+          logger.error(err);
+          return callback(new createError.InternalServerError());
+        }
         callback(null, 'success');
       });
     });
@@ -562,7 +571,7 @@ module.exports = function(Post) {
     }, function(err, likes) {
       if (err) {
         logger.error(err);
-        return callback(err);
+        return callback(new createError.InternalServerError());
       }
       var output = [];
       likes.forEach(function(like) {
