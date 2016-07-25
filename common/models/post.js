@@ -351,7 +351,10 @@ module.exports = function(Post) {
 
   Post.beforeRemote('deleteById', function(ctx, unused, next) {
     Post.findById(ctx.req.params.id, function(err, post) {
-      if (err) { return next(err); }
+      if (err) {
+        logger.error(err);
+        return next(new createError.InternalServerError());
+      }
       if (!post) {
         return next(new createError.NotFound('post not found'));
       }
