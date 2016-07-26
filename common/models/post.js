@@ -192,7 +192,8 @@ module.exports = function(Post) {
               width: imgWidth,
               height: imgHeight,
               orientation: imgOrientation,
-              direction: imgDirection
+              direction: imgDirection,
+              srcImgArrBoundary: imgArrBoundary
             };
           }
           var postObj = {
