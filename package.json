@@ -4,7 +4,7 @@
   "main": "server/server.js",
   "scripts": {
     "pretest": "jshint .",
-    "test": "mocha -C -R spec spec/ --recursive --timeout 30000",
+    "test": "NODE_ENV='test' mocha -R spec spec/ --recursive --timeout 30000",
     "dev": "NODE_ENV='development' node .",
     "start": "NODE_ENV='production' pm2 start $IS_DAEMON server/server.js --name verpix-api",
     "stop": "NODE_ENV='production' pm2 delete verpix-api -s &> /dev/null"
