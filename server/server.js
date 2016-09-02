@@ -1,6 +1,5 @@
 var loopback = require('loopback');
 var boot = require('loopback-boot');
-var multer = require('multer');
 
 var app = module.exports = loopback();
 
@@ -23,10 +22,25 @@ boot(app, __dirname, function(err) {
   if (err) throw err;
 });
 
-app.use(multer({storage: multer.memoryStorage()}).fields([
-  { name: 'thumbnail', maxCount: 1 },
-  { name: 'image', maxCount: 1 }
-])); // for parsing multipart/form-data
+// Configure the middleware for parsing request body.
+var multer = require('multer');
+var bodyParser = require('body-parser');
+app.middleware('parse', multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fieldSize: 200 * 1024 * 1024 /* 200MB */,
+      fields: 20,
+      files: 2,
+      parts: 22
+    }
+  })
+  .fields([
+    { name: 'thumbnail', maxCount: 1 },
+    { name: 'image', maxCount: 1 }
+  ])
+); // for parsing multipart/form-data
+app.middleware('parse', bodyParser.json());
+app.middleware('parse', bodyParser.urlencoded({ extended: true }));
 
 // start the server if `$ node server.js`
 if (require.main === module) {
