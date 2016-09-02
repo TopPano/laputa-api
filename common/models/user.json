@@ -33,9 +33,9 @@
       "model": "userIdentity",
       "foreignKey": "userId"
     },
-    "posts": {
+    "media": {
       "type": "hasMany",
-      "model": "post",
+      "model": "media",
       "foreignKey": "ownerId"
     },
     "followers": {
@@ -60,7 +60,7 @@
       "principalType": "ROLE",
       "principalId": "$authenticated",
       "permission": "ALLOW",
-      "property": "__get__posts"
+      "property": "__get__media"
     },
     {
       "principalType": "ROLE",

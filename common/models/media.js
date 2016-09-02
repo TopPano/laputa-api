@@ -450,14 +450,14 @@ module.exports = function(Media) {
   };
   Media.remoteMethod('findMediaById', {
     accepts: [
-      { arg: 'id', type: 'string', require: true },
+      { arg: 'id', type: 'string', required: true },
       { arg: 'req', type: 'object', 'http': { source: 'req' } }
     ],
     returns: [ { arg: 'result', type: 'object' } ],
     http: { path: '/:id', verb: 'get' }
   });
 
-  Media.like = function(mediaId, req, res, callback) {
+  Media.like = function(mediaId, req, callback) {
     Media.findById(mediaId, function(err, media) {
       if (err) {
         logger.error(err);
@@ -502,15 +502,14 @@ module.exports = function(Media) {
   };
   Media.remoteMethod('like', {
     accepts: [
-      { arg: 'id', type: 'string', require: true },
-      { arg: 'req', type: 'object', 'http': {source: 'req'} },
-      { arg: 'res', type: 'object', 'http': {source: 'res'} }
+      { arg: 'id', type: 'string', required: true },
+      { arg: 'req', type: 'object', 'http': {source: 'req'} }
     ],
     returns: [ { arg: 'status', type: 'string' } ],
     http: { path: '/:id/like', verb: 'post' }
   });
 
-  Media.unlike = function(mediaId, req, res, callback) {
+  Media.unlike = function(mediaId, req, callback) {
     Media.findById(mediaId, function(err, media) {
       if (err) {
         logger.error(err);
@@ -536,8 +535,7 @@ module.exports = function(Media) {
   Media.remoteMethod('unlike', {
     accepts: [
       { arg: 'id', type: 'string', require: true },
-      { arg: 'req', type: 'object', 'http': {source: 'req'} },
-      { arg: 'res', type: 'object', 'http': {source: 'res'} }
+      { arg: 'req', type: 'object', 'http': {source: 'req'} }
     ],
     returns: [ { arg: 'status', type: 'string' } ],
     http: { path: '/:id/unlike', verb: 'post' }

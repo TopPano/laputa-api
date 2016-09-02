@@ -20,7 +20,7 @@ function json(verb, url) {
     .expect('Content-Type', /json/);
 }
 
-describe('REST API endpoint /explore', function() {
+describe.skip('REST API endpoint /explore', function() {
 
   function loadUserAndLogin(cred, callback) {
     assert(cred.email);

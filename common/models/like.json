@@ -7,16 +7,16 @@
     "validateUpsert": true
   },
   "properties": {
-    "postId": { "type": "string", "require": true },
+    "mediaId": { "type": "string", "require": true },
     "userId": { "type": "string", "require": true },
     "likeAt": { "type": "date" }
   },
   "validations": [],
   "relations": {
-    "post": {
+    "media": {
       "type": "belongsTo",
-      "model": "post",
-      "foreignKey": "postId"
+      "model": "media",
+      "foreignKey": "mediaId"
     },
     "user": {
       "type": "belongsTo",

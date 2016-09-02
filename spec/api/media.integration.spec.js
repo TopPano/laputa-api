@@ -10,8 +10,8 @@ var zlib = require('zlib');
 
 var apiVersion = require('../../package.json').version.split('.').shift();
 var endpointRoot = '/api' + (apiVersion > 0 ? '/v' + apiVersion :  '');
-var endpoint = endpointRoot + '/posts';
-var User, Post;
+var endpoint = endpointRoot + '/media';
+var User, Media;
 
 function json(verb, url, contentType) {
   return request(app)[verb](url)
@@ -20,15 +20,15 @@ function json(verb, url, contentType) {
     .expect('Content-Type', /json/);
 }
 
-describe('Posts - integration', function() {
+describe('Media - integration:', function() {
 
-  function loadUserAndPosts(cred, callback) {
+  function loadUserAndMedia(cred, callback) {
     assert(cred.email);
     assert(cred.password);
     var User = app.models.user;
-    var Post = app.models.post;
+    var Media = app.models.media;
     var user = {};
-    var posts = [];
+    var media = [];
     User.find({ where: { email: cred.email } }, function(err, result) {
       if (err) { return callback(err); }
       assert(result.length !== 0);
@@ -38,22 +38,22 @@ describe('Posts - integration', function() {
         assert(accessToken.userId);
         assert(accessToken.id);
         user.accessToken = accessToken;
-        Post.find({ where: { ownerId: user.sid } }, function(err, result) {
+        Media.find({ where: { ownerId: user.sid } }, function(err, result) {
           if (err) { return callback(err); }
-          posts = result;
-          callback(null, { user: user, posts: posts });
+          media = result;
+          callback(null, { user: user, media: media });
         });
       });
     });
   }
 
-  describe('Post - like', function() {
+  describe('Media - like:', function() {
     var Hawk = {};
     var Richard = {};
     var Paco = {};
-    var HawkPosts = [];
-    var RichardPosts = [];
-    var PacoPosts = [];
+    var HawkMedia = [];
+    var RichardMedia = [];
+    var PacoMedia = [];
 
     before(function(done) {
       var loader = new Loader(app, __dirname + '/fixtures');
@@ -62,26 +62,26 @@ describe('Posts - integration', function() {
         if (err) { throw new Error(err); }
         async.parallel({
           loadHawk: function(callback) {
-            loadUserAndPosts({ email: 'hawk.lin@toppano.in', password: 'verpix' }, function(err, result) {
+            loadUserAndMedia({ email: 'hawk.lin@toppano.in', password: 'verpix' }, function(err, result) {
               if (err) { return callback(err); }
               Hawk = result.user;
-              HawkPosts = result.posts;
+              HawkMedia = result.media;
               callback();
             });
           },
           loadRichard: function(callback) {
-            loadUserAndPosts({ email: 'richard.chou@toppano.in', password: 'verpix' }, function(err, result) {
+            loadUserAndMedia({ email: 'richard.chou@toppano.in', password: 'verpix' }, function(err, result) {
               if (err) { return callback(err); }
               Richard = result.user;
-              RichardPosts = result.posts;
+              RichardMedia = result.media;
               callback();
             });
           },
           loadPaco: function(callback) {
-            loadUserAndPosts({ email: 'paco@toppano.in', password: 'verpix' }, function(err, result) {
+            loadUserAndMedia({ email: 'paco@toppano.in', password: 'verpix' }, function(err, result) {
               if (err) { return callback(err); }
               Paco = result.user;
-              PacoPosts = result.posts;
+              PacoMedia = result.media;
               callback();
             });
           }
@@ -96,20 +96,20 @@ describe('Posts - integration', function() {
       });
     });
 
-    it('like a post and the count should increase 1', function(done) {
+    it('like a media and the count should increase 1', function(done) {
       var user = Richard;
-      var post = HawkPosts[0];
+      var media = HawkMedia[0];
       var currentCount;
-      json('get', endpoint+'/'+post.sid)
+      json('get', endpoint+'/'+media.sid)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         assert(typeof res.body.result.likes === 'object');
         currentCount = res.body.result.likes.count;
-        json('post', endpoint+'/'+post.sid+'/like?access_token='+user.accessToken.id)
+        json('post', endpoint+'/'+media.sid+'/like?access_token='+user.accessToken.id)
         .send({userId: user.sid})
         .expect(200, function(err, res) {
           if (err) { return done(err); }
-          json('get', endpoint+'/'+post.sid)
+          json('get', endpoint+'/'+media.sid)
           .expect(200, function(err, res) {
             if (err) { return done(err); }
             res.body.result.likes.should.have.property('count', currentCount + 1);
@@ -119,25 +119,25 @@ describe('Posts - integration', function() {
       });
     });
 
-    it('like a post by different users', function(done) {
+    it('like a media by different users', function(done) {
       var user1 = Richard;
       var user2 = Paco;
-      var post = HawkPosts[1];
+      var media = HawkMedia[1];
       var currentCount;
-      json('get', endpoint+'/'+post.sid)
+      json('get', endpoint+'/'+media.sid)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         assert(typeof res.body.result.likes === 'object');
         currentCount = res.body.result.likes.count;
-        json('post', endpoint+'/'+post.sid+'/like?access_token='+user1.accessToken.id)
+        json('post', endpoint+'/'+media.sid+'/like?access_token='+user1.accessToken.id)
         .send({userId: user1.sid})
         .expect(200, function(err, res) {
           if (err) { return done(err); }
-          json('post', endpoint+'/'+post.sid+'/like?access_token='+user2.accessToken.id)
+          json('post', endpoint+'/'+media.sid+'/like?access_token='+user2.accessToken.id)
           .send({userId: user2.sid})
           .expect(200, function(err, res) {
             if (err) { return done(err); }
-            json('get', endpoint+'/'+post.sid)
+            json('get', endpoint+'/'+media.sid)
             .expect(200, function(err, res) {
               if (err) { return done(err); }
               res.body.result.likes.count.should.equal(currentCount + 2);
@@ -148,20 +148,20 @@ describe('Posts - integration', function() {
       });
     });
 
-    it('retrun the liked user list of a given post', function(done) {
+    it('retrun the liked user list of a given media', function(done) {
       var user1 = Richard;
       var user2 = Paco;
-      var postOwner = Hawk;
-      var post = HawkPosts[2];
-      json('post', endpoint+'/'+post.sid+'/like?access_token='+user1.accessToken.id)
+      var mediaOwner = Hawk;
+      var media = HawkMedia[2];
+      json('post', endpoint+'/'+media.sid+'/like?access_token='+user1.accessToken.id)
       .send({userId: user1.sid})
       .expect(200, function(err, res) {
         if (err) { return done(err); }
-        json('post', endpoint+'/'+post.sid+'/like?access_token='+user2.accessToken.id)
+        json('post', endpoint+'/'+media.sid+'/like?access_token='+user2.accessToken.id)
         .send({userId: user2.sid})
         .expect(200, function(err, res) {
           if (err) { return done(err); }
-          json('get', endpoint+'/'+post.sid+'/likes?access_token='+postOwner.accessToken.id)
+          json('get', endpoint+'/'+media.sid+'/likes?access_token='+mediaOwner.accessToken.id)
           .expect(200, function(err, res) {
             if (err) { return done(err); }
             res.body.result.should.containDeep([
@@ -182,22 +182,22 @@ describe('Posts - integration', function() {
 
     it('ignore duplicated likes', function(done) {
       var user = Richard;
-      var post = HawkPosts[3];
+      var media = HawkMedia[3];
       var currentCount;
-      json('get', endpoint+'/'+post.sid)
+      json('get', endpoint+'/'+media.sid)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         assert(typeof res.body.result.likes === 'object');
         currentCount = res.body.result.likes.count;
-        json('post', endpoint+'/'+post.sid+'/like?access_token='+user.accessToken.id)
+        json('post', endpoint+'/'+media.sid+'/like?access_token='+user.accessToken.id)
         .send({userId: user.sid})
         .expect(200, function(err, res) {
           if (err) { return done(err); }
-          json('post', endpoint+'/'+post.sid+'/like?access_token='+user.accessToken.id)
+          json('post', endpoint+'/'+media.sid+'/like?access_token='+user.accessToken.id)
           .send({userId: user.sid})
           .expect(200, function(err, res) {
             if (err) { return done(err); }
-            json('get', endpoint+'/'+post.sid)
+            json('get', endpoint+'/'+media.sid)
             .expect(200, function(err, res) {
               if (err) { return done(err); }
               res.body.result.likes.count.should.equal(currentCount + 1);
@@ -208,24 +208,24 @@ describe('Posts - integration', function() {
       });
     });
 
-    it('unlike a post and the count should decrease 1', function(done) {
+    it('unlike a media and the count should decrease 1', function(done) {
       var user = Richard;
-      var post = HawkPosts[0];
+      var media = HawkMedia[0];
       var currentCount;
-      json('post', endpoint+'/'+post.sid+'/like?access_token='+user.accessToken.id)
+      json('post', endpoint+'/'+media.sid+'/like?access_token='+user.accessToken.id)
       .send({userId: user.sid})
       .expect(200, function(err, res) {
         if (err) { return done(err); }
-        json('get', endpoint+'/'+post.sid)
+        json('get', endpoint+'/'+media.sid)
         .expect(200, function(err, res) {
           if (err) { return done(err); }
           assert(typeof res.body.result.likes === 'object');
           currentCount = res.body.result.likes.count;
-          json('post', endpoint+'/'+post.sid+'/unlike?access_token='+user.accessToken.id)
+          json('post', endpoint+'/'+media.sid+'/unlike?access_token='+user.accessToken.id)
           .send({userId: user.sid})
           .expect(200, function(err, res) {
             if (err) { return done(err); }
-            json('get', endpoint+'/'+post.sid)
+            json('get', endpoint+'/'+media.sid)
             .expect(200, function(err, res) {
               if (err) { return done(err); }
               res.body.result.likes.count.should.equal(currentCount - 1);
@@ -236,33 +236,33 @@ describe('Posts - integration', function() {
       });
     });
 
-    it('unlike a post by different users', function(done) {
-      // We first like a post twice by using different user accounts, then unlike the post twice
+    it('unlike a media by different users', function(done) {
+      // We first like a media twice by using different user accounts, then unlike the media twice
       // by using different accounts.
       var user1 = Richard;
       var user2 = Paco;
-      var post = HawkPosts[0];
+      var media = HawkMedia[0];
       var currentCount;
-      json('post', endpoint+'/'+post.sid+'/like?access_token='+user1.accessToken.id)
+      json('post', endpoint+'/'+media.sid+'/like?access_token='+user1.accessToken.id)
       .send({userId: user1.sid})
       .expect(200, function(err, res) {
-        json('post', endpoint+'/'+post.sid+'/like?access_token='+user2.accessToken.id)
+        json('post', endpoint+'/'+media.sid+'/like?access_token='+user2.accessToken.id)
         .send({userId: user2.sid})
         .expect(200, function(err, res) {
-          json('get', endpoint+'/'+post.sid)
+          json('get', endpoint+'/'+media.sid)
           .expect(200, function(err, res) {
             if (err) { return done(err); }
             assert(typeof res.body.result.likes === 'object');
             currentCount = res.body.result.likes.count;
-            json('post', endpoint+'/'+post.sid+'/unlike?access_token='+user1.accessToken.id)
+            json('post', endpoint+'/'+media.sid+'/unlike?access_token='+user1.accessToken.id)
             .send({userId: user1.sid})
             .expect(200, function(err, res) {
               if (err) { return done(err); }
-              json('post', endpoint+'/'+post.sid+'/unlike?access_token='+user2.accessToken.id)
+              json('post', endpoint+'/'+media.sid+'/unlike?access_token='+user2.accessToken.id)
               .send({userId: user2.sid})
               .expect(200, function(err, res) {
                 if (err) { return done(err); }
-                json('get', endpoint+'/'+post.sid)
+                json('get', endpoint+'/'+media.sid)
                 .expect(200, function(err, res) {
                   if (err) { return done(err); }
                   res.body.result.likes.count.should.equal(currentCount - 2);
@@ -277,26 +277,26 @@ describe('Posts - integration', function() {
 
     it('ignore double unlike', function(done) {
       var user = Richard;
-      var post = HawkPosts[0];
+      var media = HawkMedia[0];
       var currentCount;
-      json('post', endpoint+'/'+post.sid+'/like?access_token='+user.accessToken.id)
+      json('post', endpoint+'/'+media.sid+'/like?access_token='+user.accessToken.id)
       .send({userId: user.sid})
       .expect(200, function(err, res) {
         if (err) { return done(err); }
-        json('get', endpoint+'/'+post.sid)
+        json('get', endpoint+'/'+media.sid)
         .expect(200, function(err, res) {
           if (err) { return done(err); }
           assert(typeof res.body.result.likes === 'object');
           currentCount = res.body.result.likes.count;
-          json('post', endpoint+'/'+post.sid+'/unlike?access_token='+user.accessToken.id)
+          json('post', endpoint+'/'+media.sid+'/unlike?access_token='+user.accessToken.id)
           .send({userId: user.sid})
           .expect(200, function(err, res) {
             if (err) { return done(err); }
-            json('post', endpoint+'/'+post.sid+'/unlike?access_token='+user.accessToken.id)
+            json('post', endpoint+'/'+media.sid+'/unlike?access_token='+user.accessToken.id)
             .send({userId: user.sid})
             .expect(200, function(err, res) {
               if (err) { return done(err); }
-              json('get', endpoint+'/'+post.sid)
+              json('get', endpoint+'/'+media.sid)
               .expect(200, function(err, res) {
                 if (err) { return done(err); }
                 res.body.result.likes.count.should.equal(currentCount - 1);
