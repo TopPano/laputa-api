@@ -21,7 +21,7 @@ module.exports = function(Media) {
   //      'findById' method by registering the same path '/:id') has unexpected behavior. Another way
   //      to override is to disable the orignial one and then define our own.
   //      One of the reason I do not override the 'findById' method directly is that there are other APIs or
-  //      methods will still call it. Also, all I want is to override the REST API (ie., GET /medias/:id).
+  //      methods will still call it. Also, all I want is to override the REST API (ie., GET /media/:id).
   //      see mamartins' comments in 'https://github.com/strongloop/loopback/issues/443' for more information.
   Media.disableRemoteMethod('findById', true);
 
@@ -363,19 +363,19 @@ module.exports = function(Media) {
       //      wildcard (so stupid...) so we have to enumerate the objects of the media that need to be deleted.
       //
       //      see https://forums.aws.amazon.com/thread.jspa?threadID=85996
-      switch (media.mediaType) {
+      switch (media.type) {
         case MEDIA_PANO_PHOTO:
           if (media.thumbnail && media.thumbnail.srcUrl) {
             list.push(media.thumbnail.srcUrl);
           }
-          if (media.media) {
-            if (media.media.srcUrl) list.push(media.media.srcUrl);
-            if (media.media.srcTiledImages) {
-              list = list.concat(media.media.srcTiledImages.map(function(image) { return image.srcUrl; }));
+          if (media.content) {
+            if (media.content.srcUrl) list.push(media.content.srcUrl);
+            if (media.content.srcTiledImages) {
+              list = list.concat(media.content.srcTiledImages.map(function(image) { return image.srcUrl; }));
             }
-            if (media.media.srcMobileUrl) list.push(media.media.srcMobileUrl);
-            if (media.media.srcMobileTiledImages !== undefined) {
-              list = list.concat(media.media.srcMobileTiledImages.map(function(image) { return image.srcUrl; }));
+            if (media.content.srcMobileUrl) list.push(media.content.srcMobileUrl);
+            if (media.content.srcMobileTiledImages !== undefined) {
+              list = list.concat(media.content.srcMobileTiledImages.map(function(image) { return image.srcUrl; }));
             }
           }
           break;
@@ -383,13 +383,13 @@ module.exports = function(Media) {
           if (media.thumbnail && media.thumbnail.srcUrl) {
             list.push(media.thumbnail.srcUrl);
           }
-          if (media.media) {
-            if (media.media.srcUrl) list.push(media.media.srcUrl);
-            if (media.media.srcHighImages) {
-              list = list.concat(media.media.srcHighImages.map(function(image) { return image.srcUrl; }));
+          if (media.content) {
+            if (media.content.srcUrl) list.push(media.content.srcUrl);
+            if (media.content.srcHighImages) {
+              list = list.concat(media.content.srcHighImages.map(function(image) { return image.srcUrl; }));
             }
-            if (media.media.srcLowImages) {
-              list = list.concat(media.media.srcLowImages.map(function(image) { return image.srcUrl; }));
+            if (media.content.srcLowImages) {
+              list = list.concat(media.content.srcLowImages.map(function(image) { return image.srcUrl; }));
             }
           }
           break;

@@ -34,8 +34,8 @@
         var Media = this.app.models.media;
         var users = Loader.normalize('users', JSON.parse(fs.readFileSync(this.fixturePath + 'user.json', 'utf8')));
         var userIdentities = Loader.normalize('userIdentities', JSON.parse(fs.readFileSync(this.fixturePath + 'userIdentity.json', 'utf8')), { idAttribute: 'userId' });
-        var medias = Loader.normalize('medias', JSON.parse(fs.readFileSync(this.fixturePath + 'media.json', 'utf8')));
-        if (!users || !medias || !userIdentities) {
+        var media = Loader.normalize('mediaList', JSON.parse(fs.readFileSync(this.fixturePath + 'media.json', 'utf8')));
+        if (!users || !media || !userIdentities) {
           throw new Error('Invalid fixture data');
         }
 
@@ -55,11 +55,11 @@
                   callback();
                 }
               },
-              createMedias: function(callback) {
-                async.eachSeries(medias.result.medias, function(mediaId, callback) {
-                  if (medias.entities.medias[mediaId].ownerId === userId) {
-                    medias.entities.medias[mediaId].ownerId = newUser.id;
-                    Media.create(medias.entities.medias[mediaId], function(err) {
+              createMediaList: function(callback) {
+                async.eachSeries(media.result.mediaList, function(mediaId, callback) {
+                  if (media.entities.mediaList[mediaId].ownerId === userId) {
+                    media.entities.mediaList[mediaId].ownerId = newUser.id;
+                    Media.create(media.entities.mediaList[mediaId], function(err) {
                       if (err) { return callback(err); }
                       callback();
                     });

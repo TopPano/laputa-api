@@ -22,13 +22,13 @@ function json(verb, url, contentType) {
 
 describe('REST API endpoint /media:', function() {
 
-    function loadUserAndMedias(cred, callback) {
+    function loadUserAndMedia(cred, callback) {
         assert(cred.email);
         assert(cred.password);
         var User = app.models.user;
         var Media = app.models.media;
         var user = {};
-        var medias = [];
+        var mediaList = [];
         User.find({ where: { email: cred.email } }, function(err, result) {
             if (err) { return callback(err); }
             assert(result.length !== 0);
@@ -40,8 +40,8 @@ describe('REST API endpoint /media:', function() {
                 user.accessToken = accessToken;
                 Media.find({ where: { ownerId: user.sid } }, function(err, result) {
                     if (err) { return callback(err); }
-                    medias = result;
-                    callback(null, { user: user, medias: medias });
+                    mediaList = result;
+                    callback(null, { user: user, mediaList: mediaList });
                 });
             });
         });
@@ -49,9 +49,9 @@ describe('REST API endpoint /media:', function() {
 
     describe('Media - CRUD:', function() {
         var Hawk = {};
-        var HawkMedias = [];
+        var HawkMediaList = [];
         var Richard = {};
-        var RichardMedias = [];
+        var RichardMediaList = [];
 
         before(function(done) {
             var loader = new Loader(app, __dirname + '/fixtures');
@@ -59,24 +59,24 @@ describe('REST API endpoint /media:', function() {
                 if (err) { throw new Error(err); }
                 async.parallel({
                     loadHawk: function(callback) {
-                        loadUserAndMedias({ email: 'hawk.lin@toppano.in', password: 'verpix' }, function(err, result) {
+                        loadUserAndMedia({ email: 'hawk.lin@toppano.in', password: 'verpix' }, function(err, result) {
                             if (err) { return callback(err); }
                             Hawk = result.user;
-                            HawkMedias = result.medias;
+                            HawkMediaList = result.mediaList;
                             callback();
                         });
                     },
                     loadRichard: function(callback) {
-                        loadUserAndMedias({ email: 'richard.chou@toppano.in', password: 'verpix' }, function(err, result) {
+                        loadUserAndMedia({ email: 'richard.chou@toppano.in', password: 'verpix' }, function(err, result) {
                             if (err) { return callback(err); }
                             Richard = result.user;
-                            RichardMedias = result.medias;
+                            RichardMediaList = result.mediaList;
                             callback();
                         });
                     }
                 }, function(err) {
                     var Like = app.models.like;
-                    Like.create({ mediaId: HawkMedias[0].sid, userId: Hawk.sid }, function(err) {
+                    Like.create({ mediaId: HawkMediaList[0].sid, userId: Hawk.sid }, function(err) {
                         if (err) { return done(err); }
                         done();
                     });
@@ -250,7 +250,7 @@ describe('REST API endpoint /media:', function() {
 
         it('return a media by id', function(done) {
             var user = Hawk;
-            var media = HawkMedias[0];
+            var media = HawkMediaList[0];
             json('get', endpoint+'/'+media.sid)
                 .expect(200, function(err, res) {
                     if (err) { return done(err); }
@@ -272,7 +272,7 @@ describe('REST API endpoint /media:', function() {
 
         it('return a media by id (2)', function(done) {
             var user = Richard;
-            var media = RichardMedias[0];
+            var media = RichardMediaList[0];
             json('get', endpoint+'/'+media.sid)
                 .expect(200, function(err, res) {
                     if (err) { return done(err); }
@@ -294,7 +294,7 @@ describe('REST API endpoint /media:', function() {
 
         it('return a media by id (with access token)', function(done) {
             var user = Hawk;
-            var media = HawkMedias[0];
+            var media = HawkMediaList[0];
             json('get', endpoint+'/'+media.sid+'?access_token='+user.accessToken.id)
                 .expect(200, function(err, res) {
                     if (err) { return done(err); }
@@ -316,7 +316,7 @@ describe('REST API endpoint /media:', function() {
 
         it('return a media by id (with access token) (2)', function(done) {
             var user = Richard;
-            var media = HawkMedias[0];
+            var media = HawkMediaList[0];
             var mediaOwner = Hawk;
             json('get', endpoint+'/'+media.sid+'?access_token='+user.accessToken.id)
                 .expect(200, function(err, res) {
@@ -339,7 +339,7 @@ describe('REST API endpoint /media:', function() {
 
         it('update media caption', function(done) {
             var user = Hawk;
-            var media = HawkMedias[0];
+            var media = HawkMediaList[0];
             var newCaption = 'It just a museum.';
             json('put', endpoint+'/'+media.sid+'?access_token='+user.accessToken.id)
                 .send({
@@ -357,7 +357,7 @@ describe('REST API endpoint /media:', function() {
 
         it('delete a media', function(done) {
             var user = Hawk;
-            var media = HawkMedias[0];
+            var media = HawkMediaList[0];
             json('delete', endpoint+'/'+media.sid+'?access_token='+user.accessToken.id)
                 .expect(200, function(err, res) {
                     done(err);
@@ -366,7 +366,7 @@ describe('REST API endpoint /media:', function() {
 
         it('return 401 when delete a media by using a token that does not have the authority', function(done) {
             var user = Richard;
-            var media = HawkMedias[1];
+            var media = HawkMediaList[1];
             json('delete', endpoint+'/'+media.sid+'?access_token='+user.accessToken.id)
                 .expect(401, function(err, res) {
                     done(err);
@@ -377,7 +377,7 @@ describe('REST API endpoint /media:', function() {
 
     describe('Post - like', function() {
         var user = {};
-        var medias = [];
+        var mediaList = [];
 
         before(function(done) {
             var loader = new Loader(app, __dirname + '/fixtures');
@@ -396,7 +396,7 @@ describe('REST API endpoint /media:', function() {
                         user.accessToken = accessToken;
                         Media.find({ where: { ownerId: user.sid } }, function(err, result) {
                             if (err) { return done(err); }
-                            medias = result;
+                            mediaList = result;
                             done();
                         });
                     });
@@ -405,7 +405,7 @@ describe('REST API endpoint /media:', function() {
         });
 
         it('like a media', function(done) {
-            var media = medias[0];
+            var media = mediaList[0];
             json('post', endpoint+'/'+media.sid+'/like?access_token='+user.accessToken.id)
                 .send({userId: user.sid})
                 .expect(200, function(err, res) {
@@ -415,7 +415,7 @@ describe('REST API endpoint /media:', function() {
         });
 
         it('return 400 if request body does not contain userId when like a media', function(done) {
-            var media = medias[0];
+            var media = mediaList[0];
             json('post', endpoint+'/'+media.sid+'/like?access_token='+user.accessToken.id)
                 .expect(400, function(err, res) {
                     res.body.error.should.have.property('message', 'missing property: user ID');
@@ -433,7 +433,7 @@ describe('REST API endpoint /media:', function() {
         });
 
         it('unlike a media', function(done) {
-            var media = medias[0];
+            var media = mediaList[0];
             json('post', endpoint+'/'+media.sid+'/unlike?access_token='+user.accessToken.id)
                 .send({userId: user.sid})
                 .expect(200, function(err, res) {
@@ -443,7 +443,7 @@ describe('REST API endpoint /media:', function() {
         });
 
         it('return 400 if request body does not contain userId when unlike a media', function(done) {
-            var media = medias[0];
+            var media = mediaList[0];
             json('post', endpoint+'/'+media.sid+'/unlike?access_token='+user.accessToken.id)
                 .expect(400, function(err, res) {
                     res.body.error.should.have.property('message', 'missing property: user ID');
