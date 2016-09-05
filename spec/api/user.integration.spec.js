@@ -10,7 +10,7 @@ var async = require('async');
 var apiVersion = require('../../package.json').version.split('.').shift();
 var endpointRoot = '/api' + (apiVersion > 0 ? '/v' + apiVersion : '');
 var endpoint = endpointRoot + '/users';
-var User, Post, Follow, Like;
+var User, Media, Follow, Like;
 
 function json(verb, url) {
   return request(app)[verb](url)
@@ -19,15 +19,15 @@ function json(verb, url) {
     .expect('Content-Type', /json/);
 }
 
-describe('Users - integration', function() {
+describe('Users - integration:', function() {
 
-  function loadUserAndPosts(cred, callback) {
+  function loadUserAndMedia(cred, callback) {
     assert(cred.email);
     assert(cred.password);
     var User = app.models.user;
-    var Post = app.models.post;
+    var Media = app.models.media;
     var user = {};
-    var posts = [];
+    var media = [];
     User.find({ where: { email: cred.email } }, function(err, result) {
       if (err) { return callback(err); }
       assert(result.length !== 0);
@@ -37,10 +37,10 @@ describe('Users - integration', function() {
         assert(accessToken.userId);
         assert(accessToken.id);
         user.accessToken = accessToken;
-        Post.find({ where: { ownerId: user.sid } }, function(err, result) {
+        Media.find({ where: { ownerId: user.sid } }, function(err, result) {
           if (err) { return callback(err); }
-          posts = result;
-          callback(null, { user: user, posts: posts });
+          media = result;
+          callback(null, { user: user, media: media });
         });
       });
     });
@@ -64,20 +64,20 @@ describe('Users - integration', function() {
 
   before(function() {
     User = app.models.user;
-    Post = app.models.post;
+    Media = app.models.media;
     Follow = app.models.follow;
     Like = app.models.like;
   });
 
-  describe('User querying', function() {
+  describe('User querying:', function() {
     var Richard = {};
     var Hawk = {};
     var Paco = {};
     var Eric = {};
-    var RichardPosts = [];
-    var HawkPosts = [];
-    var PacoPosts = [];
-    var EricPosts = [];
+    var RichardMedia = [];
+    var HawkMedia = [];
+    var PacoMedia = [];
+    var EricMedia = [];
 
     before(function(done) {
       var loader = new Loader(app, __dirname + '/fixtures');
@@ -85,34 +85,34 @@ describe('Users - integration', function() {
         if (err) { throw new Error(err); }
         async.parallel({
           loadRichard: function(callback) {
-            loadUserAndPosts({ email: 'richard.chou@toppano.in', password: 'verpix' }, function(err, result) {
+            loadUserAndMedia({ email: 'richard.chou@toppano.in', password: 'verpix' }, function(err, result) {
               if (err) { return callback(err); }
               Richard = result.user;
-              RichardPosts = result.posts;
+              RichardMedia = result.media;
               callback();
             });
           },
           loadHawk: function(callback) {
-            loadUserAndPosts({ email: 'hawk.lin@toppano.in', password: 'verpix' }, function(err, result) {
+            loadUserAndMedia({ email: 'hawk.lin@toppano.in', password: 'verpix' }, function(err, result) {
               if (err) { return callback(err); }
               Hawk = result.user;
-              HawkPosts = result.posts;
+              HawkMedia = result.media;
               callback();
             });
           },
           loadPaco: function(callback) {
-            loadUserAndPosts({ email: 'paco@toppano.in', password: 'verpix' }, function(err, result) {
+            loadUserAndMedia({ email: 'paco@toppano.in', password: 'verpix' }, function(err, result) {
               if (err) { return callback(err); }
               Paco = result.user;
-              PacoPosts = result.posts;
+              PacoMedia = result.media;
               callback();
             });
           },
           loadEric: function(callback) {
-            loadUserAndPosts({ email: 'sunright0414@gmail.com', password: 'verpix' }, function(err, result) {
+            loadUserAndMedia({ email: 'sunright0414@gmail.com', password: 'verpix' }, function(err, result) {
               if (err) { return callback(err); }
               Eric = result.user;
-              EricPosts = result.posts;
+              EricMedia = result.media;
               callback();
             });
           }
@@ -120,10 +120,10 @@ describe('Users - integration', function() {
           if (err) { return done(err); }
           async.parallel({
             // Richard
-            // - like Hawk's post 7
+            // - like Hawk's media 7
             // - follow Hawk, Paco, and Eric
-            RichardLikesHawkPosts7: function(callback) {
-              Like.create({ postId: HawkPosts[7].sid, userId: Richard.sid }, function(err) {
+            RichardLikesHawkMedia7: function(callback) {
+              Like.create({ mediaId: HawkMedia[7].sid, userId: Richard.sid }, function(err) {
                 if (err) { return callback(err); }
                 callback();
               });
@@ -148,10 +148,10 @@ describe('Users - integration', function() {
             },
 
             // Paco
-            // - like Hawk's post 7
+            // - like Hawk's media 7
             // - follow Hawk
-            PacoLikesHawkPosts7: function(callback) {
-              Like.create({ postId: HawkPosts[7].sid, userId: Paco.sid }, function(err) {
+            PacoLikesHawkMedia7: function(callback) {
+              Like.create({ mediaId: HawkMedia[7].sid, userId: Paco.sid }, function(err) {
                 if (err) { return callback(err); }
                 callback();
               });
@@ -185,35 +185,35 @@ describe('Users - integration', function() {
       });
     });
 
-    it('query posts from following users (with default limit)', function(done) {
+    it('query media from following users (with default limit)', function(done) {
       var me = Paco;
-      var totalPostCount = HawkPosts.length;
-      assert(totalPostCount === 8);
+      var totalMediaCount = HawkMedia.length;
+      assert(totalMediaCount === 8);
       json('post', endpoint+'/'+me.sid+'/query?access_token='+me.accessToken.id)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         assert(res.body.result);
         res.body.result.should.have.property('page');
         res.body.result.page.should.have.property('hasNextPage', false);
-        res.body.result.page.should.have.property('count', totalPostCount);
+        res.body.result.page.should.have.property('count', totalMediaCount);
 
         res.body.result.should.have.property('feed');
-        res.body.result.feed.should.be.instanceof(Array).with.lengthOf(totalPostCount);
+        res.body.result.feed.should.be.instanceof(Array).with.lengthOf(totalMediaCount);
         res.body.result.feed[0].likes.should.have.properties({ count: 2, isLiked: true });
         res.body.result.feed[1].likes.should.have.properties({ count: 0, isLiked: false });
         done();
       });
     });
 
-    it('query posts from following users (with default limit) (2)', function(done) {
+    it('query media from following users (with default limit) (2)', function(done) {
       var me = Richard;
-      var totalPostCount = HawkPosts.length + PacoPosts.length + EricPosts.length;
-      assert(totalPostCount > 12);
+      var totalMediaCount = HawkMedia.length + PacoMedia.length + EricMedia.length;
+      assert(totalMediaCount > 12);
       json('post', endpoint+'/'+me.sid+'/query?access_token='+me.accessToken.id)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         assert(res.body.result);
-        var totalPosts = HawkPosts.length + PacoPosts.length;
+        var totalMedia = HawkMedia.length + PacoMedia.length;
         res.body.result.should.have.property('page');
         res.body.result.page.should.have.property('hasNextPage', true);
         res.body.result.page.should.have.property('count', 12);
@@ -224,9 +224,9 @@ describe('Users - integration', function() {
       });
     });
 
-    it('query posts from following users (with custom limit)', function(done) {
+    it('query media from following users (with custom limit)', function(done) {
       var me = Paco;
-      var queryLimit = 1; // Show one post per page
+      var queryLimit = 1; // Show one media per page
       json('post', endpoint+'/'+me.sid+'/query?access_token='+me.accessToken.id)
       .send({limit: queryLimit})
       .expect(200, function(err, res) {
@@ -243,9 +243,9 @@ describe('Users - integration', function() {
       });
     });
 
-    it('query posts from following users (with custom limit) (2)', function(done) {
+    it('query media from following users (with custom limit) (2)', function(done) {
       var me = Richard;
-      var queryLimit = 3; // Show three posts per page
+      var queryLimit = 3; // Show three media per page
       json('post', endpoint+'/'+me.sid+'/query?access_token='+me.accessToken.id)
       .send({limit: queryLimit})
       .expect(200, function(err, res) {
@@ -263,13 +263,13 @@ describe('Users - integration', function() {
 
     it('query two pages (with custom limit)', function(done) {
       var me = Eric;
-      var queryLimit = 7; // Show three posts per page
-      var totalPostCount = HawkPosts.length + PacoPosts.length;
-      assert(totalPostCount > 7 && totalPostCount < 14); // to test the situation that total posts can be
+      var queryLimit = 7; // Show three media per page
+      var totalMediaCount = HawkMedia.length + PacoMedia.length;
+      assert(totalMediaCount > 7 && totalMediaCount < 14); // to test the situation that total media can be
                                                          // covered by two pages
-      var firstPageCount = queryLimit;  // the first batch of posts, should be the same number of query limit
-                                        // if the total posts number is greater than the limit
-      var secondPageCount = totalPostCount - queryLimit; // the rest posts
+      var firstPageCount = queryLimit;  // the first batch of media, should be the same number of query limit
+                                        // if the total media number is greater than the limit
+      var secondPageCount = totalMediaCount - queryLimit; // the rest media
       async.each([Hawk, Paco], function(user, callback) {
         json('post', endpoint+'/'+me.sid+'/follow/'+user.sid+'?access_token='+me.accessToken.id)
         .expect(200, function(err, res) {
@@ -312,7 +312,7 @@ describe('Users - integration', function() {
 
     it('return 400 for invalid where query (unsupported query operator)', function(done) {
       var me = Richard;
-      var queryLimit = 3; // Show three posts per page
+      var queryLimit = 3; // Show three media per page
       async.each([Hawk, Paco], function(user, callback) {
         json('post', endpoint+'/'+me.sid+'/follow/'+user.sid+'?access_token='+me.accessToken.id)
         .expect(200, function(err, res) {
@@ -343,7 +343,7 @@ describe('Users - integration', function() {
 
     it('return 400 for invalid where query (invalid query operator type)', function(done) {
       var me = Richard;
-      var queryLimit = 3; // Show three posts per page
+      var queryLimit = 3; // Show three media per page
       async.each([Hawk, Paco], function(user, callback) {
         json('post', endpoint+'/'+me.sid+'/follow/'+user.sid+'?access_token='+me.accessToken.id)
         .expect(200, function(err, res) {
@@ -367,7 +367,7 @@ describe('Users - integration', function() {
 
     it('return 400 for invalid where query (unsupport query target)', function(done) {
       var me = Richard;
-      var queryLimit = 3; // Show three posts per page
+      var queryLimit = 3; // Show three media per page
       async.each([Hawk, Paco], function(user, callback) {
         json('post', endpoint+'/'+me.sid+'/follow/'+user.sid+'?access_token='+me.accessToken.id)
         .expect(200, function(err, res) {
@@ -390,7 +390,7 @@ describe('Users - integration', function() {
     });
   });
 
-  describe('User following', function() {
+  describe('User following:', function() {
     var Richard = {};
     var Hawk = {};
     var Paco = {};
@@ -402,28 +402,28 @@ describe('Users - integration', function() {
         if (err) { throw new Error(err); }
         async.parallel({
           loadRichard: function(callback) {
-            loadUserAndPosts({ email: 'richard.chou@toppano.in', password: 'verpix' }, function(err, result) {
+            loadUserAndMedia({ email: 'richard.chou@toppano.in', password: 'verpix' }, function(err, result) {
               if (err) { return callback(err); }
               Richard = result.user;
               callback();
             });
           },
           loadHawk: function(callback) {
-            loadUserAndPosts({ email: 'hawk.lin@toppano.in', password: 'verpix' }, function(err, result) {
+            loadUserAndMedia({ email: 'hawk.lin@toppano.in', password: 'verpix' }, function(err, result) {
               if (err) { return callback(err); }
               Hawk = result.user;
               callback();
             });
           },
           loadPaco: function(callback) {
-            loadUserAndPosts({ email: 'paco@toppano.in', password: 'verpix' }, function(err, result) {
+            loadUserAndMedia({ email: 'paco@toppano.in', password: 'verpix' }, function(err, result) {
               if (err) { return callback(err); }
               Paco = result.user;
               callback();
             });
           },
           loadEric: function(callback) {
-            loadUserAndPosts({ email: 'sunright0414@gmail.com', password: 'verpix' }, function(err, result) {
+            loadUserAndMedia({ email: 'sunright0414@gmail.com', password: 'verpix' }, function(err, result) {
               if (err) { return callback(err); }
               Eric = result.user;
               callback();
@@ -494,14 +494,14 @@ describe('Users - integration', function() {
     });
   });
 
-  describe('User profile and posts', function() {
+  describe('User profile and media:', function() {
     var Richard = {};
     var Hawk = {};
     var Paco = {};
     var PacoFB = {};
-    var RichardPosts = [];
-    var HawkPosts = [];
-    var PacoPosts = [];
+    var RichardMedia = [];
+    var HawkMedia = [];
+    var PacoMedia = [];
 
     before(function(done) {
       var loader = new Loader(app, __dirname + '/fixtures');
@@ -509,31 +509,31 @@ describe('Users - integration', function() {
         if (err) { throw new Error(err); }
         async.parallel({
           loadRichard: function(callback) {
-            loadUserAndPosts({ email: 'richard.chou@toppano.in', password: 'verpix' }, function(err, result) {
+            loadUserAndMedia({ email: 'richard.chou@toppano.in', password: 'verpix' }, function(err, result) {
               if (err) { return callback(err); }
               Richard = result.user;
-              RichardPosts = result.posts;
+              RichardMedia = result.media;
               callback();
             });
           },
           loadHawk: function(callback) {
-            loadUserAndPosts({ email: 'hawk.lin@toppano.in', password: 'verpix' }, function(err, result) {
+            loadUserAndMedia({ email: 'hawk.lin@toppano.in', password: 'verpix' }, function(err, result) {
               if (err) { return callback(err); }
               Hawk = result.user;
-              HawkPosts = result.posts;
+              HawkMedia = result.media;
               callback();
             });
           },
           loadPaco: function(callback) {
-            loadUserAndPosts({ email: 'paco@toppano.in', password: 'verpix' }, function(err, result) {
+            loadUserAndMedia({ email: 'paco@toppano.in', password: 'verpix' }, function(err, result) {
               if (err) { return callback(err); }
               Paco = result.user;
-              PacoPosts = result.posts;
+              PacoMedia = result.media;
               callback();
             });
           },
           loadPacoFB: function(callback) {
-            loadUserAndPosts({ email: 'youhavebigbird@hotmail.com', password: 'verpix' }, function(err, result) {
+            loadUserAndMedia({ email: 'youhavebigbird@hotmail.com', password: 'verpix' }, function(err, result) {
               if (err) { return callback(err); }
               PacoFB = result.user.toJSON();
               var UserIdentity = app.models.userIdentity;
@@ -571,32 +571,32 @@ describe('Users - integration', function() {
                 callback();
               });
             },
-            HawkLikesRichardPosts5: function(callback) {
-              Like.create({ postId: RichardPosts[5].sid, userId: Hawk.sid }, function(err) {
+            HawkLikesRichardMedia5: function(callback) {
+              Like.create({ mediaId: RichardMedia[5].sid, userId: Hawk.sid }, function(err) {
                 if (err) { return callback(err); }
                 callback();
               });
             },
-            PacoLikesRichardPosts5: function(callback) {
-              Like.create({ postId: RichardPosts[5].sid, userId: Paco.sid }, function(err) {
+            PacoLikesRichardMedia5: function(callback) {
+              Like.create({ mediaId: RichardMedia[5].sid, userId: Paco.sid }, function(err) {
                 if (err) { return callback(err); }
                 callback();
               });
             },
-            RichardLikesRichardPosts4: function(callback) {
-              Like.create({ postId: RichardPosts[4].sid, userId: Richard.sid }, function(err) {
+            RichardLikesRichardMedia4: function(callback) {
+              Like.create({ mediaId: RichardMedia[4].sid, userId: Richard.sid }, function(err) {
                 if (err) { return callback(err); }
                 callback();
               });
             },
-            RichardLikesHawkPosts7: function(callback) {
-              Like.create({ postId: HawkPosts[7].sid, userId: Richard.sid }, function(err) {
+            RichardLikesHawkMedia7: function(callback) {
+              Like.create({ mediaId: HawkMedia[7].sid, userId: Richard.sid }, function(err) {
                 if (err) { return callback(err); }
                 callback();
               });
             },
-            PacoLikesHawkPosts6: function(callback) {
-              Like.create({ postId: HawkPosts[6].sid, userId: Paco.sid }, function(err) {
+            PacoLikesHawkMedia6: function(callback) {
+              Like.create({ mediaId: HawkMedia[6].sid, userId: Paco.sid }, function(err) {
                 if (err) { return callback(err); }
                 callback();
               });
@@ -621,7 +621,7 @@ describe('Users - integration', function() {
           autobiography: null,
           followers: 1,
           following: 2,
-          posts: 6,
+          media: 6,
           isFollowing: false
         });
         done();
@@ -640,7 +640,7 @@ describe('Users - integration', function() {
           autobiography: null,
           followers: 0,
           following: 0,
-          posts: 0,
+          media: 0,
           isFollowing: false
         });
         done();
@@ -659,7 +659,7 @@ describe('Users - integration', function() {
           autobiography: null,
           followers: 2,
           following: 1,
-          posts: 8,
+          media: 8,
           isFollowing: true
         });
         done();
@@ -684,25 +684,25 @@ describe('Users - integration', function() {
       });
     });
 
-    it('query user own posts', function(done) {
+    it('query user own media', function(done) {
       var me = Richard;
-      var myPosts = RichardPosts;
+      var myMedia = RichardMedia;
       json('post', endpoint+'/'+me.sid+'/profile/query?access_token='+me.accessToken.id)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         res.body.result.should.have.property('page');
         res.body.result.page.should.have.property('hasNextPage', false);
-        res.body.result.page.should.have.property('count', myPosts.length);
+        res.body.result.page.should.have.property('count', myMedia.length);
 
         res.body.result.should.have.property('feed');
-        res.body.result.feed.should.be.instanceof(Array).with.lengthOf(myPosts.length);
+        res.body.result.feed.should.be.instanceof(Array).with.lengthOf(myMedia.length);
         res.body.result.feed[0].likes.should.have.properties({ count: 2, isLiked: false });
         res.body.result.feed[1].likes.should.have.properties({ count: 1, isLiked: true });
         done();
       });
     });
 
-    it('return 401 if query user posts without authorization', function(done) {
+    it('return 401 if query user media without authorization', function(done) {
       var me = Richard;
       json('post', endpoint+'/'+me.sid+'/profile/query')
       .expect(401, function(err, res) {
@@ -711,7 +711,7 @@ describe('Users - integration', function() {
       });
     });
 
-    it('return 401 if query user posts without authorization (2)', function(done) {
+    it('return 401 if query user media without authorization (2)', function(done) {
       var me = Richard;
       json('post', endpoint+'/'+me.sid+'/profile/query?access_token=INVALID_ACCESS_TOKEN')
       .expect(401, function(err, res) {
@@ -720,17 +720,17 @@ describe('Users - integration', function() {
       });
     });
 
-    it('query posts from other user', function(done) {
+    it('query media from other user', function(done) {
       var me = Richard;
       json('post', endpoint+'/'+Hawk.sid+'/profile/query?access_token='+me.accessToken.id)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         res.body.result.should.have.property('page');
         res.body.result.page.should.have.property('hasNextPage', false);
-        res.body.result.page.should.have.property('count', HawkPosts.length);
+        res.body.result.page.should.have.property('count', HawkMedia.length);
 
         res.body.result.should.have.property('feed');
-        res.body.result.feed.should.be.instanceof(Array).with.lengthOf(HawkPosts.length);
+        res.body.result.feed.should.be.instanceof(Array).with.lengthOf(HawkMedia.length);
         res.body.result.feed[0].likes.should.have.properties({ count: 1, isLiked: true });
         res.body.result.feed[1].likes.should.have.properties({ count: 1, isLiked: false });
         done();

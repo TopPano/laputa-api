@@ -11,7 +11,7 @@ var fs = require('fs');
 var apiVersion = require('../../package.json').version.split('.').shift();
 var endpointRoot = '/api' + (apiVersion > 0 ? '/v' + apiVersion :  '');
 var endpoint = endpointRoot + '/users';
-var User, Post;
+var User, Media;
 
 function json(verb, url) {
   return request(app)[verb](url)
@@ -22,13 +22,13 @@ function json(verb, url) {
 
 describe('REST API endpoint /users', function() {
 
-  function loadUserAndPosts(cred, callback) {
+  function loadUserAndMedia(cred, callback) {
     assert(cred.email);
     assert(cred.password);
     var User = app.models.user;
-    var Post = app.models.post;
+    var Media = app.models.media;
     var user = {};
-    var posts = [];
+    var media = [];
     User.find({ where: { email: cred.email } }, function(err, result) {
       if (err) { return callback(err); }
       assert(result.length !== 0);
@@ -38,10 +38,10 @@ describe('REST API endpoint /users', function() {
         assert(accessToken.userId);
         assert(accessToken.id);
         user.accessToken = accessToken;
-        Post.find({ where: { ownerId: user.sid } }, function(err, result) {
+        Media.find({ where: { ownerId: user.sid } }, function(err, result) {
           if (err) { return callback(err); }
-          posts = result;
-          callback(null, { user: user, posts: posts });
+          media = result;
+          callback(null, { user: user, media: media });
         });
       });
     });
@@ -65,7 +65,7 @@ describe('REST API endpoint /users', function() {
 
   before(function() {
     User = app.models.user;
-    Post = app.models.post;
+    Media = app.models.media;
   });
 
   describe('User creating', function() {
@@ -155,7 +155,7 @@ describe('REST API endpoint /users', function() {
   describe('User accessing', function() {
     var Hawk = {};
     var Eric = {};
-    var HawkPosts = [];
+    var HawkMedia = [];
 
     before(function(done) {
       var loader = new Loader(app, __dirname + '/fixtures');
@@ -163,15 +163,15 @@ describe('REST API endpoint /users', function() {
         if (err) { throw new Error(err); }
         async.parallel({
           loadHawk: function(callback) {
-            loadUserAndPosts({ email: 'hawk.lin@toppano.in', password: 'verpix' }, function(err, result) {
+            loadUserAndMedia({ email: 'hawk.lin@toppano.in', password: 'verpix' }, function(err, result) {
               if (err) { return callback(err); }
               Hawk = result.user;
-              HawkPosts = result.posts;
+              HawkMedia = result.media;
               callback();
             });
           },
           loadEric: function(callback) {
-            loadUserAndPosts({ email: 'sunright0414@gmail.com', password: 'verpix' }, function(err, result) {
+            loadUserAndMedia({ email: 'sunright0414@gmail.com', password: 'verpix' }, function(err, result) {
               if (err) { return callback(err); }
               Eric = result.user;
               callback();
@@ -213,13 +213,13 @@ describe('REST API endpoint /users', function() {
       });
     });
 
-    it('return a list of posts', function(done) {
+    it('return a list of media', function(done) {
       var user = Hawk;
-      var posts = HawkPosts;
-      json('get', endpoint+'/me/posts?access_token='+user.accessToken.id)
+      var media = HawkMedia;
+      json('get', endpoint+'/me/media?access_token='+user.accessToken.id)
       .expect(200, function(err, res) {
         if (err) { return done(err); }
-        res.body.should.be.instanceof(Array).with.lengthOf(posts.length);
+        res.body.should.be.instanceof(Array).with.lengthOf(media.length);
         res.body.should.containDeep([{ownerId: user.sid}]);
         done();
       });

@@ -1,6 +1,6 @@
 {
-  "name": "post",
-  "plural": "posts",
+  "name": "media",
+  "plural": "media",
   "base": "PersistedModel",
   "idInjection": false,
   "options": {
@@ -26,11 +26,11 @@
       "srcUrl": "string",
       "downloadUrl": "string"
     },
-    "mediaType": {
+    "type": {
       "type": "string",
       "required": true
     },
-    "media": "object",
+    "content": "object",
     "caption": "string",
     "created": "date",
     "modified": "date"
@@ -51,7 +51,7 @@
       "__comments": "decorating the name in order to overriding default remote method for path '/:id/likes'",
       "type": "hasMany",
       "model": "like",
-      "foreignKey": "postId"
+      "foreignKey": "mediaId"
     }
   },
   "acls": [

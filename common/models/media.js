@@ -15,24 +15,23 @@ var gearClient = GearClient.factory({ servers: process.env.G_SERVERS ? JSON.pars
 var MEDIA_PANO_PHOTO = 'panoPhoto';
 var MEDIA_LIVE_PHOTO = 'livePhoto';
 
-module.exports = function(Post) {
-
+module.exports = function(Media) {
   // disable default remote methods
-  // XXX: The way I override the default remtoe method (define a 'findPostById' method to replace default
+  // XXX: The way I override the default remtoe method (define a 'findMediaById' method to replace default
   //      'findById' method by registering the same path '/:id') has unexpected behavior. Another way
   //      to override is to disable the orignial one and then define our own.
   //      One of the reason I do not override the 'findById' method directly is that there are other APIs or
-  //      methods will still call it. Also, all I want is to override the REST API (ie., GET /posts/:id).
+  //      methods will still call it. Also, all I want is to override the REST API (ie., GET /media/:id).
   //      see mamartins' comments in 'https://github.com/strongloop/loopback/issues/443' for more information.
-  Post.disableRemoteMethod('findById', true);
+  Media.disableRemoteMethod('findById', true);
 
-  Post.validatesInclusionOf('mediaType', { in: [ MEDIA_PANO_PHOTO, MEDIA_LIVE_PHOTO ] });
+  Media.validatesInclusionOf('type', { in: [ MEDIA_PANO_PHOTO, MEDIA_LIVE_PHOTO ] });
 
   function getTimeNow() {
     return moment(new Date()).format('YYYY-MM-DD');
   }
 
-  function createPostForeground(mediaType, req, callback) {
+  function createMediaForeground(mediaType, req, callback) {
     try {
       if (!req.body || !req.files) {
         return callback(new createError.BadRequest('missing properties'));
@@ -128,7 +127,7 @@ module.exports = function(Post) {
 
       var now = getTimeNow();
 
-      var Location = Post.app.models.location;
+      var Location = Media.app.models.location;
       new P(function(resolve) {
         if (locationProviderId) {
           resolve(new P(function(resolve, reject) {
@@ -196,27 +195,27 @@ module.exports = function(Post) {
               srcImgArrBoundary: imgArrBoundary
             };
           }
-          var postObj = {
-            mediaType: mediaType,
+          var mediaObj = {
+            type: mediaType,
             dimension: dimension,
             caption: caption,
             ownerId: req.accessToken.userId,
             locationId: location ? location.id : null
           };
-          Post.create(postObj, function(err, post) {
+          Media.create(mediaObj, function(err, media) {
             if (err) { reject(err); }
-            else if (!post) {
+            else if (!media) {
               logger.error('Failed to create location');
               reject(new createError.InternalServerError());
             }
-            else { resolve(post); }
+            else { resolve(media); }
           });
         });
       })
-      .then(function(post) {
+      .then(function(media) {
         var params = {
           mediaType: mediaType,
-          postId: post.id,
+          mediaId: media.id,
           image: {
             width: imgWidth,
             height: imgHeight,
@@ -231,9 +230,9 @@ module.exports = function(Post) {
         if (mediaType === MEDIA_LIVE_PHOTO) {
           params.image.arrayBoundary = imgArrBoundary;
         }
-        createPostBackground(params);
+        createMediaBackground(params);
         callback(null, {
-          postId: post.id
+          mediaId: media.id
         });
       })
       .catch(function(err) {
@@ -249,14 +248,14 @@ module.exports = function(Post) {
     }
   }
 
-  function createPostBackground(params) {
+  function createMediaBackground(params) {
     var jobName;
-    if      (params.mediaType === MEDIA_PANO_PHOTO) { jobName = 'postProcessingPanoPhoto'; }
-    else if (params.mediaType === MEDIA_LIVE_PHOTO) { jobName = 'postProcessingLivePhoto'; }
+    if      (params.mediaType === MEDIA_PANO_PHOTO) { jobName = 'mediaProcessingPanoPhoto'; }
+    else if (params.mediaType === MEDIA_LIVE_PHOTO) { jobName = 'mediaProcessingLivePhoto'; }
     gearClient.submitJob(jobName, params, function(err, result) {
       if (err) {
         logger.error(err);
-        Post.updateAll({ sid: params.postId }, {
+        Media.updateAll({ sid: params.mediaId }, {
           status: 'failed'
         }, function(err) {
           if (err) { logger.error(err); }
@@ -280,9 +279,9 @@ module.exports = function(Post) {
             srcLowImages: result.srcLowImages
           };
         } else {
-          return logger.error(new Error('Caught invalid media type response: id: ' + params.postId));
+          return logger.error(new Error('Caught invalid media type response: id: ' + params.mediaId));
         }
-        Post.updateAll({ sid: params.postId }, {
+        Media.updateAll({ sid: params.mediaId }, {
           status: 'completed',
           thumbnail: {
             srcUrl: result.thumbUrl,
@@ -297,7 +296,7 @@ module.exports = function(Post) {
             params.share.forEach(function(target) {
               var jobName = target.name;
               gearClient.submitJob(jobName, {
-                postId: params.postId,
+                mediaId: params.mediaId,
                 accessToken: target.accessToken
               }, function(err) {
                 if (err) { logger.error(err); }
@@ -309,31 +308,31 @@ module.exports = function(Post) {
     });
   }
 
-  Post.createPanoPhoto = function(req, callback) {
+  Media.createPanoPhoto = function(req, callback) {
     logger.debug('in createPanoPhoto');
-    createPostForeground(MEDIA_PANO_PHOTO, req, callback);
+    createMediaForeground(MEDIA_PANO_PHOTO, req, callback);
   };
-  Post.remoteMethod('createPanoPhoto', {
+  Media.remoteMethod('createPanoPhoto', {
     accepts: [
       { arg: 'req', type: 'object', 'http': { source: 'req' } }
     ],
-    returns: [ { arg: 'result', type: 'objct' } ],
+    returns: [ { arg: 'result', type: 'object' } ],
     http: { path: '/panophoto', verb: 'post' }
   });
 
-  Post.createLivePhoto = function(req, callback) {
+  Media.createLivePhoto = function(req, callback) {
     logger.debug('in createLivePhoto');
-    createPostForeground(MEDIA_LIVE_PHOTO, req, callback);
+    createMediaForeground(MEDIA_LIVE_PHOTO, req, callback);
   };
-  Post.remoteMethod('createLivePhoto', {
+  Media.remoteMethod('createLivePhoto', {
     accepts: [
       { arg: 'req', type: 'object', 'http': { source: 'req' } }
     ],
-    returns: [ { arg: 'result', type: 'objct' } ],
+    returns: [ { arg: 'result', type: 'object' } ],
     http: { path: '/livephoto', verb: 'post' }
   });
 
-  Post.observe('before save', function(ctx, next) {
+  Media.observe('before save', function(ctx, next) {
     if (ctx.instance && ctx.isNewInstance) {
       // on create
       idGen.next(function(err, id) {
@@ -350,47 +349,47 @@ module.exports = function(Post) {
     }
   });
 
-  Post.beforeRemote('deleteById', function(ctx, unused, next) {
-    Post.findById(ctx.req.params.id, function(err, post) {
+  Media.beforeRemote('deleteById', function(ctx, unused, next) {
+    Media.findById(ctx.req.params.id, function(err, media) {
       if (err) {
         logger.error(err);
         return next(new createError.InternalServerError());
       }
-      if (!post) {
-        return next(new createError.NotFound('post not found'));
+      if (!media) {
+        return next(new createError.NotFound('media not found'));
       }
       var list = [];
       // XXX: Currently we are using AWS S3 as our object store, since S3 does not support bulk delete using
-      //      wildcard (so stupid...) so we have to enumerate the objects of the post that need to be deleted.
+      //      wildcard (so stupid...) so we have to enumerate the objects of the media that need to be deleted.
       //
       //      see https://forums.aws.amazon.com/thread.jspa?threadID=85996
-      switch (post.mediaType) {
+      switch (media.type) {
         case MEDIA_PANO_PHOTO:
-          if (post.thumbnail && post.thumbnail.srcUrl) {
-            list.push(post.thumbnail.srcUrl);
+          if (media.thumbnail && media.thumbnail.srcUrl) {
+            list.push(media.thumbnail.srcUrl);
           }
-          if (post.media) {
-            if (post.media.srcUrl) list.push(post.media.srcUrl);
-            if (post.media.srcTiledImages) {
-              list = list.concat(post.media.srcTiledImages.map(function(image) { return image.srcUrl; }));
+          if (media.content) {
+            if (media.content.srcUrl) list.push(media.content.srcUrl);
+            if (media.content.srcTiledImages) {
+              list = list.concat(media.content.srcTiledImages.map(function(image) { return image.srcUrl; }));
             }
-            if (post.media.srcMobileUrl) list.push(post.media.srcMobileUrl);
-            if (post.media.srcMobileTiledImages !== undefined) {
-              list = list.concat(post.media.srcMobileTiledImages.map(function(image) { return image.srcUrl; }));
+            if (media.content.srcMobileUrl) list.push(media.content.srcMobileUrl);
+            if (media.content.srcMobileTiledImages !== undefined) {
+              list = list.concat(media.content.srcMobileTiledImages.map(function(image) { return image.srcUrl; }));
             }
           }
           break;
         case MEDIA_LIVE_PHOTO:
-          if (post.thumbnail && post.thumbnail.srcUrl) {
-            list.push(post.thumbnail.srcUrl);
+          if (media.thumbnail && media.thumbnail.srcUrl) {
+            list.push(media.thumbnail.srcUrl);
           }
-          if (post.media) {
-            if (post.media.srcUrl) list.push(post.media.srcUrl);
-            if (post.media.srcHighImages) {
-              list = list.concat(post.media.srcHighImages.map(function(image) { return image.srcUrl; }));
+          if (media.content) {
+            if (media.content.srcUrl) list.push(media.content.srcUrl);
+            if (media.content.srcHighImages) {
+              list = list.concat(media.content.srcHighImages.map(function(image) { return image.srcUrl; }));
             }
-            if (post.media.srcLowImages) {
-              list = list.concat(post.media.srcLowImages.map(function(image) { return image.srcUrl; }));
+            if (media.content.srcLowImages) {
+              list = list.concat(media.content.srcLowImages.map(function(image) { return image.srcUrl; }));
             }
           }
           break;
@@ -398,7 +397,7 @@ module.exports = function(Post) {
           break;
       }
       if (list.length !== 0) {
-        gearClient.submitJob('deletePostImages', { imageList: list }, function(err) {
+        gearClient.submitJob('deleteMediaImages', { imageList: list }, function(err) {
           if (err) { logger.error(err); }
         });
       }
@@ -406,9 +405,9 @@ module.exports = function(Post) {
     });
   });
 
-  Post.findPostById = function(id, req, callback) {
-    logger.debug('in findPostById');
-    Post.findById(id, {
+  Media.findMediaById = function(id, req, callback) {
+    logger.debug('in findMediaById');
+    Media.findById(id, {
       include: [
         {
           relation: 'owner',
@@ -435,43 +434,43 @@ module.exports = function(Post) {
           }
         }
       ]
-    }, function(err, post) {
+    }, function(err, media) {
       if (err) {
         logger.error(err);
         return callback(new createError.InternalServerError());
       }
-      if (!post) {
-        return callback(new createError.NotFound('post not found'));
+      if (!media) {
+        return callback(new createError.NotFound('media not found'));
       }
-      var postObj = post.toJSON();
-      postObj.likes = utils.formatLikeList(postObj['_likes_'], req.accessToken ? req.accessToken.userId : null);
-      delete postObj['_likes_'];
-      callback(null, postObj);
+      var mediaObj = media.toJSON();
+      mediaObj.likes = utils.formatLikeList(mediaObj['_likes_'], req.accessToken ? req.accessToken.userId : null);
+      delete mediaObj['_likes_'];
+      callback(null, mediaObj);
     });
   };
-  Post.remoteMethod('findPostById', {
+  Media.remoteMethod('findMediaById', {
     accepts: [
-      { arg: 'id', type: 'string', require: true },
+      { arg: 'id', type: 'string', required: true },
       { arg: 'req', type: 'object', 'http': { source: 'req' } }
     ],
     returns: [ { arg: 'result', type: 'object' } ],
     http: { path: '/:id', verb: 'get' }
   });
 
-  Post.like = function(postId, req, res, callback) {
-    Post.findById(postId, function(err, post) {
+  Media.like = function(mediaId, req, callback) {
+    Media.findById(mediaId, function(err, media) {
       if (err) {
         logger.error(err);
         return callback(err);
       }
-      if (!post) {
-        return callback(new createError.NotFound('post not found'));
+      if (!media) {
+        return callback(new createError.NotFound('media not found'));
       }
       if (!req.body.hasOwnProperty('userId')) {
         return callback(new createError.BadRequest('missing property: user ID'));
       }
       var userId = req.body.userId;
-      var Like = Post.app.models.like;
+      var Like = Media.app.models.like;
       // Check if it is a duplicate like
       // FIXME: We should use composite id here instead of checking for duplicate entry
       //        by ourselves, however, loopback's datasource juggler has an issue for
@@ -481,13 +480,13 @@ module.exports = function(Post) {
       //        Tracking issues:
       //          https://github.com/strongloop/loopback-datasource-juggler/issues/121
       //          https://github.com/strongloop/loopback-datasource-juggler/issues/478
-      Like.find({where: {postId: postId, userId: userId}}, function(err, result) {
+      Like.find({where: {mediaId: mediaId, userId: userId}}, function(err, result) {
         if (err) {
           logger.error(err);
           return callback(new createError.InternalServerError());
         }
         if (result.length === 0) {
-          Like.create({postId: postId, userId: userId}, function(err) {
+          Like.create({mediaId: mediaId, userId: userId}, function(err) {
             if (err) {
               logger.error(err);
               return callback(new createError.InternalServerError());
@@ -501,31 +500,30 @@ module.exports = function(Post) {
       });
     });
   };
-  Post.remoteMethod('like', {
+  Media.remoteMethod('like', {
     accepts: [
-      { arg: 'id', type: 'string', require: true },
-      { arg: 'req', type: 'object', 'http': {source: 'req'} },
-      { arg: 'res', type: 'object', 'http': {source: 'res'} }
+      { arg: 'id', type: 'string', required: true },
+      { arg: 'req', type: 'object', 'http': {source: 'req'} }
     ],
     returns: [ { arg: 'status', type: 'string' } ],
     http: { path: '/:id/like', verb: 'post' }
   });
 
-  Post.unlike = function(postId, req, res, callback) {
-    Post.findById(postId, function(err, post) {
+  Media.unlike = function(mediaId, req, callback) {
+    Media.findById(mediaId, function(err, media) {
       if (err) {
         logger.error(err);
         return callback(new createError.InternalServerError());
       }
-      if (!post) {
-        return callback(new createError.NotFound('post not found'));
+      if (!media) {
+        return callback(new createError.NotFound('media not found'));
       }
       if (!req.body.hasOwnProperty('userId')) {
         return callback(new createError.BadRequest('missing property: user ID'));
       }
       var userId = req.body.userId;
-      var Like = Post.app.models.like;
-      Like.destroyAll({postId: postId, userId: userId}, function(err) {
+      var Like = Media.app.models.like;
+      Like.destroyAll({mediaId: mediaId, userId: userId}, function(err) {
         if (err) {
           logger.error(err);
           return callback(new createError.InternalServerError());
@@ -534,20 +532,19 @@ module.exports = function(Post) {
       });
     });
   };
-  Post.remoteMethod('unlike', {
+  Media.remoteMethod('unlike', {
     accepts: [
       { arg: 'id', type: 'string', require: true },
-      { arg: 'req', type: 'object', 'http': {source: 'req'} },
-      { arg: 'res', type: 'object', 'http': {source: 'res'} }
+      { arg: 'req', type: 'object', 'http': {source: 'req'} }
     ],
     returns: [ { arg: 'status', type: 'string' } ],
     http: { path: '/:id/unlike', verb: 'post' }
   });
 
-  Post.getLikeList = function(postId, req, callback) {
-    var Like = Post.app.models.like;
+  Media.getLikeList = function(mediaId, req, callback) {
+    var Like = Media.app.models.like;
     Like.find({
-      where: { postId: postId },
+      where: { mediaId: mediaId },
       fields: [ 'userId', 'likeAt' ],
       include: {
         relation: 'user',
@@ -587,7 +584,7 @@ module.exports = function(Post) {
       callback(null, output);
     });
   };
-  Post.remoteMethod('getLikeList', {
+  Media.remoteMethod('getLikeList', {
     accepts: [
       { arg: 'id', type: 'string', require: true },
       { arg: 'req', type: 'object', 'http': { source: 'req' } }

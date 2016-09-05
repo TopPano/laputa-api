@@ -94,7 +94,7 @@ module.exports = function(User) {
         relation: 'following',
         scope: {
           include: {
-            relation: 'posts',
+            relation: 'media',
             scope: {
               where: {
                 status: 'completed'
@@ -138,7 +138,7 @@ module.exports = function(User) {
         if ((where.sid.hasOwnProperty('lt') && (typeof where.sid.lt === 'string')) ||
             (where.sid.hasOwnProperty('gt') && (typeof where.sid.gt === 'string')))
         {
-          // update the where clause for the 'posts' inclusion of the query
+          // update the where clause for the 'media' inclusion of the query
           query.include.scope.include.scope.where.sid = where.sid;
         } else {
           return callback(new createError.BadRequest('invalid query operator'));
@@ -169,7 +169,7 @@ module.exports = function(User) {
       followingList.forEach(function(item) {
         var obj = item.toJSON();
         if (obj.following) {
-          output.feed = output.feed.concat(obj.following.posts);
+          output.feed = output.feed.concat(obj.following.media);
         }
       });
       output.feed.sort(descending);
@@ -474,7 +474,7 @@ module.exports = function(User) {
           }
         },
         {
-          relation: 'posts',
+          relation: 'media',
           scope: {
             where: { status: 'completed' },
             fields: [ 'sid' ]
@@ -497,7 +497,7 @@ module.exports = function(User) {
         autobiography: userObj.autobiography || null,
         followers: userObj.followers.length,
         following: userObj.followings.length,
-        posts: userObj.posts.length,
+        media: userObj.media.length,
         isFollowing: Boolean(userObj.followers.find(function(follower) {
           return follower.followerId === req.accessToken.userId;
         }))
@@ -518,7 +518,6 @@ module.exports = function(User) {
     logger.debug('in profile query');
     var where = json.where || undefined;
     var limit = config.constants.query.PAGE_SIZE; // default limit
-
     if (json.limit) {
       if (typeof json.limit === 'string') {
         json.limit = parseInt(json.limit, 10);
@@ -577,8 +576,8 @@ module.exports = function(User) {
       }
     }
 
-    var Post = User.app.models.post;
-    Post.find(query, function(err, posts) {
+    var Media = User.app.models.media;
+    Media.find(query, function(err, media) {
       if (err) {
         logger.error(err);
         return callback(new createError.InternalServerError());
@@ -592,28 +591,28 @@ module.exports = function(User) {
         },
         feed: []
       };
-      if (!posts) {
+      if (!media) {
         return callback(null, output);
       }
-      posts.sort(descending);
-      if (posts.length > limit) {
+      media.sort(descending);
+      if (media.length > limit) {
         output.page.hasNextPage = true;
         output.page.count = limit;
-        output.page.start = posts[0].sid;
-        output.page.end = posts[limit - 1].sid;
-        output.feed = posts.slice(0, limit);
-      } else if (0 < posts.length && posts.length <= limit) {
+        output.page.start = media[0].sid;
+        output.page.end = media[limit - 1].sid;
+        output.feed = media.slice(0, limit);
+      } else if (0 < media.length && media.length <= limit) {
         output.page.hasNextPage = false;
-        output.page.count = posts.length;
-        output.page.start = posts[0].sid;
-        output.page.end = posts[posts.length - 1].sid;
-        output.feed = posts.slice(0, posts.length);
+        output.page.count = media.length;
+        output.page.start = media[0].sid;
+        output.page.end = media[media.length - 1].sid;
+        output.feed = media.slice(0, media.length);
       }
       for (var i = 0; i < output.feed.length; i++) {
-        var postObj = output.feed[i].toJSON();
-        postObj.likes = utils.formatLikeList(postObj['_likes_'], req.accessToken.userId);
-        delete postObj['_likes_'];
-        output.feed[i] = postObj;
+        var mediaObj = output.feed[i].toJSON();
+        mediaObj.likes = utils.formatLikeList(mediaObj['_likes_'], req.accessToken.userId);
+        delete mediaObj['_likes_'];
+        output.feed[i] = mediaObj;
       }
       callback(null, output);
     });
@@ -658,7 +657,7 @@ module.exports = function(User) {
   User.remoteMethod('changePassword', {
     accepts: [
       { arg: 'id', type: 'string', require: true },
-      { arg: 'json', type: 'object', 'http': { source: 'body' } }
+      { arg: 'body', type: 'object', 'http': { source: 'body' } }
     ],
     returns: [ { arg: 'result', type: 'string' } ],
     http: { path: '/:id/changePassword', verb: 'post' }

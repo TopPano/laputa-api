@@ -31,12 +31,11 @@
       try {
         var User = this.app.models.user;
         var UserIdentity = this.app.models.userIdentity;
-        var Post = this.app.models.post;
+        var Media = this.app.models.media;
         var users = Loader.normalize('users', JSON.parse(fs.readFileSync(this.fixturePath + 'user.json', 'utf8')));
         var userIdentities = Loader.normalize('userIdentities', JSON.parse(fs.readFileSync(this.fixturePath + 'userIdentity.json', 'utf8')), { idAttribute: 'userId' });
-        var posts = Loader.normalize('posts', JSON.parse(fs.readFileSync(this.fixturePath + 'post.json', 'utf8')));
-
-        if (!users || !posts || !userIdentities) {
+        var media = Loader.normalize('mediaList', JSON.parse(fs.readFileSync(this.fixturePath + 'media.json', 'utf8')));
+        if (!users || !media || !userIdentities) {
           throw new Error('Invalid fixture data');
         }
 
@@ -56,11 +55,11 @@
                   callback();
                 }
               },
-              createPosts: function(callback) {
-                async.eachSeries(posts.result.posts, function(postId, callback) {
-                  if (posts.entities.posts[postId].ownerId === userId) {
-                    posts.entities.posts[postId].ownerId = newUser.id;
-                    Post.create(posts.entities.posts[postId], function(err) {
+              createMediaList: function(callback) {
+                async.eachSeries(media.result.mediaList, function(mediaId, callback) {
+                  if (media.entities.mediaList[mediaId].ownerId === userId) {
+                    media.entities.mediaList[mediaId].ownerId = newUser.id;
+                    Media.create(media.entities.mediaList[mediaId], function(err) {
                       if (err) { return callback(err); }
                       callback();
                     });
@@ -89,13 +88,13 @@
     clean: function(callback) {
       try {
         var User = this.app.models.user;
-        var Post = this.app.models.post;
+        var Media = this.app.models.media;
         async.parallel({
           cleanUser: function(callback) {
             User.destroyAll(callback);
           },
-          cleanPost: function(callback) {
-            Post.destroyAll(callback);
+          cleanMedia: function(callback) {
+            Media.destroyAll(callback);
           }
         }, function(err) {
           if (err) { return callback(err); }

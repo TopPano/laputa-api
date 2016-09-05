@@ -28,5 +28,5 @@ RUN npm install
 
 EXPOSE 3000
 ENV DB_URL='mongodb://DB_HOST:DB_PORT/DB_NAME?allowExtendedOperators=true'
-ENV G_SERVERS='[{"host":"gearmand", "port":4730}]'
+#ENV G_SERVERS='[{"host":"gearmand", "port":4730}]'
 CMD npm run dev
