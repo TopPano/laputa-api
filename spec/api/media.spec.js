@@ -375,7 +375,7 @@ describe('REST API endpoint /media:', function() {
     });
 
 
-    describe('Post - like', function() {
+    describe('Media - like', function() {
         var user = {};
         var mediaList = [];
 
