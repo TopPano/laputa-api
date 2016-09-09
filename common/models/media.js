@@ -12,8 +12,16 @@ var idGen = new IdGenerator();
 var GearClient = require('../utils/gearman-client');
 var gearClient = GearClient.factory({ servers: process.env.G_SERVERS ? JSON.parse(process.env.G_SERVERS) : null });
 
+var crypto = require('crypto');
+
 var MEDIA_PANO_PHOTO = 'panoPhoto';
 var MEDIA_LIVE_PHOTO = 'livePhoto';
+
+var DEFAULT_POST_SHARDING_LENGTH = 4;
+
+function genSharding(length) {
+      return crypto.randomBytes(Math.ceil(length / 2)).toString('hex');
+}
 
 module.exports = function(Media) {
   // disable default remote methods
@@ -200,6 +208,7 @@ module.exports = function(Media) {
             dimension: dimension,
             caption: caption,
             ownerId: req.accessToken.userId,
+            tags: [],
             locationId: location ? location.id : null
           };
           Media.create(mediaObj, function(err, media) {
@@ -214,7 +223,7 @@ module.exports = function(Media) {
       })
       .then(function(media) {
         var params = {
-          mediaType: mediaType,
+          type: mediaType,
           mediaId: media.id,
           image: {
             width: imgWidth,
@@ -230,6 +239,11 @@ module.exports = function(Media) {
         if (mediaType === MEDIA_LIVE_PHOTO) {
           params.image.arrayBoundary = imgArrBoundary;
         }
+
+        //-- gen sharding key --
+        var shardingKey = genSharding(DEFAULT_POST_SHARDING_LENGTH);
+        params.shardingKey = shardingKey;
+
         createMediaBackground(params);
         callback(null, {
           mediaId: media.id
@@ -240,7 +254,7 @@ module.exports = function(Media) {
         if (err.status && err.status >= 400 && err.status < 500) {
           callback(err);
         } else {
-          callback(new createError.InternalServerErrorerror());
+          callback(new createError.InternalServerError());
         }
       });
     } catch(error) {
@@ -250,8 +264,8 @@ module.exports = function(Media) {
 
   function createMediaBackground(params) {
     var jobName;
-    if      (params.mediaType === MEDIA_PANO_PHOTO) { jobName = 'mediaProcessingPanoPhoto'; }
-    else if (params.mediaType === MEDIA_LIVE_PHOTO) { jobName = 'mediaProcessingLivePhoto'; }
+    if      (params.type === MEDIA_PANO_PHOTO) { jobName = 'mediaProcessingPanoPhoto'; }
+    else if (params.type === MEDIA_LIVE_PHOTO) { jobName = 'mediaProcessingLivePhoto'; }
     gearClient.submitJob(jobName, params, function(err, result) {
       if (err) {
         logger.error(err);
@@ -261,33 +275,29 @@ module.exports = function(Media) {
           if (err) { logger.error(err); }
         });
       } else {
-        var media;
-        if (result.mediaType === MEDIA_PANO_PHOTO) {
-          media = {
-            srcUrl: result.srcUrl,
-            srcDownloadUrl: result.srcDownloadUrl,
-            srcTiledImages: result.srcTiledImages,
-            srcMobileUrl: result.srcMobileUrl,
-            srcMobileDownloadUrl: result.srcMobileDownloadUrl,
-            srcMobileTiledImages: result.srcMobileTiledImages
+        var content;
+        if (result.type === MEDIA_PANO_PHOTO) {
+          content = {
+            shardingKey: params.shardingKey,  
+            storeUrl: 'https://verpixplus-img-production.s3.amazonaws.com/',  
+            cdnUrl: 'https://cloudfront.net/',
+            quality: result.quality,
+            project: 'equirectangular', 
           };
-        } else if (result.mediaType === MEDIA_LIVE_PHOTO) {
-          media = {
-            srcUrl: result.srcUrl,
-            srcDownloadUrl: result.srcDownloadUrl,
-            srcHighImages: result.srcHighImages,
-            srcLowImages: result.srcLowImages
+        } else if (result.type === MEDIA_LIVE_PHOTO) {
+          content = {
+            shardingKey: params.shardingKey,
+            storeUrl: 'https://verpixplus-img-production.s3.amazonaws.com/',
+            cdnUrl: 'https://cloudfront.net/',
+            quality: result.quality,
+            count: result.count
           };
         } else {
           return logger.error(new Error('Caught invalid media type response: id: ' + params.mediaId));
         }
         Media.updateAll({ sid: params.mediaId }, {
           status: 'completed',
-          thumbnail: {
-            srcUrl: result.thumbUrl,
-            downloadUrl: result.thumbDownloadUrl
-          },
-          media: media
+          content: content
         }, function(err) {
           if (err) { return logger.error(err); }
 
