@@ -478,7 +478,7 @@ describe('REST API endpoint /media:', function() {
 
         it('delete a media', function(done) {
             var user = Hawk;
-            var media = HawkMediaList[0]; console.log(media.sid);
+            var media = HawkMediaList[0]; 
             json('delete', endpoint+'/'+media.sid+'?access_token='+user.accessToken.id)
                 .expect(200, function(err, res) {
                     done(err);
