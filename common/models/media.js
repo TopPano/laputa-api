@@ -35,10 +35,6 @@ module.exports = function(Media) {
 
   Media.validatesInclusionOf('type', { in: [ MEDIA_PANO_PHOTO, MEDIA_LIVE_PHOTO ] });
 
-  function getTimeNow() {
-    return moment(new Date()).format('YYYY-MM-DD');
-  }
-
   function createMediaForeground(mediaType, req, callback) {
     try {
       if (!req.body || !req.files) {
@@ -51,7 +47,7 @@ module.exports = function(Media) {
       var imgWidth = req.body.width;
       var imgHeight = req.body.height;
       var imgOrientation = req.body.orientation ? req.body.orientation.trim().toLowerCase() : null;
-      var imgDirection = req.body.recordDirection ? req.body.recordDirection.trim().toLowerCase() : null;
+      var imgAction = req.body.action ? req.body.action.trim().toLowerCase() : null;
       var imgArrBoundary = req.body.imgArrBoundary;
 
       if (!imgBuf || !imgType || !imgWidth || !imgHeight) {
@@ -63,7 +59,7 @@ module.exports = function(Media) {
         ));
       }
       if (mediaType === MEDIA_LIVE_PHOTO) {
-        if (!imgOrientation || !imgDirection || !imgArrBoundary) {
+        if (!imgOrientation || !imgAction || !imgArrBoundary) {
           return callback(new createError.BadRequest(
             'missing properties'
           ));
@@ -73,9 +69,9 @@ module.exports = function(Media) {
             'invalid orientation value'
           ));
         }
-        if (![ 'horizontal', 'vertical' ].find(function(value) { return value === imgDirection; })) {
+        if (![ 'horizontal', 'vertical' ].find(function(value) { return value === imgAction; })) {
           return callback(new createError.BadRequest(
-            'invalid direction value'
+            'invalid action value'
           ));
         }
       }
@@ -132,8 +128,6 @@ module.exports = function(Media) {
           accessToken: req.get('Share-Twitter')
         });
       }
-
-      var now = getTimeNow();
 
       var Location = Media.app.models.location;
       new P(function(resolve) {
@@ -199,8 +193,7 @@ module.exports = function(Media) {
               width: imgWidth,
               height: imgHeight,
               orientation: imgOrientation,
-              direction: imgDirection,
-              srcImgArrBoundary: imgArrBoundary
+              action: imgAction
             };
           }
           var mediaObj = {
@@ -237,7 +230,7 @@ module.exports = function(Media) {
           share: share
         };
         if (mediaType === MEDIA_LIVE_PHOTO) {
-          params.image.arrayBoundary = imgArrBoundary;
+          params.image.imgArrBoundary = imgArrBoundary;
         }
 
         //-- gen sharding key --
@@ -290,7 +283,8 @@ module.exports = function(Media) {
             storeUrl: 'https://verpixplus-img-production.s3.amazonaws.com/',
             cdnUrl: 'https://cloudfront.net/',
             quality: result.quality,
-            count: result.count
+            count: result.count,
+            imgArrBoundary: params.image.imgArrBoundary
           };
         } else {
           return logger.error(new Error('Caught invalid media type response: id: ' + params.mediaId));
@@ -368,46 +362,8 @@ module.exports = function(Media) {
       if (!media) {
         return next(new createError.NotFound('media not found'));
       }
-      var list = [];
-      // XXX: Currently we are using AWS S3 as our object store, since S3 does not support bulk delete using
-      //      wildcard (so stupid...) so we have to enumerate the objects of the media that need to be deleted.
-      //
-      //      see https://forums.aws.amazon.com/thread.jspa?threadID=85996
-      switch (media.type) {
-        case MEDIA_PANO_PHOTO:
-          if (media.thumbnail && media.thumbnail.srcUrl) {
-            list.push(media.thumbnail.srcUrl);
-          }
-          if (media.content) {
-            if (media.content.srcUrl) list.push(media.content.srcUrl);
-            if (media.content.srcTiledImages) {
-              list = list.concat(media.content.srcTiledImages.map(function(image) { return image.srcUrl; }));
-            }
-            if (media.content.srcMobileUrl) list.push(media.content.srcMobileUrl);
-            if (media.content.srcMobileTiledImages !== undefined) {
-              list = list.concat(media.content.srcMobileTiledImages.map(function(image) { return image.srcUrl; }));
-            }
-          }
-          break;
-        case MEDIA_LIVE_PHOTO:
-          if (media.thumbnail && media.thumbnail.srcUrl) {
-            list.push(media.thumbnail.srcUrl);
-          }
-          if (media.content) {
-            if (media.content.srcUrl) list.push(media.content.srcUrl);
-            if (media.content.srcHighImages) {
-              list = list.concat(media.content.srcHighImages.map(function(image) { return image.srcUrl; }));
-            }
-            if (media.content.srcLowImages) {
-              list = list.concat(media.content.srcLowImages.map(function(image) { return image.srcUrl; }));
-            }
-          }
-          break;
-        default:
-          break;
-      }
-      if (list.length !== 0) {
-        gearClient.submitJob('deleteMediaImages', { imageList: list }, function(err) {
+      if (media) {
+        gearClient.submitJob('deleteMediaImages', { media: media }, function(err) {
           if (err) { logger.error(err); }
         });
       }
@@ -453,7 +409,10 @@ module.exports = function(Media) {
         return callback(new createError.NotFound('media not found'));
       }
       var mediaObj = media.toJSON();
-      mediaObj.likes = utils.formatLikeList(mediaObj['_likes_'], req.accessToken ? req.accessToken.userId : null);
+      delete mediaObj.content.imgArrBoundary;
+      if (req.query.withLike === 'true') {
+        mediaObj.likes = utils.formatLikeList(mediaObj['_likes_'], req.accessToken ? req.accessToken.userId : null);
+      }
       delete mediaObj['_likes_'];
       callback(null, mediaObj);
     });
