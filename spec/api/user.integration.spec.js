@@ -619,7 +619,7 @@ describe('Users - integration:', function() {
           username: me.username,
           profilePhotoUrl: me.profilePhotoUrl,
           autobiography: null,
-          media: 11,
+          media: 9,
         });
           
         res.body.profile.should.not.have.properties('followers');
@@ -641,7 +641,7 @@ describe('Users - integration:', function() {
           autobiography: null,
           followers: 1,
           following: 2,
-          media: 11,
+          media: 9,
           isFollowing: false
         });
         done();
@@ -698,7 +698,7 @@ describe('Users - integration:', function() {
           username: Hawk.username,
           profilePhotoUrl: Hawk.profilePhotoUrl,
           autobiography: null,
-          media: 10,
+          media: 11,
         });
 
         res.body.profile.should.not.have.properties('followers');
@@ -721,7 +721,7 @@ describe('Users - integration:', function() {
           autobiography: null,
           followers: 2,
           following: 1,
-          media: 10,
+          media: 11,
           isFollowing: true
         });
         done();
