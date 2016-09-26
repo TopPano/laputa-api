@@ -88,10 +88,27 @@
     clean: function(callback) {
       try {
         var User = this.app.models.user;
+        var UserIdentity = this.app.models.userIdentity;
+        var Follow = this.app.models.follow;
+        var Like = this.app.models.like;
+        var Location = this.app.models.location;
         var Media = this.app.models.media;
+
         async.parallel({
           cleanUser: function(callback) {
             User.destroyAll(callback);
+          },
+          cleanUserIdentity: function(callback) {
+            UserIdentity.destroyAll(callback);
+          },
+          cleanFollow: function(callback) {
+            Follow.destroyAll(callback);
+          },
+          cleanLike: function(callback) {
+            Like.destroyAll(callback);
+          },
+          cleanLocation: function(callback) {
+            Location.destroyAll(callback);
           },
           cleanMedia: function(callback) {
             Media.destroyAll(callback);
