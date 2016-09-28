@@ -344,11 +344,17 @@ module.exports = function(Media) {
       gearClient.submitJob(jobName, mediaObj, function(err, result) {
         if (err) {
           logger.error(err);
+          mediaObj.content.videoStatus = 'failed';
+          Media.updateAll({ sid: mediaObj.sid }, {
+            content: mediaObj.content
+          }, function(err) {
+             if (err) { logger.error(err); }
+          });
         } 
         else {  
           if (result.status === 'success' && result.videoType){
             mediaObj.content.videoStatus = 'completed';  
-            mediaObj.content.videoType = 'mp4';  
+            mediaObj.content.videoType = result.videoType;
             Media.updateAll({ sid: mediaObj.sid }, {
               content: mediaObj.content
             }, function(err) {
@@ -372,26 +378,28 @@ module.exports = function(Media) {
       if (!( media && media.status==='completed' )) {
         return callback(new createError.NotFound('media not found'));
       }
+
       var mediaObj = media.toJSON();
+      var result;
       // check if the livephoto has converted and stored as a video
-      if (mediaObj.content.videoType){
-        return callback(null, 'existed');
+      if (mediaObj.content.videoStatus){
+        result = { videoStatus: mediaObj.content.videoStatus };  
+        if (mediaObj.content.videoType){
+          result.videoType = mediaObj.content.videoType;
+        }
+        return callback(null, result);
       }
       else{
-        // check the type is livephoto or panophoto  
-        if (mediaObj.type === MEDIA_LIVE_PHOTO) 
-        { 
-          // if no, push converting job to verpix-async
-          createVideoBackground(mediaObj);
-          mediaObj.content.videoStatus = 'pending';
-          Media.updateAll({ sid: id }, {
-            content: mediaObj.content
-          }, function(err) {
-            if (err) { return logger.error(err); }
-          });
-
-          return callback(null, 'pending');
-        }
+        // if no, push converting job to verpix-async
+        createVideoBackground(mediaObj);
+        mediaObj.content.videoStatus = 'pending';
+        Media.updateAll({ sid: id }, {
+          content: mediaObj.content
+        }, function(err) {
+          if (err) { return logger.error(err); }
+        });
+        result = { videoStatus: 'pending' };
+        return callback(null, result);
       }
     });
   };
@@ -401,8 +409,8 @@ module.exports = function(Media) {
       { arg: 'id', type: 'string', required: true },
       { arg: 'req', type: 'object', 'http': { source: 'req' } }
     ],
-    returns: [ { arg: 'status', type: 'string' } ],
-    http: { path: '/:id/shareFB', verb: 'post' }
+    returns: [ { arg: 'result', type: 'object' } ],
+    http: { path: '/:id/createVideo', verb: 'post' }
   });
 
 
