@@ -503,8 +503,8 @@ module.exports = function(User) {
         output.followers = userObj.followers.length;
         output.following = userObj.followings.length;  
         output.isFollowing = Boolean(userObj.followers.find(function(follower) {
-                      return follower.followerId === req.accessToken.userId;
-                    }));
+          return follower.followerId === req.accessToken.userId;
+        }));
       }
         
       callback(null, output);
