@@ -95,8 +95,8 @@ describe('REST API endpoint /media:', function() {
                 .field('locationName', 'Home Sweet Home')
                 .field('locationLat', '25.05511')
                 .field('locationLng', '121.61171')
-                .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
-                .attach('image', __dirname+'/fixtures/1.jpg.zip')
+                .attach('thumbnail', __dirname+'/fixtures/panophoto/panophoto_thumb.jpg')
+                .attach('image', __dirname+'/fixtures/panophoto/panophoto.jpg.zip')
                 .expect(200, function(err, res) {
                     if (err) { return done(err); }
                     res.body.result.should.have.property('mediaId');
@@ -119,8 +119,8 @@ describe('REST API endpoint /media:', function() {
                 .field('locationZip', '10483')
                 .field('locationLat', '25.05511')
                 .field('locationLng', '121.61171')
-                .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
-                .attach('image', __dirname+'/fixtures/1.jpg.zip')
+                .attach('thumbnail', __dirname+'/fixtures/panophoto/panophoto_thumb.jpg')
+                .attach('image', __dirname+'/fixtures/panophoto/panophoto.jpg.zip')
                 .expect(200, function(err, res) {
                     if (err) { return done(err); }
                     res.body.result.should.have.property('mediaId');
@@ -136,8 +136,8 @@ describe('REST API endpoint /media:', function() {
                 .field('height', '4096')
                 .field('thumbLat', '30')
                 .field('thumbLng', '90')
-                .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
-                .attach('image', __dirname+'/fixtures/1.jpg.zip')
+                .attach('thumbnail', __dirname+'/fixtures/panophoto/panophoto_thumb.jpg')
+                .attach('image', __dirname+'/fixtures/panophoto/panophoto.jpg.zip')
                 .expect(200, function(err, res) {
                     if (err) { return done(err); }
                     res.body.result.should.have.property('mediaId');
@@ -153,12 +153,12 @@ describe('REST API endpoint /media:', function() {
                 .field('height', '480')
                 .field('imgArrBoundary', 'papayabird')
                 .field('orientation', 'portrait')
-                .field('recordDirection', 'horizontal')
+                .field('action', 'horizontal')
                 .field('locationName', 'Home Sweet Home')
                 .field('locationLat', '25.05511')
                 .field('locationLng', '121.61171')
-                .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
-                .attach('image', __dirname+'/fixtures/livephoto.zip')
+                .attach('thumbnail', __dirname+'/fixtures/livephoto/livephoto_thumb.jpg')
+                .attach('image', __dirname+'/fixtures/livephoto/livephoto.zip')
                 .expect(200, function(err, res) {
                     if (err) { return done(err); }
                     res.body.result.should.have.property('mediaId');
@@ -177,8 +177,8 @@ describe('REST API endpoint /media:', function() {
                 .field('locationName', 'Home Sweet Home')
                 .field('locationLat', '25.05511')
                 .field('locationLng', '121.61171')
-                .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
-                .attach('image', __dirname+'/fixtures/livephoto.zip')
+                .attach('thumbnail', __dirname+'/fixtures/livephoto/livephoto_thumb.jpg')
+                .attach('image', __dirname+'/fixtures/livephoto/livephoto.zip')
                 .expect(400, function(err, res) {
                     if (err) { return done(err); }
                     res.body.error.message.should.equal('missing properties');
@@ -197,8 +197,8 @@ describe('REST API endpoint /media:', function() {
                 .field('locationName', 'Home Sweet Home')
                 .field('locationLat', '25.05511')
                 .field('locationLng', '121.61171')
-                .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
-                .attach('image', __dirname+'/fixtures/livephoto.zip')
+                .attach('thumbnail', __dirname+'/fixtures/livephoto/livephoto_thumb.jpg')
+                .attach('image', __dirname+'/fixtures/livephoto/livephoto.zip')
                 .expect(400, function(err, res) {
                     if (err) { return done(err); }
                     res.body.error.message.should.equal('missing properties');
@@ -214,15 +214,15 @@ describe('REST API endpoint /media:', function() {
                 .field('height', '480')
                 .field('imgArrBoundary', 'papayabird')
                 .field('orientation', 'portrait')
-                .field('recordDirection', 'updown')
+                .field('action', 'updown')
                 .field('locationName', 'Home Sweet Home')
                 .field('locationLat', '25.05511')
                 .field('locationLng', '121.61171')
-                .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
-                .attach('image', __dirname+'/fixtures/livephoto.zip')
+                .attach('thumbnail', __dirname+'/fixtures/livephoto/livephoto_thumb.jpg')
+                .attach('image', __dirname+'/fixtures/livephoto/livephoto.zip')
                 .expect(400, function(err, res) {
                     if (err) { return done(err); }
-                    res.body.error.message.should.equal('invalid direction value');
+                    res.body.error.message.should.equal('invalid action value');
                     done();
                 });
         });
@@ -234,12 +234,12 @@ describe('REST API endpoint /media:', function() {
                 .field('width', '640')
                 .field('height', '480')
                 .field('orientation', 'invalidOrientationValue')
-                .field('recordDirection', 'horizontal')
+                .field('action', 'horizontal')
                 .field('locationName', 'Home Sweet Home')
                 .field('locationLat', '25.05511')
                 .field('locationLng', '121.61171')
-                .attach('thumbnail', __dirname+'/fixtures/1_thumb.jpg')
-                .attach('image', __dirname+'/fixtures/livephoto.zip')
+                .attach('thumbnail', __dirname+'/fixtures/livephoto/livephoto_thumb.jpg')
+                .attach('image', __dirname+'/fixtures/livephoto/livephoto.zip')
                 .expect(400, function(err, res) {
                     if (err) { return done(err); }
                     console.log(res.body.error.message);
@@ -254,18 +254,38 @@ describe('REST API endpoint /media:', function() {
             json('get', endpoint+'/'+media.sid)
                 .expect(200, function(err, res) {
                     if (err) { return done(err); }
-                    res.body.result.should.have.property('created');
-                    res.body.result.should.have.property('modified');
-                    res.body.result.should.have.property('type');
-                    res.body.result.should.have.property('content');
-                    res.body.result.should.have.property('caption');
-                    res.body.result.should.have.property('ownerId', user.sid);
+                    res.body.result.should.have.property('created').which.is.a.String();
+                    res.body.result.should.have.property('modified').which.is.a.String();
+                    res.body.result.should.have.property('type').which.is.a.String();
+
+                    res.body.result.should.have.property('content').which.is.a.Object();
+                    res.body.result.content.should.have.property('shardingKey').which.is.a.String();
+                    res.body.result.content.should.have.property('storeUrl').which.is.a.String();
+                    res.body.result.content.should.have.property('cdnUrl').which.is.a.String();
+                    res.body.result.content.should.have.property('quality').which.is.a.Array();
+                    if (res.body.result.type === 'livePhoto') {
+                        res.body.result.content.should.have.property('count').which.is.a.Number();
+                    //    res.body.result.content.should.have.property('imgArrBoundary').which.is.a.String();
+                    }
+
+                    res.body.result.should.have.property('caption').which.is.a.String();
+                    res.body.result.should.have.property('ownerId', user.sid).which.is.a.String();
                     res.body.result.should.have.property('owner');
-                    res.body.result.should.have.property('likes');
-                    res.body.result.likes.should.have.properties({
-                        count: 1,
-                        isLiked: false
-                    });
+
+                    res.body.result.should.have.property('dimension').which.is.a.Object();
+                    res.body.result.dimension.should.have.property('width').which.is.a.Number();
+                    res.body.result.dimension.should.have.property('height').which.is.a.Number();
+                    if (res.body.result.type === 'livephoto') {
+                        res.body.result.dimension.should.have.property('orientation').which.is.a.String();
+                        res.body.result.dimension.should.have.property('action').which.is.a.String();
+                    }
+
+                    res.body.result.should.not.have.property('likes');
+                    // res.body.result.should.have.property('likes');
+                    // res.body.result.likes.should.have.properties({
+                    //     count: 1,
+                    //     isLiked: false
+                    // });
                     done();
                 });
         });
@@ -276,18 +296,38 @@ describe('REST API endpoint /media:', function() {
             json('get', endpoint+'/'+media.sid)
                 .expect(200, function(err, res) {
                     if (err) { return done(err); }
-                    res.body.result.should.have.property('created');
-                    res.body.result.should.have.property('modified');
-                    res.body.result.should.have.property('type');
-                    res.body.result.should.have.property('content');
-                    res.body.result.should.have.property('caption');
-                    res.body.result.should.have.property('ownerId', user.sid);
+                    res.body.result.should.have.property('created').which.is.a.String();
+                    res.body.result.should.have.property('modified').which.is.a.String();
+                    res.body.result.should.have.property('type').which.is.a.String();
+
+                    res.body.result.should.have.property('content').which.is.a.Object();
+                    res.body.result.content.should.have.property('shardingKey').which.is.a.String();
+                    res.body.result.content.should.have.property('storeUrl').which.is.a.String();
+                    res.body.result.content.should.have.property('cdnUrl').which.is.a.String();
+                    res.body.result.content.should.have.property('quality').which.is.a.Array();
+                    if (res.body.result.type === 'livePhoto') {
+                        res.body.result.content.should.have.property('count').which.is.a.Number();
+                    //    res.body.result.content.should.have.property('imgArrBoundary').which.is.a.String();
+                    }
+
+                    res.body.result.should.have.property('caption').which.is.a.String();
+                    res.body.result.should.have.property('ownerId', user.sid).which.is.a.String();
                     res.body.result.should.have.property('owner');
-                    res.body.result.should.have.property('likes');
-                    res.body.result.likes.should.have.properties({
-                        count: 0,
-                        isLiked: false
-                    });
+
+                    res.body.result.should.have.property('dimension').which.is.a.Object();
+                    res.body.result.dimension.should.have.property('width').which.is.a.Number();
+                    res.body.result.dimension.should.have.property('height').which.is.a.Number();
+                    if (res.body.result.type === 'livephoto') {
+                        res.body.result.dimension.should.have.property('orientation').which.is.a.String();
+                        res.body.result.dimension.should.have.property('action').which.is.a.String();
+                    }
+
+                    res.body.result.should.not.have.property('likes');
+                    // res.body.result.should.have.property('likes');
+                    //res.body.result.likes.should.have.properties({
+                    //    count: 0,
+                    //    isLiked: false
+                    // });
                     done();
                 });
         });
@@ -298,18 +338,38 @@ describe('REST API endpoint /media:', function() {
             json('get', endpoint+'/'+media.sid+'?access_token='+user.accessToken.id)
                 .expect(200, function(err, res) {
                     if (err) { return done(err); }
-                    res.body.result.should.have.property('created');
-                    res.body.result.should.have.property('modified');
-                    res.body.result.should.have.property('type');
-                    res.body.result.should.have.property('content');
-                    res.body.result.should.have.property('caption');
-                    res.body.result.should.have.property('ownerId', user.sid);
+                    res.body.result.should.have.property('created').which.is.a.String();
+                    res.body.result.should.have.property('modified').which.is.a.String();
+                    res.body.result.should.have.property('type').which.is.a.String();
+
+                    res.body.result.should.have.property('content').which.is.a.Object();
+                    res.body.result.content.should.have.property('shardingKey').which.is.a.String();
+                    res.body.result.content.should.have.property('storeUrl').which.is.a.String();
+                    res.body.result.content.should.have.property('cdnUrl').which.is.a.String();
+                    res.body.result.content.should.have.property('quality').which.is.a.Array();
+                    if (res.body.result.type === 'livePhoto') {
+                        res.body.result.content.should.have.property('count').which.is.a.Number();
+                    //    res.body.result.content.should.have.property('imgArrBoundary').which.is.a.String();
+                    }
+
+                    res.body.result.should.have.property('caption').which.is.a.String();
+                    res.body.result.should.have.property('ownerId', user.sid).which.is.a.String();
                     res.body.result.should.have.property('owner');
-                    res.body.result.should.have.property('likes');
-                    res.body.result.likes.should.have.properties({
-                        count: 1,
-                        isLiked: true
-                    });
+
+                    res.body.result.should.have.property('dimension').which.is.a.Object();
+                    res.body.result.dimension.should.have.property('width').which.is.a.Number();
+                    res.body.result.dimension.should.have.property('height').which.is.a.Number();
+                    if (res.body.result.type === 'livephoto') {
+                        res.body.result.dimension.should.have.property('orientation').which.is.a.String();
+                        res.body.result.dimension.should.have.property('action').which.is.a.String();
+                    }
+
+                    res.body.result.should.not.have.property('likes');
+                    // res.body.result.should.have.property('likes');
+                    // res.body.result.likes.should.have.properties({
+                    //     count: 1,
+                    //     isLiked: true
+                    // });
                     done();
                 });
         });
@@ -321,13 +381,74 @@ describe('REST API endpoint /media:', function() {
             json('get', endpoint+'/'+media.sid+'?access_token='+user.accessToken.id)
                 .expect(200, function(err, res) {
                     if (err) { return done(err); }
-                    res.body.result.should.have.property('created');
-                    res.body.result.should.have.property('modified');
-                    res.body.result.should.have.property('type');
-                    res.body.result.should.have.property('content');
-                    res.body.result.should.have.property('caption');
-                    res.body.result.should.have.property('ownerId', mediaOwner.sid);
+                    res.body.result.should.have.property('created').which.is.a.String();
+                    res.body.result.should.have.property('modified').which.is.a.String();
+                    res.body.result.should.have.property('type').which.is.a.String();
+
+                    res.body.result.should.have.property('content').which.is.a.Object();
+                    res.body.result.content.should.have.property('shardingKey').which.is.a.String();
+                    res.body.result.content.should.have.property('storeUrl').which.is.a.String();
+                    res.body.result.content.should.have.property('cdnUrl').which.is.a.String();
+                    res.body.result.content.should.have.property('quality').which.is.a.Array();
+                    if (res.body.result.type === 'livePhoto') {
+                        res.body.result.content.should.have.property('count').which.is.a.Number();
+                    //    res.body.result.content.should.have.property('imgArrBoundary').which.is.a.String();
+                    }
+
+                    res.body.result.should.have.property('caption').which.is.a.String();
+                    res.body.result.should.have.property('ownerId', mediaOwner.sid).which.is.a.String();
                     res.body.result.should.have.property('owner');
+
+                    res.body.result.should.have.property('dimension').which.is.a.Object();
+                    res.body.result.dimension.should.have.property('width').which.is.a.Number();
+                    res.body.result.dimension.should.have.property('height').which.is.a.Number();
+                    if (res.body.result.type === 'livephoto') {
+                        res.body.result.dimension.should.have.property('orientation').which.is.a.String();
+                        res.body.result.dimension.should.have.property('action').which.is.a.String();
+                    }
+
+                    res.body.result.should.not.have.property('likes');
+                    // res.body.result.should.have.property('likes');
+                    // res.body.result.likes.should.have.properties({
+                    //     count: 1,
+                    //     isLiked: false
+                    // });
+                    done();
+                });
+        });
+
+        it('return a media with like by id', function(done) {
+            var user = Hawk;
+            var media = HawkMediaList[0];
+            json('get', endpoint+'/'+media.sid+'?withLike=true')
+                .expect(200, function(err, res) {
+                    if (err) { return done(err); }
+                    res.body.result.should.have.property('created').which.is.a.String();
+                    res.body.result.should.have.property('modified').which.is.a.String();
+                    res.body.result.should.have.property('type').which.is.a.String();
+
+                    res.body.result.should.have.property('content').which.is.a.Object();
+                    res.body.result.content.should.have.property('shardingKey').which.is.a.String();
+                    res.body.result.content.should.have.property('storeUrl').which.is.a.String();
+                    res.body.result.content.should.have.property('cdnUrl').which.is.a.String();
+                    res.body.result.content.should.have.property('quality').which.is.a.Array();
+                    if (res.body.result.type === 'livePhoto') {
+                        res.body.result.content.should.have.property('count').which.is.a.Number();
+                    //    res.body.result.content.should.have.property('imgArrBoundary').which.is.a.String();
+                    }
+
+                    res.body.result.should.have.property('caption').which.is.a.String();
+                    res.body.result.should.have.property('ownerId', user.sid).which.is.a.String();
+                    res.body.result.should.have.property('owner');
+
+                    res.body.result.should.have.property('dimension').which.is.a.Object();
+                    res.body.result.dimension.should.have.property('width').which.is.a.Number();
+                    res.body.result.dimension.should.have.property('height').which.is.a.Number();
+                    if (res.body.result.type === 'livephoto') {
+                        res.body.result.dimension.should.have.property('orientation').which.is.a.String();
+                        res.body.result.dimension.should.have.property('action').which.is.a.String();
+                    }
+
                     res.body.result.should.have.property('likes');
                     res.body.result.likes.should.have.properties({
                         count: 1,
@@ -357,7 +478,7 @@ describe('REST API endpoint /media:', function() {
 
         it('delete a media', function(done) {
             var user = Hawk;
-            var media = HawkMediaList[0];
+            var media = HawkMediaList[0]; 
             json('delete', endpoint+'/'+media.sid+'?access_token='+user.accessToken.id)
                 .expect(200, function(err, res) {
                     done(err);
@@ -375,7 +496,7 @@ describe('REST API endpoint /media:', function() {
     });
 
 
-    describe('Post - like', function() {
+    describe.skip('Media - like', function() {
         var user = {};
         var mediaList = [];
 

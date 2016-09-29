@@ -22,7 +22,8 @@ module.exports = function(User) {
   User.disableRemoteMethod('__get__following', false);
   User.disableRemoteMethod('__create__following', false);
   User.disableRemoteMethod('__delete__following', false);
-
+  User.disableRemoteMethod('__get__media', false);
+  
   function descending(a,b) {
     if (a.sid > b.sid)
       return -1;
@@ -495,13 +496,17 @@ module.exports = function(User) {
         username: userObj.username.split('.')[0] === 'facebook-token' ? userObj.identities[0].profile.displayName : userObj.username,
         profilePhotoUrl: userObj.profilePhotoUrl,
         autobiography: userObj.autobiography || null,
-        followers: userObj.followers.length,
-        following: userObj.followings.length,
         media: userObj.media.length,
-        isFollowing: Boolean(userObj.followers.find(function(follower) {
-          return follower.followerId === req.accessToken.userId;
-        }))
       };
+      
+      if (req.query.withFollow === 'true') {
+        output.followers = userObj.followers.length;
+        output.following = userObj.followings.length;  
+        output.isFollowing = Boolean(userObj.followers.find(function(follower) {
+          return follower.followerId === req.accessToken.userId;
+        }));
+      }
+        
       callback(null, output);
     });
   };
@@ -610,8 +615,11 @@ module.exports = function(User) {
       }
       for (var i = 0; i < output.feed.length; i++) {
         var mediaObj = output.feed[i].toJSON();
-        mediaObj.likes = utils.formatLikeList(mediaObj['_likes_'], req.accessToken.userId);
+        if (req.query.withLike === 'true') {
+          mediaObj.likes = utils.formatLikeList(mediaObj['_likes_'], req.accessToken.userId);
+        }
         delete mediaObj['_likes_'];
+        
         output.feed[i] = mediaObj;
       }
       callback(null, output);

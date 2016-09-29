@@ -190,6 +190,8 @@ describe('REST API endpoint /users', function() {
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         res.body.should.have.property('email', user.email);
+        res.body.should.have.property('username', user.username);
+        res.body.should.have.property('sid', user.sid);
         done();
       });
     });
@@ -200,7 +202,9 @@ describe('REST API endpoint /users', function() {
       .expect(200, function(err, res) {
         if (err) { return done(err); }
         res.body.should.have.property('email', user.email);
-        done();
+        res.body.should.have.property('username', user.username);
+        res.body.should.have.property('sid', user.sid);
+       done();
       });
     });
 
@@ -213,7 +217,8 @@ describe('REST API endpoint /users', function() {
       });
     });
 
-    it('return a list of media', function(done) {
+    // the default remote method(API endpoint) is disabled, replaced by profile/query
+    it.skip('return a list of media', function(done) {
       var user = Hawk;
       var media = HawkMedia;
       json('get', endpoint+'/me/media?access_token='+user.accessToken.id)
@@ -261,7 +266,7 @@ describe('REST API endpoint /users', function() {
     });
   });
 
-  describe('User following', function() {
+  describe.skip('User following', function() {
     var follower = {
       username: 'boy',
       email: 'boy@foo.com',

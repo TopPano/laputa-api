@@ -47,7 +47,7 @@ describe('Media - integration:', function() {
     });
   }
 
-  describe('Media - like:', function() {
+  describe.skip('Media - like:', function() {
     var Hawk = {};
     var Richard = {};
     var Paco = {};
