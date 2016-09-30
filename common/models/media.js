@@ -410,7 +410,49 @@ module.exports = function(Media) {
       { arg: 'req', type: 'object', 'http': { source: 'req' } }
     ],
     returns: [ { arg: 'result', type: 'object' } ],
-    http: { path: '/:id/createVideo', verb: 'post' }
+    http: { path: '/:id/video', verb: 'post' }
+  });
+
+
+  Media.getVideo = function(id, req, callback) {
+    logger.debug('in shareLivePhotoOnFb');
+    // check if the media existed and then get the metadata  
+    Media.findById(id, function(err, media) {
+      if (err) {
+        logger.error(err);
+        return callback(new createError.InternalServerError());
+      }
+      if (!( media && media.status==='completed' )) {
+        return callback(new createError.NotFound('media not found'));
+      }
+      var mediaObj = media.toJSON();
+      var result;
+      // check if the livephoto has converted and stored as a video
+      if (mediaObj.content.videoStatus){
+        result = { videoStatus: mediaObj.content.videoStatus };  
+        if (mediaObj.content.videoStatus === 'completed' && mediaObj.content.videoType){
+          result.videoType = mediaObj.content.videoType;
+          result.shardingKey = media.content.shardingKey;
+          result.storeUrl = media.content.storeUrl;  
+          result.cdnUrl = media.content.cdnUrl;  
+        }
+        return callback(null, result);
+      }
+      else{
+        result = {videoStatus: 'non-existent'}  
+        return callback(null, result);
+      }
+    });
+  }  
+
+
+  Media.remoteMethod('getVideo', {
+    accepts: [
+      { arg: 'id', type: 'string', required: true },
+      { arg: 'req', type: 'object', 'http': { source: 'req' } }
+    ],
+    returns: [ { arg: 'result', type: 'object' } ],
+    http: { path: '/:id/video', verb: 'get' }
   });
 
 
