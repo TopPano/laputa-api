@@ -337,10 +337,10 @@ module.exports = function(Media) {
   });
 
 
-  function createVideoBackground(mediaObj){
+  function createVideoBackground(mediaObj) {
     var jobName;
     if (mediaObj.type === MEDIA_LIVE_PHOTO) { jobName = 'convertImgsToVideo'; }
-    if (jobName){
+    if (jobName) {
       gearClient.submitJob(jobName, mediaObj, function(err, result) {
         if (err) {
           logger.error(err);
@@ -352,15 +352,22 @@ module.exports = function(Media) {
           });
         } 
         else {  
-          if (result.status === 'success' && result.videoType){
+          if (result.status === 'success' && result.videoType) {
             mediaObj.content.videoStatus = 'completed';  
             mediaObj.content.videoType = result.videoType;
-            Media.updateAll({ sid: mediaObj.sid }, {
-              content: mediaObj.content
-            }, function(err) {
-              if (err) { return logger.error(err); }
-            });
           } 
+          else if (result.status) {
+            mediaObj.content.videoStatus = result.status;
+          } 
+          else {
+            mediaObj.content.videoStatus = 'failed';
+          } 
+
+          Media.updateAll({ sid: mediaObj.sid }, {
+            content: mediaObj.content
+          }, function(err) {
+            if (err) { return logger.error(err); }
+          });
         } 
       }); 
     } 
@@ -375,21 +382,21 @@ module.exports = function(Media) {
         logger.error(err);
         return callback(new createError.InternalServerError());
       }
-      if (!( media && media.status==='completed' )) {
+      if (!( media && media.status === 'completed' )) {
         return callback(new createError.NotFound('media not found'));
       }
 
       var mediaObj = media.toJSON();
       var result;
       // check if the livephoto has converted and stored as a video
-      if (mediaObj.content.videoStatus){
+      if (mediaObj.content.videoStatus) {
         result = { videoStatus: mediaObj.content.videoStatus };  
-        if (mediaObj.content.videoType){
+        if (mediaObj.content.videoType) {
           result.videoType = mediaObj.content.videoType;
         }
         return callback(null, result);
       }
-      else{
+      else {
         // if no, push converting job to verpix-async
         createVideoBackground(mediaObj);
         mediaObj.content.videoStatus = 'pending';
@@ -422,15 +429,15 @@ module.exports = function(Media) {
         logger.error(err);
         return callback(new createError.InternalServerError());
       }
-      if (!( media && media.status==='completed' )) {
+      if (!( media && media.status === 'completed' )) {
         return callback(new createError.NotFound('media not found'));
       }
       var mediaObj = media.toJSON();
       var result;
       // check if the livephoto has converted and stored as a video
-      if (mediaObj.content.videoStatus){
+      if (mediaObj.content.videoStatus) {
         result = { videoStatus: mediaObj.content.videoStatus };  
-        if (mediaObj.content.videoStatus === 'completed' && mediaObj.content.videoType){
+        if (mediaObj.content.videoStatus === 'completed' && mediaObj.content.videoType) {
           result.videoType = mediaObj.content.videoType;
           result.shardingKey = media.content.shardingKey;
           result.storeUrl = media.content.storeUrl;  
@@ -438,7 +445,7 @@ module.exports = function(Media) {
         }
         return callback(null, result);
       }
-      else{
+      else {
         result = {videoStatus: 'non-existent'}  
         return callback(null, result);
       }
