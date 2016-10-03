@@ -336,6 +336,133 @@ module.exports = function(Media) {
     http: { path: '/livephoto', verb: 'post' }
   });
 
+
+  function createVideoBackground(mediaObj) {
+    var jobName;
+    if (mediaObj.type === MEDIA_LIVE_PHOTO) { jobName = 'convertImgsToVideo'; }
+    if (jobName) {
+      gearClient.submitJob(jobName, mediaObj, function(err, result) {
+        if (err) {
+          logger.error(err);
+          mediaObj.content.videoStatus = 'failed';
+          Media.updateAll({ sid: mediaObj.sid }, {
+            content: mediaObj.content
+          }, function(err) {
+             if (err) { logger.error(err); }
+          });
+        } 
+        else {  
+          if (result.status === 'success' && result.videoType) {
+            mediaObj.content.videoStatus = 'completed';  
+            mediaObj.content.videoType = result.videoType;
+          } 
+          else if (result.status) {
+            mediaObj.content.videoStatus = result.status;
+          } 
+          else {
+            mediaObj.content.videoStatus = 'failed';
+          } 
+
+          Media.updateAll({ sid: mediaObj.sid }, {
+            content: mediaObj.content
+          }, function(err) {
+            if (err) { return logger.error(err); }
+          });
+        } 
+      }); 
+    } 
+  }
+
+  Media.createVideo = function(id, req, callback) {
+    logger.debug('in shareLivePhotoOnFb');
+    
+    // check if the media existed and then get the metadata  
+    Media.findById(id, function(err, media) {
+      if (err) {
+        logger.error(err);
+        return callback(new createError.InternalServerError());
+      }
+      if (!( media && media.status === 'completed' )) {
+        return callback(new createError.NotFound('media not found'));
+      }
+
+      var mediaObj = media.toJSON();
+      var result;
+      // check if the livephoto has converted and stored as a video
+      if (mediaObj.content.videoStatus) {
+        result = { videoStatus: mediaObj.content.videoStatus };  
+        if (mediaObj.content.videoType) {
+          result.videoType = mediaObj.content.videoType;
+        }
+        return callback(null, result);
+      }
+      else {
+        // if no, push converting job to verpix-async
+        createVideoBackground(mediaObj);
+        mediaObj.content.videoStatus = 'pending';
+        Media.updateAll({ sid: id }, {
+          content: mediaObj.content
+        }, function(err) {
+          if (err) { return logger.error(err); }
+        });
+        result = { videoStatus: 'pending' };
+        return callback(null, result);
+      }
+    });
+  };
+
+  Media.remoteMethod('createVideo', {
+    accepts: [
+      { arg: 'id', type: 'string', required: true },
+      { arg: 'req', type: 'object', 'http': { source: 'req' } }
+    ],
+    returns: [ { arg: 'result', type: 'object' } ],
+    http: { path: '/:id/video', verb: 'post' }
+  });
+
+
+  Media.getVideo = function(id, req, callback) {
+    logger.debug('in shareLivePhotoOnFb');
+    // check if the media existed and then get the metadata  
+    Media.findById(id, function(err, media) {
+      if (err) {
+        logger.error(err);
+        return callback(new createError.InternalServerError());
+      }
+      if (!( media && media.status === 'completed' )) {
+        return callback(new createError.NotFound('media not found'));
+      }
+      var mediaObj = media.toJSON();
+      var result;
+      // check if the livephoto has converted and stored as a video
+      if (mediaObj.content.videoStatus) {
+        result = { videoStatus: mediaObj.content.videoStatus };  
+        if (mediaObj.content.videoStatus === 'completed' && mediaObj.content.videoType) {
+          result.videoType = mediaObj.content.videoType;
+          result.shardingKey = media.content.shardingKey;
+          result.storeUrl = media.content.storeUrl;  
+          result.cdnUrl = media.content.cdnUrl;  
+        }
+        return callback(null, result);
+      }
+      else {
+        result = {videoStatus: 'non-existent'}  
+        return callback(null, result);
+      }
+    });
+  }  
+
+
+  Media.remoteMethod('getVideo', {
+    accepts: [
+      { arg: 'id', type: 'string', required: true },
+      { arg: 'req', type: 'object', 'http': { source: 'req' } }
+    ],
+    returns: [ { arg: 'result', type: 'object' } ],
+    http: { path: '/:id/video', verb: 'get' }
+  });
+
+
   Media.observe('before save', function(ctx, next) {
     if (ctx.instance && ctx.isNewInstance) {
       // on create
