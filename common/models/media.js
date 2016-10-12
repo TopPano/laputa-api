@@ -93,7 +93,10 @@ module.exports = function(Media) {
       }
 
       /* caption */
-      var caption = req.body.caption;
+      var caption = req.body.caption ? req.body.caption : '';
+
+      /* title */ 
+      var title = req.body.title ? req.body.title : '';  
 
       /* location */
       var locationProvider = req.body.locationProvider || 'facebook';
@@ -199,6 +202,7 @@ module.exports = function(Media) {
           var mediaObj = {
             type: mediaType,
             dimension: dimension,
+            title: title,  
             caption: caption,
             ownerId: req.accessToken.userId,
             tags: [],
@@ -312,17 +316,17 @@ module.exports = function(Media) {
     });
   }
 
-  Media.createPanoPhoto = function(req, callback) {
-    logger.debug('in createPanoPhoto');
-    createMediaForeground(MEDIA_PANO_PHOTO, req, callback);
-  };
-  Media.remoteMethod('createPanoPhoto', {
-    accepts: [
-      { arg: 'req', type: 'object', 'http': { source: 'req' } }
-    ],
-    returns: [ { arg: 'result', type: 'object' } ],
-    http: { path: '/panophoto', verb: 'post' }
-  });
+//  Media.createPanoPhoto = function(req, callback) {
+//    logger.debug('in createPanoPhoto');
+//    createMediaForeground(MEDIA_PANO_PHOTO, req, callback);
+//  };
+//  Media.remoteMethod('createPanoPhoto', {
+//    accepts: [
+//      { arg: 'req', type: 'object', 'http': { source: 'req' } }
+//    ],
+//    returns: [ { arg: 'result', type: 'object' } ],
+//    http: { path: '/panophoto', verb: 'post' }
+//  });
 
   Media.createLivePhoto = function(req, callback) {
     logger.debug('in createLivePhoto');
