@@ -21,6 +21,26 @@ Install [Gearman](http://gearman.org/getting-started/#installing).
 
 * Install Gearman on [Mac](http://richardsumilang.com/server/gearman/install-gearman-on-os-x/)
 
+## As a service
+
+* Build image
+
+    ```sh
+
+    ```
+* Create container
+    
+    ```sh
+    docker create -p 3000:3000 --restart always --env DB_URL='mongodb://$user:$passwd@mongodb-a1:$port,mongodb-a2:$port,mongodb-a3:$port/$db_name?allowExtendedOperators=true&readPreference=secondary' --add-host=mongodb-a1:$IP --add-host=mongodb-a2:$IP --add-host=mongodb-a3:$IP --add-host=gearmand:$IP $imageId
+    ```
+
+* Start container
+
+    ```sh
+    docker start $containerId
+    ``` 
+
+
 ## Usage
 
 Set up a [Gearman job server](http://gearman.org/getting-started/#starting) before starting the server.
