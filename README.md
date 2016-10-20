@@ -26,18 +26,19 @@ Install [Gearman](http://gearman.org/getting-started/#installing).
 * Build image
 
     ```sh
+    $ docker build -t laputa-api ./ 
 
     ```
 * Create container
     
     ```sh
-    docker create -p 3000:3000 --restart always --env DB_URL='mongodb://$user:$passwd@mongodb-a1:$port,mongodb-a2:$port,mongodb-a3:$port/$db_name?allowExtendedOperators=true&readPreference=secondary' --add-host=mongodb-a1:$IP --add-host=mongodb-a2:$IP --add-host=mongodb-a3:$IP --add-host=gearmand:$IP $imageId
+    $ docker create -p 3000:3000 --restart always --env BKT_NAME='$bucket_name' --env CDN_URL='https://$domain' --env DB_URL='mongodb://$user:$passwd@mongodb-a1:$port,mongodb-a2:$port,mongodb-a3:$port/$db_name?allowExtendedOperators=true&readPreference=secondary' --add-host=mongodb-a1:$IP --add-host=mongodb-a2:$IP --add-host=mongodb-a3:$IP --add-host=gearmand:$IP $imageId
     ```
 
 * Start container
 
     ```sh
-    docker start $containerId
+    $ docker start $containerId
     ``` 
 
 

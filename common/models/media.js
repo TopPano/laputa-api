@@ -273,19 +273,22 @@ module.exports = function(Media) {
         });
       } else {
         var content;
+        var storeUrl = process.env.BKT_NAME ? 'https://'+process.env.BKT_NAME+'.s3.amazonaws.com/' : 'https://verpixplus-img-production.s3.amazonaws.com/';
+        var cdnUrl = process.env.CDN_URL ? process.env.CDN_URL : 'https://dykzcuzsao2p1.cloudfront.net/';
+
         if (result.type === MEDIA_PANO_PHOTO) {
           content = {
             shardingKey: params.shardingKey,  
-            storeUrl: 'https://verpixplus-img-production.s3.amazonaws.com/',  
-            cdnUrl: 'https://cloudfront.net/',
+            storeUrl: storeUrl,  
+            cdnUrl: cdnUrl,
             quality: result.quality,
             project: 'equirectangular', 
           };
         } else if (result.type === MEDIA_LIVE_PHOTO) {
           content = {
             shardingKey: params.shardingKey,
-            storeUrl: 'https://verpixplus-img-production.s3.amazonaws.com/',
-            cdnUrl: 'https://cloudfront.net/',
+            storeUrl: storeUrl,
+            cdnUrl: cdnUrl,
             quality: result.quality,
             count: result.count,
             imgArrBoundary: params.image.imgArrBoundary
@@ -343,6 +346,7 @@ module.exports = function(Media) {
 
   function createVideoBackground(mediaObj) {
     var jobName;
+
     if (mediaObj.type === MEDIA_LIVE_PHOTO) { jobName = 'convertImgsToVideo'; }
     if (jobName) {
       gearClient.submitJob(jobName, mediaObj, function(err, result) {
