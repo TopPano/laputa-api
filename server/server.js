@@ -44,5 +44,11 @@ app.middleware('parse', bodyParser.urlencoded({ extended: true }));
 
 // start the server if `$ node server.js`
 if (require.main === module) {
+  // for production mode, check the env variables are set before start 
+  if (process.env.NODE_ENV === 'production') {
+    if (!app.get('cdnUrl') || !app.get('bucketName')) {
+      throw 'Environment variables are not set correctly'
+    }
+  }
   app.start();
 }

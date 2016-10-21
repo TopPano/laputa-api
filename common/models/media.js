@@ -20,7 +20,7 @@ var MEDIA_LIVE_PHOTO = 'livePhoto';
 var DEFAULT_POST_SHARDING_LENGTH = 4;
 
 function genSharding(length) {
-      return crypto.randomBytes(Math.ceil(length / 2)).toString('hex');
+  return crypto.randomBytes(Math.ceil(length / 2)).toString('hex');
 }
 
 module.exports = function(Media) {
@@ -93,7 +93,10 @@ module.exports = function(Media) {
       }
 
       /* caption */
-      var caption = req.body.caption;
+      var caption = req.body.caption ? req.body.caption : '';
+
+      /* title */ 
+      var title = req.body.title ? req.body.title : '';  
 
       /* location */
       var locationProvider = req.body.locationProvider || 'facebook';
@@ -199,6 +202,7 @@ module.exports = function(Media) {
           var mediaObj = {
             type: mediaType,
             dimension: dimension,
+            title: title,  
             caption: caption,
             ownerId: req.accessToken.userId,
             tags: [],
@@ -269,19 +273,23 @@ module.exports = function(Media) {
         });
       } else {
         var content;
+        var bucketName = Media.app.get('bucketName');
+        var storeUrl = 'https://'+bucketName+'.s3.amazonaws.com/';
+        var cdnUrl = Media.app.get('cdnUrl');
+
         if (result.type === MEDIA_PANO_PHOTO) {
           content = {
             shardingKey: params.shardingKey,  
-            storeUrl: 'https://verpixplus-img-production.s3.amazonaws.com/',  
-            cdnUrl: 'https://cloudfront.net/',
+            storeUrl: storeUrl,  
+            cdnUrl: cdnUrl,
             quality: result.quality,
             project: 'equirectangular', 
           };
         } else if (result.type === MEDIA_LIVE_PHOTO) {
           content = {
             shardingKey: params.shardingKey,
-            storeUrl: 'https://verpixplus-img-production.s3.amazonaws.com/',
-            cdnUrl: 'https://cloudfront.net/',
+            storeUrl: storeUrl,
+            cdnUrl: cdnUrl,
             quality: result.quality,
             count: result.count,
             imgArrBoundary: params.image.imgArrBoundary
@@ -323,6 +331,9 @@ module.exports = function(Media) {
     returns: [ { arg: 'result', type: 'object' } ],
     http: { path: '/panophoto', verb: 'post' }
   });
+  // disable for now
+  Media.disableRemoteMethod('createPanoPhoto', true);
+
 
   Media.createLivePhoto = function(req, callback) {
     logger.debug('in createLivePhoto');
@@ -339,6 +350,7 @@ module.exports = function(Media) {
 
   function createVideoBackground(mediaObj) {
     var jobName;
+
     if (mediaObj.type === MEDIA_LIVE_PHOTO) { jobName = 'convertImgsToVideo'; }
     if (jobName) {
       gearClient.submitJob(jobName, mediaObj, function(err, result) {
