@@ -10,7 +10,9 @@ var p = require('../package.json');
 var version = p.version.split('.').shift();
 
 module.exports = {
-  hostname: 'www.verpix.me',
+  hostname: 'www.verpixplus.me',
+  bucketName: process.env.BKT_NAME,
+  cdnUrl: process.env.CDN_URL,
   restApiRoot: '/api' + (version > 0 ? '/v' + version : ''),
   passportProviders: {
     'facebook-token': {

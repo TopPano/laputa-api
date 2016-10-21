@@ -20,7 +20,7 @@ var MEDIA_LIVE_PHOTO = 'livePhoto';
 var DEFAULT_POST_SHARDING_LENGTH = 4;
 
 function genSharding(length) {
-      return crypto.randomBytes(Math.ceil(length / 2)).toString('hex');
+  return crypto.randomBytes(Math.ceil(length / 2)).toString('hex');
 }
 
 module.exports = function(Media) {
@@ -273,8 +273,9 @@ module.exports = function(Media) {
         });
       } else {
         var content;
-        var storeUrl = process.env.BKT_NAME ? 'https://'+process.env.BKT_NAME+'.s3.amazonaws.com/' : 'https://verpixplus-img-production.s3.amazonaws.com/';
-        var cdnUrl = process.env.CDN_URL ? process.env.CDN_URL : 'https://dykzcuzsao2p1.cloudfront.net/';
+        var bucketName = Media.app.get('bucketName');
+        var storeUrl = 'https://'+bucketName+'.s3.amazonaws.com/';
+        var cdnUrl = Media.app.get('cdnUrl');
 
         if (result.type === MEDIA_PANO_PHOTO) {
           content = {
@@ -319,17 +320,20 @@ module.exports = function(Media) {
     });
   }
 
-//  Media.createPanoPhoto = function(req, callback) {
-//    logger.debug('in createPanoPhoto');
-//    createMediaForeground(MEDIA_PANO_PHOTO, req, callback);
-//  };
-//  Media.remoteMethod('createPanoPhoto', {
-//    accepts: [
-//      { arg: 'req', type: 'object', 'http': { source: 'req' } }
-//    ],
-//    returns: [ { arg: 'result', type: 'object' } ],
-//    http: { path: '/panophoto', verb: 'post' }
-//  });
+  Media.createPanoPhoto = function(req, callback) {
+    logger.debug('in createPanoPhoto');
+    createMediaForeground(MEDIA_PANO_PHOTO, req, callback);
+  };
+  Media.remoteMethod('createPanoPhoto', {
+    accepts: [
+      { arg: 'req', type: 'object', 'http': { source: 'req' } }
+    ],
+    returns: [ { arg: 'result', type: 'object' } ],
+    http: { path: '/panophoto', verb: 'post' }
+  });
+  // disable for now
+  Media.disableRemoteMethod('createPanoPhoto', true);
+
 
   Media.createLivePhoto = function(req, callback) {
     logger.debug('in createLivePhoto');

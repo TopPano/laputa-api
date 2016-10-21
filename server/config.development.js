@@ -11,6 +11,8 @@ var version = p.version.split('.').shift();
 
 module.exports = {
   hostname: 'dev.verpix.net',
+  bucketName: process.env.BKT_NAME,
+  cdnUrl: process.env.CDN_URL,
   host: process.env.HOST || '0.0.0.0',
   port: process.env.PORT || 3000,
   restApiRoot: '/api' + (version > 0 ? '/v' + version : ''),
