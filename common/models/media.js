@@ -275,7 +275,7 @@ module.exports = function(Media) {
         var content;
         var bucketName = Media.app.get('bucketName');
         var storeUrl = 'https://'+bucketName+'.s3.amazonaws.com/';
-        var cdnUrl = Media.app.get('cdnUrl');
+        var cdnUrl = Media.app.get('cdnUrl')? Media.app.get('cdnUrl'): 'undefined';
 
         if (result.type === MEDIA_PANO_PHOTO) {
           content = {
@@ -509,6 +509,17 @@ module.exports = function(Media) {
       next();
     });
   });
+
+  // restrict user only update 'caption' & 'title'
+  Media.beforeRemote('prototype.updateAttributes', function(ctx, unused, next){
+    for (var prop in ctx.req.body){
+      if ((prop != 'title') && (prop != 'caption')){
+        return next(new createError.NotFound('the attribute \'' + prop + '\' is prohibited to update'));
+      }
+    }
+    next();
+  });
+
 
   Media.findMediaById = function(id, req, callback) {
     logger.debug('in findMediaById');
