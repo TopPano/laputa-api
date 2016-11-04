@@ -559,6 +559,11 @@ module.exports = function(Media) {
         return callback(new createError.NotFound('media not found'));
       }
       var mediaObj = media.toJSON();
+      // if the media is not completed, just send status back to frontend
+      if (mediaObj.status != 'completed'){
+        return callback(null, {sid: mediaObj.sid, status: mediaObj.status});
+      }
+      
       delete mediaObj.content.imgArrBoundary;
       if (req.query.withLike === 'true') {
         mediaObj.likes = utils.formatLikeList(mediaObj['_likes_'], req.accessToken ? req.accessToken.userId : null);
