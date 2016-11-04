@@ -73,6 +73,16 @@ module.exports = function(User) {
     http: { path: '/auth/facebook/token', verb: 'get' }
   });
 
+  User.beforeRemote('prototype.updateAttributes', function(ctx, unused, next){
+    for (var prop in ctx.req.body){
+      if (prop != 'autobiography'){
+        return next(new createError.NotFound('the attribute \'' + prop + '\' is prohibited to update'));
+      }
+    }
+    next();
+  });
+
+
   User.query = function(id, req, json, callback) {
     logger.debug('in query');
     var where = json.where || undefined;

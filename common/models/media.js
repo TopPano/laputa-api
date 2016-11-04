@@ -275,7 +275,7 @@ module.exports = function(Media) {
         var content;
         var bucketName = Media.app.get('bucketName');
         var storeUrl = 'https://'+bucketName+'.s3.amazonaws.com/';
-        var cdnUrl = Media.app.get('cdnUrl');
+        var cdnUrl = Media.app.get('cdnUrl')? Media.app.get('cdnUrl'): 'undefined';
 
         if (result.type === MEDIA_PANO_PHOTO) {
           content = {
@@ -510,6 +510,17 @@ module.exports = function(Media) {
     });
   });
 
+  // restrict user only update 'caption' & 'title'
+  Media.beforeRemote('prototype.updateAttributes', function(ctx, unused, next){
+    for (var prop in ctx.req.body){
+      if ((prop != 'title') && (prop != 'caption')){
+        return next(new createError.NotFound('the attribute \'' + prop + '\' is prohibited to update'));
+      }
+    }
+    next();
+  });
+
+
   Media.findMediaById = function(id, req, callback) {
     logger.debug('in findMediaById');
     Media.findById(id, {
@@ -548,6 +559,11 @@ module.exports = function(Media) {
         return callback(new createError.NotFound('media not found'));
       }
       var mediaObj = media.toJSON();
+      // if the media is not completed, just send status back to frontend
+      if (mediaObj.status != 'completed'){
+        return callback(null, {sid: mediaObj.sid, status: mediaObj.status});
+      }
+      
       delete mediaObj.content.imgArrBoundary;
       if (req.query.withLike === 'true') {
         mediaObj.likes = utils.formatLikeList(mediaObj['_likes_'], req.accessToken ? req.accessToken.userId : null);
