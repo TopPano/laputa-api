@@ -83,6 +83,35 @@ module.exports = function(User) {
   });
 
 
+  User.beforeRemote('create', function(ctx, unused, next){
+    // check the username is existed
+    User.find({where: {username: ctx.req.body.username}}, function(err, user) {
+      if (err) { 
+        logger.error(err);
+        return next(new createError.InternalServerError());
+      }
+      if (user[0]) { 
+        return next(new createError.UnprocessableEntity('USERNAME_REGISTERED'));
+      }
+      else{
+      // check the email is existed
+        User.find({where:{email: ctx.req.body.email}}, function(err, user) {
+          if (err) { 
+            logger.error(err);
+            return next(new createError.InternalServerError());
+          }
+          if (user[0]) { 
+            return next(new createError.UnprocessableEntity('EMAIL_REGISTERED'));
+          }
+          else{
+            next();
+          }
+        });
+      }
+    });
+  });
+
+
   User.query = function(id, req, json, callback) {
     logger.debug('in query');
     var where = json.where || undefined;
