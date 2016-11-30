@@ -90,7 +90,7 @@ module.exports = function(User) {
         return next(new createError.InternalServerError());
       }
       if (!user[0]) { 
-        return next(new createError(401, {code: 'USER_NOT_FOUND'}));
+        return next(new createError(404, {code: 'EMAIL_NOT_FOUND'}));
       }
       else{
         next();
@@ -714,7 +714,7 @@ module.exports = function(User) {
         if (isMatch) {
           user.updateAttribute('password', newPassword, callback);
         } else {
-          callback(new createError.Unauthorized('incorrect old password'));
+          callback(new createError(401, {code: 'WRONG_OLD_PASSWD'}));
         }
       });
     });
@@ -739,7 +739,7 @@ module.exports = function(User) {
         return callback(new createError.InternalServerError());
       }
       if (!user || user.length === 0) {
-        return callback(new createError.NotFound('no user with the email was found'));
+        return callback(new createError(404, {code: 'EMAIL_NOT_FOUND'}));
       }
       User.resetPassword({ email: email }, function(err) {
         if (err) {
