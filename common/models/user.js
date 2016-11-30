@@ -83,6 +83,22 @@ module.exports = function(User) {
   });
 
 
+  User.beforeRemote('login', function(ctx, unused, next){
+    User.find({where:{email: ctx.req.body.email}}, function(err, user) {
+      if (err) { 
+        logger.error(err);
+        return next(new createError.InternalServerError());
+      }
+      if (!user[0]) { 
+        return next(new createError(401, {code: 'USER_NOT_FOUND'}));
+      }
+      else{
+        next();
+      }
+    });
+  });
+
+
   User.beforeRemote('create', function(ctx, unused, next){
     // check the username is existed
     User.find({where: {username: ctx.req.body.username}}, function(err, user) {
@@ -91,7 +107,8 @@ module.exports = function(User) {
         return next(new createError.InternalServerError());
       }
       if (user[0]) { 
-        return next(new createError.UnprocessableEntity('USERNAME_REGISTERED'));
+        // 422: UnprocessableEntity
+        return next(new createError(422, {code: 'USERNAME_REGISTERED'}));
       }
       else{
       // check the email is existed
@@ -101,7 +118,8 @@ module.exports = function(User) {
             return next(new createError.InternalServerError());
           }
           if (user[0]) { 
-            return next(new createError.UnprocessableEntity('EMAIL_REGISTERED'));
+            // 422: UnprocessableEntity
+            return next(new createError(422, {code: 'EMAIL_REGISTERED'}));
           }
           else{
             next();
