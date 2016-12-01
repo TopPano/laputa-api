@@ -92,9 +92,7 @@ module.exports = function(User) {
       if (!user[0]) { 
         return next(new createError.NotFound({code: 'EMAIL_NOT_FOUND'}));
       }
-      else{
-        next();
-      }
+      next();
     });
   });
 
@@ -109,22 +107,17 @@ module.exports = function(User) {
       if (user[0]) { 
         return next(new createError.UnprocessableEntity({code: 'USERNAME_REGISTERED'}));
       }
-      else{
       // check the email is existed
-        User.find({where:{email: ctx.req.body.email}}, function(err, user) {
-          if (err) { 
-            logger.error(err);
-            return next(new createError.InternalServerError());
-          }
-          if (user[0]) { 
-            // 422: UnprocessableEntity
-            return next(new createError.UnprocessableEntity({code: 'EMAIL_REGISTERED'}));
-          }
-          else{
-            next();
-          }
-        });
-      }
+      User.find({where:{email: ctx.req.body.email}}, function(err, user) {
+        if (err) { 
+          logger.error(err);
+          return next(new createError.InternalServerError());
+        }
+        if (user[0]) { 
+          return next(new createError.UnprocessableEntity({code: 'EMAIL_REGISTERED'}));
+        }
+        next();
+      });
     });
   });
 
