@@ -90,7 +90,7 @@ module.exports = function(User) {
         return next(new createError.InternalServerError());
       }
       if (!user[0]) { 
-        return next(new createError(404, {code: 'EMAIL_NOT_FOUND'}));
+        return next(new createError.NotFound({code: 'EMAIL_NOT_FOUND'}));
       }
       else{
         next();
@@ -107,8 +107,7 @@ module.exports = function(User) {
         return next(new createError.InternalServerError());
       }
       if (user[0]) { 
-        // 422: UnprocessableEntity
-        return next(new createError(422, {code: 'USERNAME_REGISTERED'}));
+        return next(new createError.UnprocessableEntity({code: 'USERNAME_REGISTERED'}));
       }
       else{
       // check the email is existed
@@ -119,7 +118,7 @@ module.exports = function(User) {
           }
           if (user[0]) { 
             // 422: UnprocessableEntity
-            return next(new createError(422, {code: 'EMAIL_REGISTERED'}));
+            return next(new createError.UnprocessableEntity({code: 'EMAIL_REGISTERED'}));
           }
           else{
             next();
@@ -714,7 +713,7 @@ module.exports = function(User) {
         if (isMatch) {
           user.updateAttribute('password', newPassword, callback);
         } else {
-          callback(new createError(401, {code: 'WRONG_OLD_PASSWD'}));
+          callback(new createError.Unauthorized({code: 'WRONG_OLD_PASSWD'}));
         }
       });
     });
@@ -739,7 +738,7 @@ module.exports = function(User) {
         return callback(new createError.InternalServerError());
       }
       if (!user || user.length === 0) {
-        return callback(new createError(404, {code: 'EMAIL_NOT_FOUND'}));
+        return callback(new createError.NotFound({code: 'EMAIL_NOT_FOUND'}));
       }
       User.resetPassword({ email: email }, function(err) {
         if (err) {
