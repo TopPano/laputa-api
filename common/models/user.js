@@ -83,6 +83,45 @@ module.exports = function(User) {
   });
 
 
+  User.beforeRemote('login', function(ctx, unused, next){
+    User.find({where:{email: ctx.req.body.email}}, function(err, user) {
+      if (err) { 
+        logger.error(err);
+        return next(new createError.InternalServerError());
+      }
+      if (!user[0]) { 
+        return next(new createError.NotFound({code: 'EMAIL_NOT_FOUND'}));
+      }
+      next();
+    });
+  });
+
+
+  User.beforeRemote('create', function(ctx, unused, next){
+    // check the username is existed
+    User.find({where: {username: ctx.req.body.username}}, function(err, user) {
+      if (err) { 
+        logger.error(err);
+        return next(new createError.InternalServerError());
+      }
+      if (user[0]) { 
+        return next(new createError.UnprocessableEntity({code: 'USERNAME_REGISTERED'}));
+      }
+      // check the email is existed
+      User.find({where:{email: ctx.req.body.email}}, function(err, user) {
+        if (err) { 
+          logger.error(err);
+          return next(new createError.InternalServerError());
+        }
+        if (user[0]) { 
+          return next(new createError.UnprocessableEntity({code: 'EMAIL_REGISTERED'}));
+        }
+        next();
+      });
+    });
+  });
+
+
   User.query = function(id, req, json, callback) {
     logger.debug('in query');
     var where = json.where || undefined;
@@ -667,7 +706,7 @@ module.exports = function(User) {
         if (isMatch) {
           user.updateAttribute('password', newPassword, callback);
         } else {
-          callback(new createError.Unauthorized('incorrect old password'));
+          callback(new createError.Unauthorized({code: 'WRONG_OLD_PASSWD'}));
         }
       });
     });
@@ -692,7 +731,7 @@ module.exports = function(User) {
         return callback(new createError.InternalServerError());
       }
       if (!user || user.length === 0) {
-        return callback(new createError.NotFound('no user with the email was found'));
+        return callback(new createError.NotFound({code: 'EMAIL_NOT_FOUND'}));
       }
       User.resetPassword({ email: email }, function(err) {
         if (err) {
