@@ -79,8 +79,8 @@ module.exports = function(Media) {
       /* thumbnail */
       var thumbBuf = req.files.thumbnail[0].buffer;
       var thumbType = req.files.thumbnail[0].mimetype;
-      var thumbLat = req.body.thumbLat;
-      var thumbLng = req.body.thumbLng;
+      var thumbLat = req.body.lat;
+      var thumbLng = req.body.lng;
 
       if (!thumbBuf || !thumbType) {
         return callback(new createError.BadRequest('missing properties'));
@@ -331,8 +331,6 @@ module.exports = function(Media) {
     returns: [ { arg: 'result', type: 'object' } ],
     http: { path: '/panophoto', verb: 'post' }
   });
-  // disable for now
-  Media.disableRemoteMethod('createPanoPhoto', true);
 
 
   Media.createLivePhoto = function(req, callback) {
