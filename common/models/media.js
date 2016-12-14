@@ -526,7 +526,7 @@ module.exports = function(Media) {
         {
           relation: 'owner',
           scope: {
-            fields: [ 'username', 'profilePhotoUrl' ],
+            fields: [ 'username', 'profilePhotoUrl', 'gaId' ],
             include: {
               relation: 'identities',
               scope: {
