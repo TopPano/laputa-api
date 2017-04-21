@@ -1,7 +1,33 @@
 var loopback = require('loopback');
 var boot = require('loopback-boot');
 
+var authGetMedia = require('./middleware/authGetMedia.js');
+var rateLimit = require('./middleware/rateLimit.js');
+
 var app = module.exports = loopback();
+
+
+app.middlewareFromConfig(authGetMedia, {
+  enabled: true,
+  name: 'authGetMedia',
+  phase: 'routes:before',
+  methods: ['GET'],
+  paths: ['/api/media/'],
+  params: {
+    app
+  }
+});
+
+// set invoking rateLimit after findMediaById
+// set rateLimit into beforeRemote('findMediaById');
+app.on('started', () => {
+  let Media = app.models.Media;
+  Media.afterRemote('findMediaById', (context, remoteMethodOutput, next) => {
+    let mWare = rateLimit(app);
+    mWare(context.req, context.res, next);
+  });
+});
+
 
 app.start = function() {
   // start the web server
@@ -47,7 +73,7 @@ if (require.main === module) {
   // for production mode, check the env variables are set before start 
   if (process.env.NODE_ENV === 'production') {
     if (!app.get('cdnUrl') || !app.get('bucketName')) {
-      throw 'Environment variables are not set correctly'
+      throw 'Environment variables are not set correctly';
     }
   }
   app.start();

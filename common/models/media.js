@@ -570,6 +570,7 @@ module.exports = function(Media) {
       callback(null, mediaObj);
     });
   };
+
   Media.remoteMethod('findMediaById', {
     accepts: [
       { arg: 'id', type: 'string', required: true },
