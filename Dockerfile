@@ -1,5 +1,5 @@
 #This dockerfile uses the ubuntu image
-FROM toppano/laputa-base:latest
+FROM 825953773834.dkr.ecr.ap-northeast-1.amazonaws.com/base
 
 MAINTAINER uniray7 uniray7@gmail.com
 
