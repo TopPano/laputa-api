@@ -13,7 +13,7 @@ app.middlewareFromConfig(licensing, {
   methods: ['GET'],
   paths: ['/api/media/:id/'],
   params: {
-    app
+    User: app.models.User
   }
 });
 

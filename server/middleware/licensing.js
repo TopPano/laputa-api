@@ -37,7 +37,7 @@ function pbkdf2Compare(hashed, plainText, salt, callback) {
 }
 
 
-module.exports = function(app) { 
+module.exports = function(User) { 
   return function authGetMedia(req, res, next) { 
     // check the authentication msg is vaild
     // check the "referer" is https://www.verpix.me
@@ -109,6 +109,7 @@ module.exports = function(app) {
       .then((result) => {
         if (result[0] && result[1])
         {
+          // TODO: check the apiKey existed?
           // TODO: maybe need adding some attr to response for validation
           return next();
         }

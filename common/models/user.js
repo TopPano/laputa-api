@@ -75,7 +75,7 @@ module.exports = function(User) {
 
   User.beforeRemote('prototype.updateAttributes', function(ctx, unused, next){
     for (var prop in ctx.req.body){
-      if (prop != 'autobiography' && prop != 'gaId'){
+      if (prop !== 'autobiography' && prop !== 'gaId'){
         return next(new createError.NotFound('the attribute \'' + prop + '\' is prohibited to update'));
       }
     }

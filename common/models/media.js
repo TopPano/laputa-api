@@ -456,11 +456,11 @@ module.exports = function(Media) {
         return callback(null, result);
       }
       else {
-        result = {videoStatus: 'non-existent'}  
+        result = {videoStatus: 'non-existent'};  
         return callback(null, result);
       }
     });
-  }  
+  };  
 
 
   Media.remoteMethod('getVideo', {
@@ -511,7 +511,7 @@ module.exports = function(Media) {
   // restrict user only update 'caption' & 'title'
   Media.beforeRemote('prototype.updateAttributes', function(ctx, unused, next){
     for (var prop in ctx.req.body){
-      if ((prop != 'title') && (prop != 'caption')){
+      if ((prop !== 'title') && (prop !== 'caption')){
         return next(new createError.NotFound('the attribute \'' + prop + '\' is prohibited to update'));
       }
     }
@@ -558,7 +558,7 @@ module.exports = function(Media) {
       }
       var mediaObj = media.toJSON();
       // if the media is not completed, just send status back to frontend
-      if (mediaObj.status != 'completed'){
+      if (mediaObj.status !== 'completed'){
         return callback(null, {sid: mediaObj.sid, status: mediaObj.status});
       }
       
