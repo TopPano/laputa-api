@@ -401,18 +401,84 @@ describe('REST API endpoint /users', function() {
       });
     });
 
-    it('update a user', function(done) {
-      var newUsername = 'Eric';
-      var profilePhotoUrl = 'http://www.foo.com/';
+    it('update a user with attribute "autobiography"', function(done) {
+      var newAutobiography = 'Hi~, I am xxx';
       json('put', endpoint+'/me?access_token='+user.accessToken.id)
       .send({
-        username: newUsername,
-        profilePhotoUrl: profilePhotoUrl
+        autobiography: newAutobiography,
       })
       .expect(200, function(err, res) {
         if (err) { return done(err); }
-        res.body.should.have.property('username', newUsername);
-        res.body.should.have.property('profilePhotoUrl', profilePhotoUrl);
+        res.body.should.have.property('autobiography', newAutobiography);
+        done();
+      });
+    });
+
+    it('update a user with attribute "gaId"', function(done) {
+      var newGaId = 'IamGaId';
+      json('put', endpoint+'/me?access_token='+user.accessToken.id)
+      .send({
+        gaId: newGaId,
+      })
+      .expect(200, function(err, res) {
+        if (err) { return done(err); }
+        res.body.should.have.property('gaId', newGaId);
+        done();
+      });
+    });
+
+    it('update a user with unchanged attribute "_id"', function(done) {
+      var new_id = 'IamNewId';
+      json('put', endpoint+'/me?access_token='+user.accessToken.id)
+      .send({
+        _id: new_id,
+      })
+      .expect(403, function(err, res) {
+        if (err) { return done(err); }
+        res.body.should.not.have.property('_id');
+        res.body.error.message.should.equal('the attribute "_id" is prohibited to update');
+        done();
+      });
+    });
+
+    it('update a user with unchanged attribute "username"', function(done) {
+      var newUsername = 'Eric';
+      json('put', endpoint+'/me?access_token='+user.accessToken.id)
+      .send({
+        username: newUsername,
+      })
+      .expect(403, function(err, res) {
+        if (err) { return done(err); }
+        res.body.should.not.have.property('username');
+        res.body.error.message.should.equal('the attribute "username" is prohibited to update');
+        done();
+      });
+    });
+
+    it('update a user with unchanged attribute "email"', function(done) {
+      var newEmail = 'eric@gmail.com';
+      json('put', endpoint+'/me?access_token='+user.accessToken.id)
+      .send({
+        email: newEmail,
+      })
+      .expect(403, function(err, res) {
+        if (err) { return done(err); }
+        res.body.should.not.have.property('email');
+        res.body.error.message.should.equal('the attribute "email" is prohibited to update');
+        done();
+      });
+    });
+
+    it('update a user with unchanged attribute "password"', function(done) {
+      var newPasswd = 'IamNewPassword';
+      json('put', endpoint+'/me?access_token='+user.accessToken.id)
+      .send({
+        password: newPasswd,
+      })
+      .expect(403, function(err, res) {
+        if (err) { return done(err); }
+        res.body.should.not.have.property('password');
+        res.body.error.message.should.equal('the attribute "password" is prohibited to update');
         done();
       });
     });
@@ -498,7 +564,7 @@ describe('REST API endpoint /users', function() {
     });
   });
 
-  describe('User feedback', function() {
+  describe.skip('User feedback', function() {
     var user = {
       username: 'Johnny',
       email: 'johnny@foo.com',
