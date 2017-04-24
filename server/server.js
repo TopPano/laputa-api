@@ -1,18 +1,17 @@
 var loopback = require('loopback');
 var boot = require('loopback-boot');
 
-var authGetMedia = require('./middleware/authGetMedia.js');
-var rateLimit = require('./middleware/rateLimit.js');
+const licensing = require('./middleware/licensing.js');
+const rateLimit = require('./middleware/rateLimit.js');
 
 var app = module.exports = loopback();
 
-
-app.middlewareFromConfig(authGetMedia, {
+app.middlewareFromConfig(licensing, {
   enabled: true,
-  name: 'authGetMedia',
+  name: 'licensing',
   phase: 'routes:before',
   methods: ['GET'],
-  paths: ['/api/media/'],
+  paths: ['/api/media/:id/'],
   params: {
     app
   }

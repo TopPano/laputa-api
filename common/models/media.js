@@ -579,6 +579,16 @@ module.exports = function(Media) {
     returns: [ { arg: 'result', type: 'object' } ],
     http: { path: '/:id', verb: 'get' }
   });
+  
+  // for SDK to getMedia, the http.path is added ':quality'
+  Media.remoteMethod('findMediaById', {
+    accepts: [
+      { arg: 'id', type: 'string', required: true },
+      { arg: 'req', type: 'object', 'http': { source: 'req' } }
+    ],
+    returns: [ { arg: 'result', type: 'object' } ],
+    http: { path: '/:id/:quality', verb: 'get' }
+  });
 
   Media.like = function(mediaId, req, callback) {
     Media.findById(mediaId, function(err, media) {
