@@ -38,6 +38,11 @@
       "model": "media",
       "foreignKey": "ownerId"
     },
+    "projProfile": {
+      "type": "hasOne",
+      "model": "projProfile",
+      "foreignKey": "ownerId"
+    },
     "followers": {
       "type": "hasMany",
       "model": "follow",

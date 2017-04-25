@@ -6,20 +6,20 @@ const rateLimit = require('./middleware/rateLimit.js');
 
 var app = module.exports = loopback();
 
-app.middlewareFromConfig(licensing, {
-  enabled: true,
-  name: 'licensing',
-  phase: 'routes:before',
-  methods: ['GET'],
-  paths: ['/api/media/:id/'],
-  params: {
-    User: app.models.User
-  }
-});
-
 // set invoking rateLimit after findMediaById
 // set rateLimit into beforeRemote('findMediaById');
 app.on('started', () => {
+  app.middlewareFromConfig(licensing, {
+    enabled: true,
+    name: 'licensing',
+    phase: 'routes:before',
+    methods: ['GET'],
+    paths: ['/api/media/:id/'],
+    params: {
+      projProfile: app.models.projProfile
+    }
+  });
+
   let Media = app.models.Media;
   Media.afterRemote('findMediaById', (context, remoteMethodOutput, next) => {
     let mWare = rateLimit(app);

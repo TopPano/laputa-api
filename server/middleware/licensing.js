@@ -37,7 +37,7 @@ function pbkdf2Compare(hashed, plainText, salt, callback) {
 }
 
 
-module.exports = function(User) { 
+module.exports = function(model) { 
   return function authGetMedia(req, res, next) { 
     // check the authentication msg is vaild
     // check the "referer" is https://www.verpix.me
@@ -109,9 +109,19 @@ module.exports = function(User) {
       .then((result) => {
         if (result[0] && result[1])
         {
-          // TODO: check the apiKey existed?
-          // TODO: maybe need adding some attr to response for validation
-          return next();
+          model.projProfile.findById(apiKey, (err, result) => {
+            if(err) 
+            {
+              //TODO: logger(err)
+              return next(new createError.Unauthorized('SDK Unauthorized'));
+            }
+            if(!result || result.status !== 'legal')
+            {
+              return next(new createError.Unauthorized('SDK Unauthorized'));
+            }
+            req.projProfile = result;
+            return next();
+          });
         }
         else {
           // signature not match
