@@ -25,7 +25,7 @@ const bcryptCompareAsync = P.promisify(bcrypt.compare);
 const pbkdf2CompareAsync = P.promisify(pbkdf2Compare);
 
 // Function to compare the pbkdf2-hashed value
-function pbkdf2Compare(hashed, plainText, salt, callback) {
+function pbkdf2Compare(plainText, hashed, salt, callback) {
   // Construct the expected hashed value, the output of pbkdf2 is Uint8Array,
   // we convert it to hexadecimal string
   const expectedHashed = pbkdf2.pbkdf2(
@@ -95,16 +95,9 @@ module.exports = function(model) {
       `${resourceName}${timestamp}` :
       `${apiKey}${timestamp}`;
 
-      // gen signature
-      //var salt = bcrypt.genSaltSync(10);
-      //const bb = bcrypt.hashSync(bcryptPlain, salt);
-      //console.log('b: ' + bb);
-      //var pp = pbkdf2.pbkdf2Sync(pbkdf2Plain,`${timestamp}`, PBKDF2_ITERS, PBKDF2_KEY_LENGTH, PBKDF2_DIGEST);
-      //console.log('p: '+pp.toString('hex'));
-
       const matchesAsync = [];
       matchesAsync.push(bcryptCompareAsync(bcryptPlain, bcryptHashed));
-      matchesAsync.push(pbkdf2CompareAsync(pbkdf2Hashed, pbkdf2Plain, `${timestamp}`));
+      matchesAsync.push(pbkdf2CompareAsync(pbkdf2Plain, pbkdf2Hashed, `${timestamp}`));
       return P.all(matchesAsync)
       .then((result) => {
         if (result[0] && result[1])
@@ -116,7 +109,7 @@ module.exports = function(model) {
               return next(new createError.Unauthorized('SDK Unauthorized'));
             }
             if(!result || result.status !== 'legal')
-            {
+            {  
               return next(new createError.Unauthorized('SDK Unauthorized'));
             }
             req.projProfile = result;

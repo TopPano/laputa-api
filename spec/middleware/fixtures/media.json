@@ -1,0 +1,30 @@
+[{
+  "_id": "adc7cde5ed098000",
+  "status": "completed",
+  "dimension": {
+    "width": 1200,
+    "height": 600,
+    "lat": 9,
+    "lng": 10
+  },
+  "type": "panoPhoto",
+  "caption": "'test'",
+  "created": "2017-04-21T08:23:23.866Z",
+  "modified": "2017-04-21T08:23:24.207Z",
+  "ownerId": "f38a14f0-0a25-11e7-b4ef-35bf597ca62a",
+  "locationId": null,
+  "title": "'ttt'",
+  "tags": [],
+  "content": {
+    "shardingKey": "74fb",
+    "storeUrl": "https://undefined.s3.amazonaws.com/",
+    "cdnUrl": "undefined",
+    "quality": [
+      {
+        "size": "1200X600",
+        "tiles": 1
+      }
+    ],
+    "project": "equirectangular"
+  }
+}]

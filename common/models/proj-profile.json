@@ -1,0 +1,38 @@
+{
+  "name": "projProfile",
+  "plural": "projProfiles",
+  "base": "PersistedModel",
+  "idInjection": false,
+  "options": {
+    "validateUpsert": true
+  },
+  "properties": {
+    "sid": {
+      "type": "string",
+      "id": true,
+      "generated": false
+    },
+    "ownerId": { "type": "string", "require": true },
+    "status": { "type": "string", "require": true },
+    "policy": { "type": "string", "require": true },
+    "created": { "type": "date", "require": true }
+  },
+  "validations": [],
+  "relations": {
+    "user": {
+      "type": "belongsTo",
+      "model": "user",
+      "foreignKey": "ownerId"
+    }
+  },
+  "acls": [
+    {
+      "accessType": "*",
+      "principalType": "ROLE",
+      "principalId": "$everyone",
+      "permission": "DENY"
+    }
+
+  ],
+  "methods": {}
+}
