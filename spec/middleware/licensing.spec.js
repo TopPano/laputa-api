@@ -33,21 +33,6 @@ function json(verb, url, contentType) {
 }
 
 describe.only('Middleware: ', function() {
-
-//  function normalize(name, array, options) {
-//    if (!options) { options = {}; }
-//    var idAttribute = options.idAttribute || '_id';
-//    var obj = {};
-//    var schema = {};
-//    obj[name] = array;
-//    schema[name] = normalizr.arrayOf(new normalizr.Schema(name, { idAttribute: idAttribute }));
-//    var normalizedObj = normalizr.normalize(obj, schema);
-//    normalizedObj.result[name].forEach(function(id) {
-//      delete normalizedObj.entities[name][id][idAttribute];
-//    });
-//    return normalizedObj;
-//  }
-
   function insertSampleAsync(path, model){
     return readFileAsync(path)
             .then((data) => {

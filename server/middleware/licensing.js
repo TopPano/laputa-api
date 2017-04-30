@@ -112,7 +112,8 @@ module.exports = function(model) {
             {  
               return next(new createError.Unauthorized('SDK Unauthorized'));
             }
-            req.projProfile = result;
+            res.reqMedia = {id: mediaId, quality: quality};
+            res.projProfile = result;
             return next();
           });
         }

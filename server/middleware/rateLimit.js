@@ -1,11 +1,21 @@
+const redis = require('redis');
 module.exports = function(app) { 
   return function rateLimit(req, res, next) { 
-    // TODO:check req.headers.referer is www.verpix.me?
+    let projProfile = res.projProfile;
+    let reqMedia = res.reqMedia;
+    let d = new Date();
+    let month = d.getMonth();
+    let etcdKey = projProfile.userId+'/'+projProfile.sid+'/'+reqMedia.quality+'/'+month+'/'+d.getTime();
     
-    // check the authentication msg is vaild
-    //console.log(app.models.user);
-    console.log('rateLimit', req.url);
-    // go to next() to get the media metadata
+
+
+    //console.log(etcdKey);
+    
+    delete res.projProfile;
+    delete res.reqMedia;
+    
+    //console.log('bye', res.projProfile);
+    
     next();
   };
 };
