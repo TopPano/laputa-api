@@ -94,7 +94,6 @@ module.exports = function(model) {
       const pbkdf2Plain = isOdd ?
       `${resourceName}${timestamp}` :
       `${apiKey}${timestamp}`;
-
       const matchesAsync = [];
       matchesAsync.push(bcryptCompareAsync(bcryptPlain, bcryptHashed));
       matchesAsync.push(pbkdf2CompareAsync(pbkdf2Plain, pbkdf2Hashed, `${timestamp}`));

@@ -13,6 +13,7 @@ module.exports = {
   hostname: 'dev.verpix.net',
   bucketName: process.env.BKT_NAME,
   cdnUrl: process.env.CDN_URL,
+  redisHost: 'verpix-rate.ucbwtc.ng.0001.apne1.cache.amazonaws.com',
   host: process.env.HOST || '0.0.0.0',
   port: process.env.PORT || 3000,
   restApiRoot: '/api' + (version > 0 ? '/v' + version : ''),

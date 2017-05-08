@@ -20,10 +20,15 @@ app.on('started', () => {
     }
   });
 
+  const P = require('bluebird');
+  const redis = require('redis');
+  P.promisifyAll(redis.RedisClient.prototype);
+  const redisCli = require('redis').createClient(6379, app.get('redisHost'));
+
   let Media = app.models.Media;
   Media.afterRemote('findMediaById', (context, remoteMethodOutput, next) => {
-    let mWare = rateLimit(app);
-    mWare(context.req, context.res, next);
+    let mWare = rateLimit(redisCli);
+    mWare(context, next);
   });
 });
 
@@ -71,7 +76,7 @@ app.middleware('parse', bodyParser.urlencoded({ extended: true }));
 if (require.main === module) {
   // for production mode, check the env variables are set before start 
   if (process.env.NODE_ENV === 'production') {
-    if (!app.get('cdnUrl') || !app.get('bucketName')) {
+    if (!app.get('cdnUrl') || !app.get('bucketName') || !app.get('redisHost')) {
       throw 'Environment variables are not set correctly';
     }
   }
