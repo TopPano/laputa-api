@@ -13,6 +13,7 @@ module.exports = {
   hostname: 'dev.verpix.net',
   host: process.env.HOST || '0.0.0.0',
   port: process.env.PORT || 3000,
+  redisHost: 'verpix-rate.ucbwtc.ng.0001.apne1.cache.amazonaws.com',
   restApiRoot: '/api' + (version > 0 ? '/v' + version : ''),
   passportProviders: {
     'facebook-token': {

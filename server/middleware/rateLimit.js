@@ -41,12 +41,15 @@ module.exports = function(redisCli) {
       
       P.all([ genVerificationMsgAsync(resourceName, apiKey, timestamp), 
               redisCli.incr(etcdKey)])
-           .then((result) => { 
+           .then((result) => {
+              if(!result[1])
+              {return next(new Error('redis client fail'));}
               res.set('X-Date', d);
+              res.set('Access-Control-Expose-Headers', 'x-date');
               context.result.result.verification = result[0]; 
               next();
            })
-           .catch(e => {next(e)});
+           .catch(e => {next(e);});
     }
     else{
       return next();

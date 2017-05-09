@@ -24,7 +24,6 @@ app.on('started', () => {
   const redis = require('redis');
   P.promisifyAll(redis.RedisClient.prototype);
   const redisCli = require('redis').createClient(6379, app.get('redisHost'));
-
   let Media = app.models.Media;
   Media.afterRemote('findMediaById', (context, remoteMethodOutput, next) => {
     let mWare = rateLimit(redisCli);
