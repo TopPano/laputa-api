@@ -62,17 +62,11 @@ describe.only('Middleware: ', function() {
     function genSignatureSync(timestamp, apiKey, resource){
       const isOdd = (timestamp % 2);
       const bcryptPlain = isOdd ?
-                          `${timestamp}${apiKey}` :
-                          `${timestamp}${reverseString(resource)}`;
-
-      const pbkdf2Plain = isOdd ?
-                          `${resource}${timestamp}` :
-                          `${apiKey}${timestamp}`;
+                          `${timestamp}${apiKey}${resource}${reverseString(timestamp.toString())}` :
+                          `${timestamp}${reverseString(resource)}${apiKey}${timestamp}`;
       // gen signature
       let bcryptSalt = bcrypt.genSaltSync(10);
-      let field1 = bcrypt.hashSync(bcryptPlain, bcryptSalt);
-      let field2 = pbkdf2.pbkdf2Sync(pbkdf2Plain,`${timestamp}`, PBKDF2_ITERS, PBKDF2_KEY_LENGTH, PBKDF2_DIGEST).toString('hex');
-      return field1+field2;
+      return bcrypt.hashSync(bcryptPlain, bcryptSalt);
     }
 
     before(function(done) {
