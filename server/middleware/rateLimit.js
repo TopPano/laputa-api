@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const P = require('bluebird');
 const bcryptHashAsync = P.promisify(bcrypt.hash);
+const createError = require('../../common/utils/http-errors');
 const BCRYPT_SALT_ROUND = 5;
 //const redisCli = require('redis').createClient(6379, app.get('redisHost'));
 
@@ -43,13 +44,20 @@ module.exports = function(redisCli) {
               redisCli.incr(etcdKey)])
            .then((result) => {
               if(!result[1])
-              {return next(new Error('redis client fail'));}
+              {
+                // redis failed
+                // TODO: logger
+                return next(new createError.InternalServerError());
+              }
               res.set('X-Date', d);
               res.set('Access-Control-Expose-Headers', 'x-date');
               context.result.result.verification = result[0]; 
               next();
            })
-           .catch(e => {next(e);});
+           .catch(e => {
+              // TODO: logger
+              next(e);
+           });
     }
     else{
       return next();

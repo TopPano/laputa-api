@@ -4,6 +4,9 @@ var boot = require('loopback-boot');
 const licensing = require('./middleware/licensing.js');
 const rateLimit = require('./middleware/rateLimit.js');
 
+const P = require('bluebird');
+const redis = require('redis');
+
 var app = module.exports = loopback();
 
 // set invoking rateLimit after findMediaById
@@ -20,10 +23,15 @@ app.on('started', () => {
     }
   });
 
-  const P = require('bluebird');
-  const redis = require('redis');
   P.promisifyAll(redis.RedisClient.prototype);
-  const redisCli = require('redis').createClient(6379, app.get('redisHost'));
+  let redisCli;
+  if (process.env.NODE_ENV === 'test') {
+    redisCli = redis.createClient(6379, app.get('redisHost'));
+  }
+  else {
+    redisCli = redis.createClient();
+  }
+
   let Media = app.models.Media;
   Media.afterRemote('findMediaById', (context, remoteMethodOutput, next) => {
     let mWare = rateLimit(redisCli);

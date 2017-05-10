@@ -9,7 +9,6 @@ const AUTH_MSG_PREFIX = 'VERPIX ';
 // bytes, and bcryptjs uses "2a" format, so the length is 60 bytes.
 // http://stackoverflow.com/questions/5881169/what-column-type-length-should-i-use-for-storing-a-bcrypt-hashed-password-in-a-d
 const BCRYPT_LENGTH = 60;
-
 // Function to reverse string
 function reverseString(str) {
   return str.split('').reverse().join('');
@@ -24,8 +23,9 @@ module.exports = function(model) {
     
     const authMsg = req.get('Authorization');
     if(authMsg === undefined)
-    { // if yes, it may be from verpix.me => next()
-      // it will not response validation key
+    { 
+      // if yes, it may be from verpix.me => next()
+      // it will not response verificationMsg
       next();
     }
     else {

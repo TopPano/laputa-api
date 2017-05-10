@@ -37,6 +37,7 @@
     "jshint": "2.5.6",
     "mocha": "2.5.3",
     "normalizr": "2.1.0",
+    "redis-mock": "0.17.0",
     "should": "7.0.1",
     "supertest": "1.1.0"
   },
