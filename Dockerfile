@@ -1,5 +1,5 @@
 #This dockerfile uses the ubuntu image
-FROM toppano/laputa-base:latest
+FROM 825953773834.dkr.ecr.ap-northeast-1.amazonaws.com/base
 
 MAINTAINER uniray7 uniray7@gmail.com
 
@@ -26,7 +26,16 @@ RUN git submodule init
 RUN git submodule update
 RUN npm install
 
+# set S3, mongodb, gearmand
+ARG BKT_NAME
+ARG CDN_URL
+ARG DB_URL
+ARG GEARMAN_HOST
+
 EXPOSE 3000
-#ENV DB_URL='mongodb://DB_HOST:DB_PORT/DB_NAME?allowExtendedOperators=true'
-ENV G_SERVERS='[{"host":"gearmand", "port":4730}]'
+ENV BKT_NAME=$BKT_NAME
+ENV CDN_URL=$CDN_URL
+ENV DB_URL=$DB_URL
+ENV G_SERVERS='[{"host":"'$GEARMAN_HOST'", "port":4730}]'
+
 CMD npm run docker-start

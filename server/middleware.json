@@ -25,6 +25,6 @@
     "loopback#urlNotFound": {}
   },
   "final:after": {
-    "loopback#errorHandler": {}
+    "./middleware/errorHandler.js" :{}
   }
 }

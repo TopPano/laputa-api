@@ -15,7 +15,6 @@
 var setPrototypeOf = require('setprototypeof');
 var statuses = require('statuses');
 var inherits = require('inherits');
-
 /**
  * Module exports.
  * @public
@@ -112,16 +111,34 @@ function createHttpErrorConstructor () {
 
 function createClientErrorConstructor (HttpError, name, code) {
   var className = name.match(/Error$/) ? name : name + 'Error';
-
+  
+  function addErrAttr(err, obj) {
+    Object.keys(obj).forEach(function(key) {
+      err[key] = obj[key]; 
+    });
+  }
+  
   function ClientError (message) {
     // create the error object
-    var err = new Error(message != null ? message : statuses[code]);
+    var err;
+    
+    if (message != null){
+      if (typeof message === 'object') { 
+        err = new Error(statuses[code]);
+        addErrAttr(err, message);
+      }
+      else{
+        err = new Error(message);
+      }
+    }
+    else{
+      err = new Error(statuses[code]);
+    }
 
     // capture a stack trace to the construction point
     if (process.env.NODE_ENV !== 'production') {
       Error.captureStackTrace(err, ClientError);
     }
-
     // adjust the [[Prototype]]
     setPrototypeOf(err, ClientError.prototype);
 

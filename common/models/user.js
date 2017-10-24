@@ -73,6 +73,55 @@ module.exports = function(User) {
     http: { path: '/auth/facebook/token', verb: 'get' }
   });
 
+  User.beforeRemote('prototype.updateAttributes', function(ctx, unused, next){
+    for (var prop in ctx.req.body){
+      if (prop !== 'autobiography' && prop !== 'gaId'){
+        return next(new createError.Forbidden('the attribute "' + prop + '" is prohibited to update'));
+      }
+    }
+    next();
+  });
+
+
+  User.beforeRemote('login', function(ctx, unused, next){
+    User.find({where:{email: ctx.req.body.email}}, function(err, user) {
+      if (err) { 
+        logger.error(err);
+        return next(new createError.InternalServerError());
+      }
+      if (!user[0]) { 
+        return next(new createError.NotFound({code: 'EMAIL_NOT_FOUND'}));
+      }
+      next();
+    });
+  });
+
+
+  User.beforeRemote('create', function(ctx, unused, next){
+    // check the username is existed
+    User.find({where: {username: ctx.req.body.username}}, function(err, user) {
+      if (err) { 
+        logger.error(err);
+        return next(new createError.InternalServerError());
+      }
+      if (user[0]) { 
+        return next(new createError.UnprocessableEntity({code: 'USERNAME_REGISTERED'}));
+      }
+      // check the email is existed
+      User.find({where:{email: ctx.req.body.email}}, function(err, user) {
+        if (err) { 
+          logger.error(err);
+          return next(new createError.InternalServerError());
+        }
+        if (user[0]) { 
+          return next(new createError.UnprocessableEntity({code: 'EMAIL_REGISTERED'}));
+        }
+        next();
+      });
+    });
+  });
+
+
   User.query = function(id, req, json, callback) {
     logger.debug('in query');
     var where = json.where || undefined;
@@ -460,7 +509,7 @@ module.exports = function(User) {
 
   User.getProfile = function(id, req, callback) {
     User.findById(id, {
-      fields: [ 'sid', 'username', 'profilePhotoUrl', 'autobiography' ],
+      fields: [ 'sid', 'username', 'profilePhotoUrl', 'autobiography', 'gaId'],
       include: [
         {
           relation: 'followers'
@@ -496,6 +545,7 @@ module.exports = function(User) {
         username: userObj.username.split('.')[0] === 'facebook-token' ? userObj.identities[0].profile.displayName : userObj.username,
         profilePhotoUrl: userObj.profilePhotoUrl,
         autobiography: userObj.autobiography || null,
+        gaId: userObj.gaId || null,
         media: userObj.media.length,
       };
       
@@ -657,7 +707,7 @@ module.exports = function(User) {
         if (isMatch) {
           user.updateAttribute('password', newPassword, callback);
         } else {
-          callback(new createError.Unauthorized('incorrect old password'));
+          callback(new createError.Unauthorized({code: 'WRONG_OLD_PASSWD'}));
         }
       });
     });
@@ -682,7 +732,7 @@ module.exports = function(User) {
         return callback(new createError.InternalServerError());
       }
       if (!user || user.length === 0) {
-        return callback(new createError.NotFound('no user with the email was found'));
+        return callback(new createError.NotFound({code: 'EMAIL_NOT_FOUND'}));
       }
       User.resetPassword({ email: email }, function(err) {
         if (err) {
