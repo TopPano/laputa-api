@@ -25,12 +25,8 @@ app.on('started', () => {
 
   P.promisifyAll(redis.RedisClient.prototype);
   let redisCli;
-  if (process.env.NODE_ENV === 'test') {
-    redisCli = redis.createClient(6379, app.get('redisHost'));
-  }
-  else {
-    redisCli = redis.createClient();
-  }
+  // TODO: need error handler  
+  redisCli = redis.createClient(6379, app.get('redisHost'));
 
   let Media = app.models.Media;
   Media.afterRemote('findMediaById', (context, remoteMethodOutput, next) => {
