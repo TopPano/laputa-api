@@ -1,8 +1,5 @@
 /*
 *  It is copy of strong-remoting's(npm package) errorHandler
-*
-*
-*
 */
 
 module.exports = function(options) {

@@ -9,6 +9,8 @@ const redis = require('redis');
 
 var app = module.exports = loopback();
 
+// disable licensing & rateLimit 
+/*
 // set invoking rateLimit after findMediaById
 // set rateLimit into beforeRemote('findMediaById');
 app.on('started', () => {
@@ -34,7 +36,7 @@ app.on('started', () => {
     mWare(context, next);
   });
 });
-
+*/
 
 app.start = function() {
   // start the web server
