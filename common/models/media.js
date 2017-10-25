@@ -79,8 +79,8 @@ module.exports = function(Media) {
       /* thumbnail */
       var thumbBuf = req.files.thumbnail[0].buffer;
       var thumbType = req.files.thumbnail[0].mimetype;
-      var thumbLat = req.body.thumbLat;
-      var thumbLng = req.body.thumbLng;
+      var thumbLat = req.body.lat;
+      var thumbLng = req.body.lng;
 
       if (!thumbBuf || !thumbType) {
         return callback(new createError.BadRequest('missing properties'));
@@ -331,8 +331,6 @@ module.exports = function(Media) {
     returns: [ { arg: 'result', type: 'object' } ],
     http: { path: '/panophoto', verb: 'post' }
   });
-  // disable for now
-  Media.disableRemoteMethod('createPanoPhoto', true);
 
 
   Media.createLivePhoto = function(req, callback) {
@@ -458,11 +456,11 @@ module.exports = function(Media) {
         return callback(null, result);
       }
       else {
-        result = {videoStatus: 'non-existent'}  
+        result = {videoStatus: 'non-existent'};  
         return callback(null, result);
       }
     });
-  }  
+  };  
 
 
   Media.remoteMethod('getVideo', {
@@ -513,7 +511,7 @@ module.exports = function(Media) {
   // restrict user only update 'caption' & 'title'
   Media.beforeRemote('prototype.updateAttributes', function(ctx, unused, next){
     for (var prop in ctx.req.body){
-      if ((prop != 'title') && (prop != 'caption')){
+      if ((prop !== 'title') && (prop !== 'caption')){
         return next(new createError.NotFound('the attribute \'' + prop + '\' is prohibited to update'));
       }
     }
@@ -528,7 +526,7 @@ module.exports = function(Media) {
         {
           relation: 'owner',
           scope: {
-            fields: [ 'username', 'profilePhotoUrl' ],
+            fields: [ 'username', 'profilePhotoUrl', 'gaId' ],
             include: {
               relation: 'identities',
               scope: {
@@ -560,7 +558,7 @@ module.exports = function(Media) {
       }
       var mediaObj = media.toJSON();
       // if the media is not completed, just send status back to frontend
-      if (mediaObj.status != 'completed'){
+      if (mediaObj.status !== 'completed'){
         return callback(null, {sid: mediaObj.sid, status: mediaObj.status});
       }
       
@@ -572,6 +570,7 @@ module.exports = function(Media) {
       callback(null, mediaObj);
     });
   };
+
   Media.remoteMethod('findMediaById', {
     accepts: [
       { arg: 'id', type: 'string', required: true },
@@ -579,6 +578,16 @@ module.exports = function(Media) {
     ],
     returns: [ { arg: 'result', type: 'object' } ],
     http: { path: '/:id', verb: 'get' }
+  });
+  
+  // for SDK to getMedia, the http.path is added ':quality'
+  Media.remoteMethod('findMediaById', {
+    accepts: [
+      { arg: 'id', type: 'string', required: true },
+      { arg: 'req', type: 'object', 'http': { source: 'req' } }
+    ],
+    returns: [ { arg: 'result', type: 'object' } ],
+    http: { path: '/:id/:quality', verb: 'get' }
   });
 
   Media.like = function(mediaId, req, callback) {

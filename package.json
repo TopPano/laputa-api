@@ -28,6 +28,7 @@
     "passport": "0.2.2",
     "passport-facebook-token": "3.2.0",
     "randomstring": "1.1.5",
+    "redis": "2.7.1",
     "serve-favicon": "2.3.0",
     "winston": "2.2.0",
     "xoauth2": "1.1.0"
@@ -36,6 +37,7 @@
     "jshint": "2.5.6",
     "mocha": "2.5.3",
     "normalizr": "2.1.0",
+    "redis-mock": "0.17.0",
     "should": "7.0.1",
     "supertest": "1.1.0"
   },

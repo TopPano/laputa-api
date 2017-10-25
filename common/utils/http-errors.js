@@ -115,7 +115,7 @@ function createClientErrorConstructor (HttpError, name, code) {
   function addErrAttr(err, obj) {
     Object.keys(obj).forEach(function(key) {
       err[key] = obj[key]; 
-    })
+    });
   }
   
   function ClientError (message) {

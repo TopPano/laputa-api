@@ -1,10 +1,10 @@
 #This dockerfile uses the ubuntu image
-FROM toppano/laputa-base:latest
+FROM 825953773834.dkr.ecr.ap-northeast-1.amazonaws.com/base
 
 MAINTAINER uniray7 uniray7@gmail.com
 
 # install nodejs
-ENV NODE_VERSION 5.11.1
+ENV NODE_VERSION 6.11.0
 ENV NVM_DIR /home/.nvm
 
 RUN . $NVM_DIR/nvm.sh && nvm install v$NODE_VERSION && nvm alias default v$NODE_VERSION

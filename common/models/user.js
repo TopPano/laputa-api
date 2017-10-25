@@ -75,8 +75,8 @@ module.exports = function(User) {
 
   User.beforeRemote('prototype.updateAttributes', function(ctx, unused, next){
     for (var prop in ctx.req.body){
-      if (prop != 'autobiography'){
-        return next(new createError.NotFound('the attribute \'' + prop + '\' is prohibited to update'));
+      if (prop !== 'autobiography' && prop !== 'gaId'){
+        return next(new createError.Forbidden('the attribute "' + prop + '" is prohibited to update'));
       }
     }
     next();
@@ -509,7 +509,7 @@ module.exports = function(User) {
 
   User.getProfile = function(id, req, callback) {
     User.findById(id, {
-      fields: [ 'sid', 'username', 'profilePhotoUrl', 'autobiography' ],
+      fields: [ 'sid', 'username', 'profilePhotoUrl', 'autobiography', 'gaId'],
       include: [
         {
           relation: 'followers'
@@ -545,6 +545,7 @@ module.exports = function(User) {
         username: userObj.username.split('.')[0] === 'facebook-token' ? userObj.identities[0].profile.displayName : userObj.username,
         profilePhotoUrl: userObj.profilePhotoUrl,
         autobiography: userObj.autobiography || null,
+        gaId: userObj.gaId || null,
         media: userObj.media.length,
       };
       

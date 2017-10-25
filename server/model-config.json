@@ -48,6 +48,10 @@
     "dataSource": "db",
     "public": true
   },
+  "projProfile": {
+    "dataSource": "db",
+    "public": false
+  },
   "like": {
     "dataSource": "db",
     "public": false

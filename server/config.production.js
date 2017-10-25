@@ -13,6 +13,7 @@ module.exports = {
   hostname: 'www.verpixplus.me',
   bucketName: process.env.BKT_NAME,
   cdnUrl: process.env.CDN_URL,
+  redisHost: 'verpix-rate.ucbwtc.ng.0001.apne1.cache.amazonaws.com',
   restApiRoot: '/api' + (version > 0 ? '/v' + version : ''),
   passportProviders: {
     'facebook-token': {

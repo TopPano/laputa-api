@@ -1,7 +1,44 @@
 var loopback = require('loopback');
 var boot = require('loopback-boot');
 
+const licensing = require('./middleware/licensing.js');
+const rateLimit = require('./middleware/rateLimit.js');
+
+const P = require('bluebird');
+const redis = require('redis');
+
 var app = module.exports = loopback();
+
+// TODO: disable licensing & rateLimit,
+//       because it's not developed and tested completely yet
+/*
+// set invoking rateLimit after findMediaById
+// set rateLimit into beforeRemote('findMediaById');
+app.on('started', () => {
+  app.middlewareFromConfig(licensing, {
+    enabled: true,
+    name: 'licensing',
+    phase: 'routes:before',
+    methods: ['GET'],
+    paths: ['/api/media/:id/'],
+    params: {
+      projProfile: app.models.projProfile
+    }
+  });
+
+  P.promisifyAll(redis.RedisClient.prototype);
+  let redisCli;
+
+  // TODO: need error handler if redisCli failed
+  redisCli = redis.createClient(6379, app.get('redisHost'));
+
+  let Media = app.models.Media;
+  Media.afterRemote('findMediaById', (context, remoteMethodOutput, next) => {
+    let mWare = rateLimit(redisCli);
+    mWare(context, next);
+  });
+});
+*/
 
 app.start = function() {
   // start the web server
@@ -46,8 +83,8 @@ app.middleware('parse', bodyParser.urlencoded({ extended: true }));
 if (require.main === module) {
   // for production mode, check the env variables are set before start 
   if (process.env.NODE_ENV === 'production') {
-    if (!app.get('cdnUrl') || !app.get('bucketName')) {
-      throw 'Environment variables are not set correctly'
+    if (!app.get('cdnUrl') || !app.get('bucketName') || !app.get('redisHost')) {
+      throw 'Environment variables are not set correctly';
     }
   }
   app.start();
