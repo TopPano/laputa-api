@@ -38,7 +38,7 @@ function isVerified(verification, apiKey, resource, timestamp) {
   return bcrypt.compareSync(bcryptPlain, verification);
 }
 
-describe.only('SDK: ', function() {
+describe.skip('SDK: ', function() {
   function insertSampleAsync(path, model){
     return readFileAsync(path)
             .then((data) => {
