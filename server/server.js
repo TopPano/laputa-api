@@ -9,7 +9,8 @@ const redis = require('redis');
 
 var app = module.exports = loopback();
 
-// disable licensing & rateLimit 
+// TODO: disable licensing & rateLimit,
+//       because it's not developed and tested completely yet
 /*
 // set invoking rateLimit after findMediaById
 // set rateLimit into beforeRemote('findMediaById');
@@ -27,7 +28,8 @@ app.on('started', () => {
 
   P.promisifyAll(redis.RedisClient.prototype);
   let redisCli;
-  // TODO: need error handler  
+
+  // TODO: need error handler if redisCli failed
   redisCli = redis.createClient(6379, app.get('redisHost'));
 
   let Media = app.models.Media;

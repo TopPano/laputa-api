@@ -46,7 +46,7 @@ module.exports = function(redisCli) {
               if(!result[1])
               {
                 // redis failed
-                // TODO: logger
+                // TODO: need to log if fail to push to redisDB
                 return next(new createError.InternalServerError());
               }
               res.set('X-Date', d);
